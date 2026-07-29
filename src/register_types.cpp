@@ -1,6 +1,7 @@
 #include "register_types.h"
 #include "core/vfs/vfs_manager.h"
 #include "api/unified_asset_importer.h"
+#include "api/async_asset_importer.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -16,6 +17,7 @@ void initialize_quebratsk_module(ModuleInitializationLevel p_level) {
     // Register native C++ classes to Godot ClassDB
     ClassDB::register_class<quebratsk::vfs::VFSManager>();
     ClassDB::register_class<quebratsk::api::UnifiedAssetImporter>();
+    ClassDB::register_class<quebratsk::api::AsyncAssetImporter>();
 }
 
 void uninitialize_quebratsk_module(ModuleInitializationLevel p_level) {
