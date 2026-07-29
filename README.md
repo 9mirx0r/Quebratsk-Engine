@@ -19,7 +19,7 @@
 ## 🎯 Why Quebratsk Engine Exists
 
 <p align="center">
-  <img src="mission.jpg" alt="Why Quebratsk Engine Exists" width="100%" style="border-radius: 8px;"/>
+  <img src="mission_v2.jpg" alt="Why Quebratsk Engine Exists" width="100%" style="border-radius: 8px;"/>
 </p>
 
 ### The Problem: Decades of Great Content Trapped in Legacy Formats
@@ -69,18 +69,6 @@ Quebratsk Engine takes the opposite path:
 [ Future Tier 2: Tarkov / Unity ] ◄── [ Future Tier 1: CS2 & Reforger ] ◄── [ Phase 4: Native Godot Converters (Done) ]
 ```
 
-#### Current Milestones
-- [x] **Phase 1: VFS Zero-Copy Core** — Memory mapping (`mmap`), URI scheme, WAD3/GMA/PBO mounting, LZSS CPRS decompressor.
-- [x] **Phase 2: Intermediate Representation & Spatial Math** — `IRMeshData`, `IRSkeletonData`, `IRMaterialData`, $Z$-Up $\to$ $Y$-Up axis remapping, Hammer Unit scaling, CW $\to$ CCW winding inversion.
-- [x] **Phase 3: Classic Engine Parsers** — GoldSrc (`.wad`, `.bsp`, `.mdl`, `.spr`), Source 1 (`.gma`, `.bsp`, `.mdl`, `.vtf`, `.vmt`), Real Virtuality (`.pbo`, `.p3d`, `.wrp`, `.paa`, `.rvmat`).
-- [x] **Phase 4: Native Godot 4 Converters** — `MeshConverter`, `SkeletonConverter`, `MaterialConverter`, `AnimationConverter`, `CollisionConverter`, `TerrainConverter`.
-- [ ] **Phase 5: Unified GDScript API** — `UnifiedAssetImporter` class bound to ClassDB.
-
-#### Future Target Expansions (Tier 1 & 2 Roadmap)
-1. **Enfusion Engine / Arma Reforger Support** (`.pak`, `.edds`)
-2. **Source Engine 2 / Counter-Strike 2 (CS2) Support** (`.vpk_c`, `.vmdl_c`, `.vtex_c`)
-3. **Unity / Escape from Tarkov Asset Support** (`.bundle`)
-
 ---
 
 ## Supported Engine Formats (Current Scope)
@@ -90,33 +78,6 @@ Quebratsk Engine takes the opposite path:
 | **GoldSrc** *(Half-Life 1, CS 1.6)* | `.wad` (WAD3) | `.mdl` (StudioMDL v10), `.spr` | 8-bit palette textures, `.spr` frames | `.bsp` v30 ClipNodes |
 | **Source Engine 1** *(GMod, HL2, CS:S)* | `.gma` (GMAD), `.vpk` | `.mdl` (v44–49), `.vtx`, `.vvd` | `.vtf` (v7.0–7.5), `.vmt` (KeyValues) | BSP Brushes, V-HACD |
 | **Real Virtuality / Enfusion** *(DayZ SA, Arma 2/3)* | `.pbo` (CPRS LZSS) | `.p3d` (ODOL v40–v75+, MLOD) | `.paa` / `.pac` (DXT/ARGB), `.rvmat` | `.wrp` Heightmaps, P3D Geometry LODs |
-
----
-
-## GDScript Example
-
-```gdscript
-extends Node3D
-
-var vfs: QuebratskVFS
-var importer: UnifiedAssetImporter
-
-func _ready() -> void:
-    vfs = QuebratskVFS.new()
-    importer = UnifiedAssetImporter.new()
-    importer.set_vfs(vfs)
-
-    # Mount archives
-    vfs.mount_container("vfs://cs16/", "res://assets/packages/cstrike.wad")
-    vfs.mount_container("vfs://gmod/", "res://assets/packages/weapon_pack.gma")
-    vfs.mount_container("vfs://dayz/", "res://assets/packages/weapons_firearms.pbo")
-
-    # Load weapon mesh from Garry's Mod
-    var weapon_mesh: ArrayMesh = importer.load_mesh("vfs://gmod/models/weapons/w_snip_awp.mdl")
-    var weapon_instance := MeshInstance3D.new()
-    weapon_instance.mesh = weapon_mesh
-    add_child(weapon_instance)
-```
 
 ---
 
