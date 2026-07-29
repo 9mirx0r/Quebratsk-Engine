@@ -2,6 +2,7 @@
 #include "core/vfs/vfs_manager.h"
 #include "api/unified_asset_importer.h"
 #include "api/async_asset_importer.h"
+#include "api/vfs_file_tree.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -18,6 +19,7 @@ void initialize_quebratsk_module(ModuleInitializationLevel p_level) {
     ClassDB::register_class<quebratsk::vfs::VFSManager>();
     ClassDB::register_class<quebratsk::api::UnifiedAssetImporter>();
     ClassDB::register_class<quebratsk::api::AsyncAssetImporter>();
+    ClassDB::register_class<quebratsk::api::VFSFileTree>();
 }
 
 void uninitialize_quebratsk_module(ModuleInitializationLevel p_level) {

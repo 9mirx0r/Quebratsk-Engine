@@ -9,21 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned (10 QoL Superpowers Expansion Roadmap)
-- Interactive VFS File Tree Explorer with 3D Thumbnail Previews in Editor Dock (`addons/quebratsk_editor/`).
-- Automatic Mod Dependency Resolver & Conflict Manager (`addon.json` & `config.cpp` manifest parsers).
-- Hot-Reloading Live Asset File Watcher in `VFSManager`.
-- Automated LOD (Level of Detail) Mesh Simplification Subsystem (Quadric Error Metric).
-- Legacy-to-PBR Auto-Tuning Shader Filter (Procedural normal, roughness, and metallic generation).
-- Spatial 3D Audio Bank Streamer & Attenuator (`AudioStreamPlayer3D` script parser).
-- One-Click Drag-and-Drop Editor Importer Plugin (`EditorImportPlugin`).
-- Real-Time Telemetry & Performance Profiler Overlay.
-- Universal Batch GLTF / OBJ Asset Converter GUI utility.
-- Headless CLI Command-Line Tool (`quebratsk-cli.exe`) for automated CI/CD pipelines.
-
 ### Added
+- **VFS File Tree Explorer Class (`src/api/vfs_file_tree.h/.cpp`)**: C++ class bound to ClassDB returning structured VFS archive trees for the Godot Editor Dock UI.
+- **Mod Dependency Resolver (`src/core/vfs/dependency_resolver.h/.cpp`)**: Automatic manifest parser for resolving required parent texture/material archives (`addon.json`, `config.cpp`).
 - **Async Multi-Threaded Importer (`src/api/async_asset_importer.h/.cpp`)**: Non-blocking background mesh loading with `load_mesh_async` and `Callable` deferred callbacks.
 - **Godot Editor VFS Dock Plugin (`demo/addons/quebratsk_editor/`)**: Editor plugin for browsing mounted VFS archives inside the Godot 4 Editor UI.
+- **Beginner's Guide & Tutorial (`TUTORIAL_GODOT4.md`)**: Intuitive, step-by-step GDScript tutorial for installing, mounting archives, importing 3D models, materials, and terrains in Godot 4.
 - **Lightmap UV2 & Shader Bridge (`src/converters/lightmap_packer.h/.cpp`, `src/converters/shader_bridge.h/.cpp`)**: Secondary UV2 atlas bin-packing and custom ShaderMaterial generator for water, glass, and $selfillum maps.
 - **GLTF Exporter & VFS Audio Decoder (`src/converters/gltf_exporter.h/.cpp`, `src/parsers/audio/audio_decoder.h/.cpp`)**: GLTF 2.0 asset export pipeline and VFS `.wav` audio stream decoder for `AudioStreamWAV`.
 - **Texture & Material Memory Cache (`src/core/vfs/texture_cache.h/.cpp`)**: Thread-safe in-memory cache manager preventing redundant texture/material parsing.
