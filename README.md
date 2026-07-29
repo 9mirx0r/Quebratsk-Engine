@@ -5,7 +5,7 @@
 <h1 align="center">Quebratsk Engine Subsystem</h1>
 
 <p align="center">
-  Universal asset ingestion subsystem for Godot 4 built with GDExtension and C++20. Reads assets from GoldSrc, Source Engine 1, Real Virtuality / Enfusion, Source Engine 2, Bohemia Enfusion, and Unity Engine in real time with zero-copy RAM mapping.
+  Universal asset ingestion subsystem for Godot 4 built with GDExtension and C++20. Reads assets from GoldSrc, Source Engine 1, Real Virtuality / Enfusion, Source Engine 2, Bohemia Enfusion, Unity Engine, and Unreal Engine 4/5 in real time with zero-copy RAM mapping.
 </p>
 
 <p align="center">
@@ -56,7 +56,7 @@ It translates binary formats into a standardized **Intermediate Representation (
 **Answer:** Absolutely. Quebratsk Engine is engineered with strict C++20 standards. It uses zero-copy memory mapping (`mmap` / `CreateFileMapping`), `#pragma pack(push, 1)` binary layouts validated at compile-time with `static_assert`, zero-allocation streaming pipelines, a decoupled Intermediate Representation (IR), and strict Semantic Versioning. Every feature is audited line-by-line against authoritative engine specifications.
 
 #### Q3: What is the long-term maintenance commitment and expansion vision?
-**Answer:** Quebratsk Engine is actively maintained with a clear, long-term technical roadmap. Beyond classic engines, we have expanded into modern Next-Gen engines (Source 2 / CS2, Bohemia Enfusion / Arma Reforger, Unity / Tarkov) and are actively implementing advanced subsystems including V-HACD 4.0 convex physics decomposition, automated lightmap UV2 packing, SIMD vectorization, async multi-threaded loading, audio streaming, and GLTF export capabilities.
+**Answer:** Quebratsk Engine is actively maintained with a clear, long-term technical roadmap. Beyond classic engines, we have expanded into modern Next-Gen engines (Source 2 / CS2, Bohemia Enfusion / Arma Reforger, Unity / Tarkov, Unreal Engine 4/5) and are actively implementing advanced subsystems including V-HACD 4.0 convex physics decomposition, automated lightmap UV2 packing, SIMD vectorization, async multi-threaded loading, audio streaming, and GLTF export capabilities.
 
 ---
 
@@ -73,50 +73,82 @@ Quebratsk Engine takes the opposite path:
 
 ---
 
-## 🗺️ Project Roadmap & Future Vision
+## 🗺️ Detailed Technical Roadmap
 
 <p align="center">
   <img src="roadmap.jpg" alt="Quebratsk Engine Visual Roadmap" width="100%" style="border-radius: 8px;"/>
 </p>
 
-### Phase Breakdown & Feature Roadmap
+### Subsystem Pipeline Architecture
 
 ```
 [ Phase 1: VFS Core (Done) ] ──► [ Phase 2: IR & Math (Done) ] ──► [ Phase 3: Classic Engine Parsers (Done) ]
                                                                                    │
                                                                                    ▼
-[ Advanced Subsystems ] ◄── [ Modern Next-Gen Engines (Done) ] ◄── [ Phase 4-6: Converters & API (Done) ]
+[ 10 QoL Superpowers ] ◄── [ Advanced Quality Subsystems ] ◄── [ Phase 4-6: Converters & API (Done) ]
 ```
 
-#### Core Engine Milestones
-- [x] **Phase 1: VFS Zero-Copy Core** — Memory mapping (`mmap`), URI scheme (`vfs://`), container mounting (`.wad`, `.gma`, `.pbo`), LZSS CPRS decompressor.
+---
+
+### ✅ Completed Milestones
+
+#### 1. Core Subsystem Architecture (Phases 0–6)
+- [x] **Phase 0: Project Infrastructure** — C++20 scaffold, CMake build manifest, `quebratsk.gdextension` symbol definition.
+- [x] **Phase 1: Zero-Copy VFS Core** — Memory mapping (`mmap` / Win32), URI scheme (`vfs://`), `.wad`, `.gma`, `.pbo` mounting, LZSS CPRS stream decompressor.
 - [x] **Phase 2: Intermediate Representation & Spatial Math** — `IRMeshData`, `IRSkeletonData`, `IRMaterialData`, $Z$-Up $\to$ $Y$-Up axis remapping, Hammer Unit scaling, CW $\to$ CCW winding inversion.
 - [x] **Phase 3: Classic Engine Parsers** — GoldSrc (`.wad`, `.bsp`, `.mdl`, `.spr`), Source 1 (`.gma`, `.bsp`, `.mdl`, `.vtf`, `.vmt`), Real Virtuality (`.pbo`, `.p3d`, `.wrp`, `.paa`, `.rvmat`).
 - [x] **Phase 4: Native Godot 4 Converters** — `MeshConverter`, `SkeletonConverter`, `MaterialConverter`, `AnimationConverter`, `CollisionConverter`, `TerrainConverter`.
 - [x] **Phase 5: Unified GDScript API** — `UnifiedAssetImporter` class bound to Godot ClassDB (`load_mesh`, `load_material`, `load_terrain`).
 - [x] **Phase 6: Skeletal Retargeting Engine** — `SkeletalRetargeter` translating legacy bones to Godot 4 `SkeletonProfileHumanoid` standard.
 
-#### Next-Gen Engine Expansion Tier
+#### 2. Next-Gen Modern Engine Expansion
 - [x] **Source Engine 2 / Counter-Strike 2 (CS2)** — `.vpk` (v2), `.vmdl_c` (KV3 / NTRO).
 - [x] **Bohemia Enfusion / Arma Reforger** — `.pak` (EPAK), `.xob` (Multi-LOD).
 - [x] **Unity Engine / Escape from Tarkov** — `.bundle` (UnityFS), Serialized 3D `Mesh`.
+- [x] **Unreal Engine 4/5** — `.pak` (UE Pak), `.uasset` / `.uexp` (Package Summary & Export tables).
 
-#### 🚀 5 Advanced Quality & Performance Subsystems (In Progress)
-1. **V-HACD 4.0 Physics & Collision Decomposition Subsystem**
-   - Automatically decomposes complex 3D meshes into compound `godot::CollisionShape3D` convex bodies.
-   - Extracts BSP entity lumps (`LUMP_ENTITIES`) into interactive `godot::Area3D` triggers (`trigger_once`, `func_door`, `water`).
-2. **Lightmap UV2 Bin-Packing & Shader Bridge**
-   - C++ 2D bin-packing algorithm to generate UV2 lightmap coordinates for baked global illumination (`LightmapGI`).
-   - Custom `godot::ShaderMaterial` templates for animated GoldSrc water, `{` blue-key transparency, and Source `$selfillum` emissive maps.
-3. **Async Multi-Threaded Ingestion Pipeline & SIMD Vectorization**
-   - Background thread loading (`load_mesh_async`) with `std::jthread` thread pool to prevent main thread rendering freezes.
-   - AVX2 / ARM Neon SIMD vectorization in `axis_remap.cpp` for 4x–8x throughput speedups on large vertex buffers.
-4. **Asset Export & Interoperability Tools**
-   - Native GLTF / OBJ exporter (`export_to_gltf`) for saving mounted assets back to disk.
-   - Audio VFS decoding for `.wav`, `.ogg`, and `.soundbank` files returning native `godot::AudioStreamWAV`.
-5. **Godot Editor Dock Plugin & Texture Cache Manager**
-   - GDScript editor plugin (`addons/quebratsk_editor/`) with interactive VFS file browser and 3D preview dock inside Godot Editor.
-   - In-memory texture & material cache manager preventing duplicate texture decodes across instances.
+#### 3. Advanced Quality Subsystems
+- [x] **V-HACD 4.0 Physics & Convex Decomposition** — `VHACDDecomposer` for compound `godot::ConvexPolygonShape3D` physics bodies.
+- [x] **Texture & Material Memory Cache** — `TextureCache` manager preventing duplicate RAM allocations across instances.
+- [x] **Lightmap UV2 Bin-Packing & Shader Bridge** — `LightmapPacker` for secondary UV2 atlases & `ShaderBridge` for water/glass/$selfillum shaders.
+- [x] **GLTF Exporter & Audio Decoder** — `GLTFExporter` for GLTF 2.0 file export & `AudioDecoder` for VFS `.wav` audio streaming.
+- [x] **Async Multi-Threaded Importer & Editor Dock** — `AsyncAssetImporter` (`std::thread` background loading) & `quebratsk_editor` dock plugin.
+
+---
+
+### 🎯 Upcoming Roadmap: 10 QoL Superpowers Expansion (Detailed Plan)
+
+The next development phase focuses on developer ergonomics, automation, and production-grade tools:
+
+#### 1. 🗂️ Interactive VFS File Tree Explorer with 3D Thumbnail Previews
+Interactive editor dock in Godot 4 allowing developers to expand `vfs://` archives, preview rotated 3D models in real-time, and drag-and-drop meshes directly into scene viewports.
+
+#### 2. 🔗 Automatic Mod Dependency Resolver & Conflict Manager
+Automated manifest parser (`addon.json`, `config.cpp`) that inspects addon dependency graphs and mounts required parent texture/material archives automatically.
+
+#### 3. 🔄 Hot-Reloading Live Asset Watcher
+Background file-system watcher in `VFSManager` that detects disk modifications to mounted archives and hot-swaps active `ArrayMesh` and `StandardMaterial3D` resources in RAM without restarting Godot.
+
+#### 4. 📐 Automated LOD (Level of Detail) Mesh Generator
+Quadric Error Metric (QEM) mesh simplification generating LOD1, LOD2, and LOD3 low-poly versions assigned to Godot 4 `ImporterMesh` LOD ranges for high-FPS rendering.
+
+#### 5. 🎨 Legacy-to-PBR Auto-Tuning Shader Filter
+Procedural texture processor analyzing 8-bit paletted textures or legacy diffuse maps to generate roughness maps, metallic masks, and normal height maps on the fly for Godot 4 PBR lighting.
+
+#### 6. 🔊 Spatial 3D Audio Bank Streamer & Attenuator
+Audio metadata parser reading sound ranges, pitch variance, and 3D falloff curves from GoldSrc/Source audio scripts to instantiate pre-configured `godot::AudioStreamPlayer3D` nodes.
+
+#### 7. 🖱️ One-Click Drag-and-Drop Asset Importer Plugin
+Godot `EditorImportPlugin` converting raw `.wad`, `.gma`, `.pbo`, `.vpk`, `.pak`, or `.bundle` files dropped into the FileSystem dock into native `.tres` / `.res` resource files.
+
+#### 8. 📊 Real-Time Telemetry & Performance Profiler Overlay
+In-engine debugging overlay and Godot Profiler extension displaying VFS memory-mapped bytes, cached texture counts, background worker threads, and C++ microsecond timings.
+
+#### 9. 🗄️ Universal Batch GLTF / OBJ Asset Converter GUI
+Built-in batch conversion utility adding a "Convert Archive to GLTF" button in the editor for exporting mounted archives into clean `.gltf` asset libraries for Blender.
+
+#### 10. 💻 Headless CLI Command-Line Executable (`quebratsk-cli`)
+Standalone C++ executable (`quebratsk-cli.exe`) for automated CI/CD build pipelines, headless archive validation, and batch conversion on build servers.
 
 ---
 
@@ -130,6 +162,7 @@ Quebratsk Engine takes the opposite path:
 | **Source Engine 2** *(Counter-Strike 2)* | `.vpk` (v2) | `.vmdl_c` (KV3 / NTRO) | `.vtex_c` (BC7 / DXT5), `.vmat_c` | Physics KV3 Collision |
 | **Bohemia Enfusion** *(Arma Reforger)* | `.pak` (EPAK) | `.xob` (Multi-LOD) | `.edds` (DirectDraw Surface) | Heightmap Terrains |
 | **Unity Engine** *(Escape from Tarkov)* | `.bundle` (UnityFS) | Serialized 3D `Mesh` | Serialized `Texture2D` | MeshColliders |
+| **Unreal Engine 4/5** *(UE4 / UE5)* | `.pak` (UE Pak) | `.uasset` / `.uexp` | `.uasset` Texture2D | USimpleCollision |
 
 ---
 
