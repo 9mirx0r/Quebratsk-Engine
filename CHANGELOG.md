@@ -10,13 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Native Godot 4 Converters (Phase 4)**:
-  - `MeshConverter`: Converts Intermediate Representation `IRMeshData` directly to native Godot 4 `godot::ArrayMesh` in `src/converters/mesh_converter.h/.cpp`.
-  - `SkeletonConverter`: Converts `IRSkeletonData` to native `godot::Skeleton3D` with parent bone indices and rest transforms in `src/converters/skeleton_converter.h/.cpp`.
-  - `MaterialConverter`: Converts `IRMaterialData` to `godot::StandardMaterial3D` with metallic, roughness, and transparency settings in `src/converters/material_converter.h/.cpp`.
-  - `AnimationConverter`: Converts `IRAnimationData` position/rotation tracks to native `godot::Animation` resource in `src/converters/animation_converter.h/.cpp`.
-  - `CollisionConverter`: Converts `IRCollisionData` to `godot::ConvexPolygonShape3D` in `src/converters/collision_converter.h/.cpp`.
-  - `TerrainConverter`: Converts `IRTerrainData` elevation maps to native `godot::HeightMapShape3D` in `src/converters/terrain_converter.h/.cpp`.
+- **Unified GDScript API (Phase 5)**:
+  - `UnifiedAssetImporter` (`src/api/unified_asset_importer.h/.cpp`): Native C++ GDExtension class registered with Godot ClassDB.
+  - Auto-detection format engine dispatch (`load_mesh`, `load_material`, `load_terrain`).
+  - GDScript demo integration script in `demo/scripts/test_importer.gd`.
+- **Native Godot 4 Converters (Phase 4)**: `MeshConverter`, `SkeletonConverter`, `MaterialConverter`, `AnimationConverter`, `CollisionConverter`, `TerrainConverter`.
 - **Source Engine 1 Parsers (Phase 3b)**: `GMAParser`, `VTFParser`, `VMTParser`, `SourceMDLParser`.
 - **Real Virtuality / Enfusion Parsers (Phase 3c)**: `PBOParser`, `PAADecoder`, `P3DMLODParser`, `WRPParser`.
 - **GoldSrc Engine Parsers (Phase 3a)**: `WAD3Parser`, `BSP30Parser`, `MDL10Parser`, `SPRParser`.
