@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned (10 Extreme Performance & QoL Features)
+- Zero-Copy Vulkan/DirectX Staging Buffers (`VFS_GPU_Direct`).
+- SIMD-Accelerated Vertex & Axis Remapping (`AVX2_AxisRemap`).
+- Background Texture Transcoding (DXT/BC7 to ASTC/ETC2).
+- Instanced Rendering Auto-Batching (`Auto_MultiMesh`).
+- Asynchronous Occlusion Culling Hull Generator.
+- Lazy-Loaded VFS Streaming (Paged Memory).
+- Smart VRAM Garbage Collector (Texture/Mesh Eviction).
+- Automated Shader Pre-Caching (Pipeline State Object Generation).
+- Multi-Threaded Collision BVH Builder.
+- Developer Quality-of-Life: Configurable Memory Quotas via UI.
+
 ### Added
 - **Batch GLTF Converter (`src/converters/batch_gltf_converter.h/.cpp`)**: Mass container asset library exporter converting mounted VFS archives to standalone `.gltf` files.
 - **Headless CLI Command-Line Executable (`src/cli/main.cpp`)**: Standalone C++ terminal executable (`quebratsk-cli.exe`) for automated build pipelines, CI/CD asset conversion, and headless asset verification.

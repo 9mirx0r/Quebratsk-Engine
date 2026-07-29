@@ -116,39 +116,39 @@ Quebratsk Engine takes the opposite path:
 
 ---
 
-### 🎯 Upcoming Roadmap: 10 QoL Superpowers Expansion (Detailed Plan)
+### 🎯 Upcoming Roadmap: 10 Extreme Performance & QoL Features
 
-The next development phase focuses on developer ergonomics, automation, and production-grade tools:
+The next development phase focuses on extreme hardware optimization, VRAM management, and developer ergonomics:
 
-#### 1. 🗂️ Interactive VFS File Tree Explorer with 3D Thumbnail Previews
-Interactive editor dock in Godot 4 allowing developers to expand `vfs://` archives, preview rotated 3D models in real-time, and drag-and-drop meshes directly into scene viewports.
+#### 1. 🚀 Zero-Copy Vulkan/DirectX Staging Buffers (`VFS_GPU_Direct`)
+Bypass CPU-to-CPU copies by streaming `mmap` data directly from the VFS into Godot's RenderingDevice (Vulkan/D3D12) staging buffers using memory aliasing, achieving near-instantaneous 3D model spawning.
 
-#### 2. 🔗 Automatic Mod Dependency Resolver & Conflict Manager
-Automated manifest parser (`addon.json`, `config.cpp`) that inspects addon dependency graphs and mounts required parent texture/material archives automatically.
+#### 2. 🧮 SIMD-Accelerated Vertex & Axis Remapping (`AVX2_AxisRemap`)
+Vectorize the $Z$-Up to $Y$-Up and CW to CCW winding order conversions using AVX2 and ARM Neon intrinsics to process 4-8 vertices per clock cycle, converting multi-second blocks into microsecond operations.
 
-#### 3. 🔄 Hot-Reloading Live Asset Watcher
-Background file-system watcher in `VFSManager` that detects disk modifications to mounted archives and hot-swaps active `ArrayMesh` and `StandardMaterial3D` resources in RAM without restarting Godot.
+#### 3. 🖼️ Background Texture Transcoding (DXT/BC7 to ASTC/ETC2)
+A background thread pool transcodes legacy DXT1/5 or paletted textures into modern mobile/web-friendly compressed formats (ASTC/ETC2) during runtime, slashing VRAM usage on Android/iOS/WebGL.
 
-#### 4. 📐 Automated LOD (Level of Detail) Mesh Generator
-Quadric Error Metric (QEM) mesh simplification generating LOD1, LOD2, and LOD3 low-poly versions assigned to Godot 4 `ImporterMesh` LOD ranges for high-FPS rendering.
+#### 4. 📦 Instanced Rendering Auto-Batching (`Auto_MultiMesh`)
+Automatically detect when the same `.mdl` or `.p3d` file is requested multiple times and transparently return a `MultiMeshInstance3D` instead of individual meshes, reducing thousands of draw calls down to 1.
 
-#### 5. 🎨 Legacy-to-PBR Auto-Tuning Shader Filter
-Procedural texture processor analyzing 8-bit paletted textures or legacy diffuse maps to generate roughness maps, metallic masks, and normal height maps on the fly for Godot 4 PBR lighting.
+#### 5. 🏗️ Asynchronous Occlusion Culling Hull Generator
+Generate simplified bounding volumes (AABBs and OBBs) from `IRMeshData` in a background thread and register them with Godot's `OccluderInstance3D` to prevent the GPU from rendering unseen interiors.
 
-#### 6. 🔊 Spatial 3D Audio Bank Streamer & Attenuator
-Audio metadata parser reading sound ranges, pitch variance, and 3D falloff curves from GoldSrc/Source audio scripts to instantiate pre-configured `godot::AudioStreamPlayer3D` nodes.
+#### 6. 📖 Lazy-Loaded VFS Streaming (Paged Memory)
+Implement a page-fault driven lazy loader that only maps the exact bytes needed when an asset is requested, keeping initial startup time and baseline RAM usage incredibly low (< 100MB) regardless of mounted mod size.
 
-#### 7. 🖱️ One-Click Drag-and-Drop Asset Importer Plugin
-Godot `EditorImportPlugin` converting raw `.wad`, `.gma`, `.pbo`, `.vpk`, `.pak`, or `.bundle` files dropped into the FileSystem dock into native `.tres` / `.res` resource files.
+#### 7. 🧹 Smart VRAM Garbage Collector (Texture/Mesh Eviction)
+A reference-counting garbage collector within the `TextureCache` that monitors VRAM pressure and automatically evicts unused materials or LODs, preventing "Out of Memory" crashes on low-end hardware.
 
-#### 8. 📊 Real-Time Telemetry & Performance Profiler Overlay
-In-engine debugging overlay and Godot Profiler extension displaying VFS memory-mapped bytes, cached texture counts, background worker threads, and C++ microsecond timings.
+#### 8. 🔥 Automated Shader Pre-Caching (Pipeline State Object Generation)
+Traverse the VFS ahead of time to compile a list of all unique material configurations and pre-compile Godot `ShaderMaterial`s during loading screens, eliminating shader compilation stutter.
 
-#### 9. 🗄️ Universal Batch GLTF / OBJ Asset Converter GUI
-Built-in batch conversion utility adding a "Convert Archive to GLTF" button in the editor for exporting mounted archives into clean `.gltf` asset libraries for Blender.
+#### 9. 🧩 Multi-Threaded Collision BVH Builder
+Dispatch the construction of complex physics Bounding Volume Hierarchies (`ConcavePolygonShape3D` for static maps) to the `jthread` pool to prevent main thread freezing during terrain loading.
 
-#### 10. 💻 Headless CLI Command-Line Executable (`quebratsk-cli`)
-Standalone C++ executable (`quebratsk-cli.exe`) for automated CI/CD build pipelines, headless archive validation, and batch conversion on build servers.
+#### 10. 🎛️ Developer Quality-of-Life: Configurable Memory Quotas
+Expose VFS memory limits, thread pool sizes, and cache eviction policies directly in the Godot Project Settings under a dedicated "Quebratsk" tab, making engine optimization accessible via simple UI sliders.
 
 ---
 
