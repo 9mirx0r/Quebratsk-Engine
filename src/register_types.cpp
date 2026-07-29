@@ -1,4 +1,5 @@
 #include "register_types.h"
+#include "core/vfs/vfs_manager.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -10,9 +11,9 @@ void initialize_quebratsk_module(ModuleInitializationLevel p_level) {
     if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
         return;
     }
-    // Classes will be registered here as we implement them:
-    // GDREGISTER_CLASS(QuebratskVFS);
-    // GDREGISTER_CLASS(UnifiedAssetImporter);
+
+    // Register native C++ classes to Godot ClassDB
+    ClassDB::register_class<quebratsk::vfs::VFSManager>();
 }
 
 void uninitialize_quebratsk_module(ModuleInitializationLevel p_level) {

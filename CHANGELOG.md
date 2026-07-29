@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`LZSSDecompressor`**: Bohemia Interactive LZSS CPRS block decompressor implementation in `src/core/vfs/decompressors/lzss_decompressor.h/.cpp`.
+- **`WAD3Header` / `WAD3Lump` Binary Structs**: Packed memory-aligned C++20 structures with `static_assert` validation in `src/parsers/goldsrc/structs/wad3_structs.h`.
+- **`VFSManager` Class**: Central Virtual File System manager supporting container mounting, WAD3 texture indexing, case-insensitive VFS URI resolution, and Godot 4 ClassDB bindings in `src/core/vfs/vfs_manager.h/.cpp`.
 - **`MemoryMappedFile` Class**: Native cross-platform zero-copy RAM file mapping wrapper (`mmap` on POSIX, `CreateFileMapping`/`MapViewOfFile` on Windows) in `src/core/vfs/memory_mapped_file.h/.cpp`.
 - **`VFSUri` Parser**: Custom URI scheme parser (`vfs://prefix/path/to/asset`) with engine namespace auto-detection in `src/core/vfs/vfs_uri.h/.cpp`.
 - **GDExtension Entry Point**: Scaffolded `register_types.h/.cpp` and `quebratsk.gdextension` library manifest.
