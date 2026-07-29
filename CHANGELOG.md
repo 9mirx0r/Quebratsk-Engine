@@ -10,8 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned (10 Extreme Performance & QoL Features)
-- Background Texture Transcoding (DXT/BC7 to ASTC/ETC2).
-- Instanced Rendering Auto-Batching (`Auto_MultiMesh`).
 - Asynchronous Occlusion Culling Hull Generator.
 - Lazy-Loaded VFS Streaming (Paged Memory).
 - Smart VRAM Garbage Collector (Texture/Mesh Eviction).
@@ -20,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Developer Quality-of-Life: Configurable Memory Quotas via UI.
 
 ### Added
+- **Instanced Rendering Auto-Batching (`src/converters/batching_manager.h/.cpp`)**: Consolidates duplicate `MeshInstance3D` spawn requests into a single `MultiMeshInstance3D` automatically to minimize CPU draw calls.
+- **Background Texture Transcoding (`src/core/vfs/texture_transcoder.h/.cpp`)**: `std::jthread` pool architecture for real-time legacy PC texture (DXT1/5) decoding into Godot mobile/web compatible RGBA8/ETC2 buffers.
 - **SIMD-Accelerated Math (`src/core/math/simd_math.h/.cpp`)**: AVX2 and ARM Neon vectorization for vertex array Z-Up to Y-Up remapping and winding order inversion.
 - **Zero-Copy Vulkan/DirectX Staging Buffers (`src/core/vfs/gpu_direct_buffer.h/.cpp`)**: Direct RAM to VRAM staging buffer creation using `PackedByteArray` aliasing.
 - **Batch GLTF Converter (`src/converters/batch_gltf_converter.h/.cpp`)**: Mass container asset library exporter converting mounted VFS archives to standalone `.gltf` files.
