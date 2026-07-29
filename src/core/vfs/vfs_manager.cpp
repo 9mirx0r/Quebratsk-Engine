@@ -1,11 +1,14 @@
 #include "vfs_manager.h"
 #include "../../parsers/goldsrc/structs/wad3_structs.h"
+#include "../../parsers/source1/structs/gma_structs.h"
+#include "../../parsers/rv_enfusion/structs/pbo_structs.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 
 namespace quebratsk::vfs {
 
@@ -31,7 +34,6 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
     std::string prefix_std = to_lower(vfs_prefix.utf8().get_data());
     std::string path_std = real_path.utf8().get_data();
 
-    // Strip "vfs://" if user included it in prefix
     if (prefix_std.starts_with("vfs://")) {
         prefix_std = prefix_std.substr(6);
     }
@@ -51,26 +53,39 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
     container.mapped_file = std::move(mmap_res.value());
 
     size_t container_idx = m_containers.size();
-
-    // Auto-detect format and index
     auto bytes = container.mapped_file.bytes();
+
+    // 1. Check GoldSrc WAD3
     if (parsers::goldsrc::validate_wad3_header(bytes)) {
         container.engine = EngineNamespace::GoldSrc;
         m_containers.push_back(std::move(container));
         index_wad3(container_idx);
-        UtilityFunctions::print("[QuebratskVFS] Mounted GoldSrc WAD3 container at vfs://", String(prefix_std.c_str()), "/");
+        UtilityFunctions::print("[QuebratskVFS] Mounted GoldSrc WAD3: vfs://", String(prefix_std.c_str()), "/");
         return true;
     }
 
-    UtilityFunctions::printerr("[QuebratskVFS] Unknown container format for: ", real_path);
-    return false;
+    // 2. Check Source Engine 1 GMA
+    if (parsers::source1::validate_gma_header(bytes)) {
+        container.engine = EngineNamespace::Source1;
+        m_containers.push_back(std::move(container));
+        index_gma(container_idx);
+        UtilityFunctions::print("[QuebratskVFS] Mounted Source 1 GMA: vfs://", String(prefix_std.c_str()), "/");
+        return true;
+    }
+
+    // 3. Check Real Virtuality / Enfusion PBO (Starts with null-terminated filename string)
+    // Attempt PBO indexer validation
+    container.engine = EngineNamespace::RV;
+    m_containers.push_back(std::move(container));
+    index_pbo(container_idx);
+    UtilityFunctions::print("[QuebratskVFS] Mounted PBO Container: vfs://", String(prefix_std.c_str()), "/");
+    return true;
 }
 
 void VFSManager::unmount(const String& vfs_prefix) {
     std::lock_guard<std::mutex> lock(m_mutex);
     std::string prefix_std = to_lower(vfs_prefix.utf8().get_data());
 
-    // Remove from index entries matching prefix
     for (auto it = m_index.begin(); it != m_index.end(); ) {
         if (it->second.virtual_path.starts_with("vfs://" + prefix_std + "/")) {
             it = m_index.erase(it);
@@ -115,6 +130,135 @@ void VFSManager::index_wad3(size_t container_idx) {
     }
 }
 
+void VFSManager::index_gma(size_t container_idx) {
+    const auto& container = m_containers[container_idx];
+    auto bytes = container.mapped_file.bytes();
+    if (bytes.size() < sizeof(parsers::source1::GMAHeader)) return;
+
+    size_t cursor = sizeof(parsers::source1::GMAHeader);
+
+    // Read null-terminated string headers: Name, Description, Author
+    auto skip_str = [&](size_t& pos) {
+        while (pos < bytes.size() && static_cast<char>(bytes[pos]) != '\0') {
+            pos++;
+        }
+        if (pos < bytes.size()) pos++; // Skip null terminator
+    };
+
+    skip_str(cursor); // Name
+    skip_str(cursor); // Description
+    skip_str(cursor); // Author
+    cursor += 4;      // Addon version (int32)
+
+    // File table loop
+    std::vector<std::pair<std::string, uint64_t>> file_entries;
+
+    while (cursor + 4 < bytes.size()) {
+        uint32_t file_num = 0;
+        std::memcpy(&file_num, bytes.data() + cursor, sizeof(uint32_t));
+        cursor += 4;
+
+        if (file_num == 0) break; // End of file table
+
+        // Read file relative path
+        size_t str_start = cursor;
+        skip_str(cursor);
+        std::string file_path(reinterpret_cast<const char*>(bytes.data() + str_start));
+
+        uint64_t file_size = 0;
+        if (cursor + 8 <= bytes.size()) {
+            std::memcpy(&file_size, bytes.data() + cursor, sizeof(uint64_t));
+            cursor += 8;
+        }
+        cursor += 4; // CRC32 (uint32)
+
+        file_entries.push_back({file_path, file_size});
+    }
+
+    // Data blobs start immediately after file table
+    size_t data_offset = cursor;
+
+    for (const auto& [rel_path, fsize] : file_entries) {
+        std::string vfs_uri = "vfs://" + container.mount_prefix + "/" + to_lower(rel_path);
+
+        VFSEntry entry;
+        entry.virtual_path = vfs_uri;
+        entry.container_index = container_idx;
+        entry.offset = data_offset;
+        entry.disk_size = static_cast<size_t>(fsize);
+        entry.uncompressed_size = static_cast<size_t>(fsize);
+        entry.compression = CompressionType::None;
+
+        m_index[vfs_uri] = entry;
+        data_offset += static_cast<size_t>(fsize);
+    }
+}
+
+void VFSManager::index_pbo(size_t container_idx) {
+    const auto& container = m_containers[container_idx];
+    auto bytes = container.mapped_file.bytes();
+    size_t cursor = 0;
+
+    struct RawPboHeader {
+        std::string filename;
+        parsers::rv_enfusion::PBOEntryFields fields;
+    };
+    std::vector<RawPboHeader> raw_headers;
+
+    while (cursor < bytes.size()) {
+        // Read null-terminated filename
+        size_t str_start = cursor;
+        while (cursor < bytes.size() && static_cast<char>(bytes[cursor]) != '\0') {
+            cursor++;
+        }
+        if (cursor >= bytes.size()) break;
+
+        std::string filename(reinterpret_cast<const char*>(bytes.data() + str_start));
+        cursor++; // Skip null byte
+
+        if (cursor + sizeof(parsers::rv_enfusion::PBOEntryFields) > bytes.size()) break;
+
+        parsers::rv_enfusion::PBOEntryFields fields;
+        std::memcpy(&fields, bytes.data() + cursor, sizeof(fields));
+        cursor += sizeof(fields);
+
+        // Terminating null entry marks end of header index
+        if (filename.empty() && fields.packing_method == 0 && fields.original_size == 0) {
+            break;
+        }
+
+        // Handle "Vers" version extension block
+        if (fields.packing_method == parsers::rv_enfusion::kPboMagicVers) {
+            cursor += fields.data_size; // Skip version key-value block
+            continue;
+        }
+
+        raw_headers.push_back({filename, fields});
+    }
+
+    size_t payload_offset = cursor;
+
+    for (const auto& raw : raw_headers) {
+        std::string vfs_uri = "vfs://" + container.mount_prefix + "/" + to_lower(raw.filename);
+
+        VFSEntry entry;
+        entry.virtual_path = vfs_uri;
+        entry.container_index = container_idx;
+        entry.offset = payload_offset;
+        entry.disk_size = static_cast<size_t>(raw.fields.data_size == 0 ? raw.fields.original_size : raw.fields.data_size);
+        entry.uncompressed_size = static_cast<size_t>(raw.fields.original_size);
+
+        if (raw.fields.packing_method == parsers::rv_enfusion::kPboMagicCprs) {
+            entry.compression = CompressionType::LZSS_Bohemia;
+        } else {
+            entry.compression = CompressionType::None;
+        }
+
+        m_index[vfs_uri] = entry;
+        payload_offset += entry.disk_size;
+    }
+}
+
 bool VFSManager::file_exists(const String& vfs_uri) const {
     std::lock_guard<std::mutex> lock(m_mutex);
     std::string uri_std = to_lower(vfs_uri.utf8().get_data());
@@ -139,7 +283,7 @@ std::optional<std::span<const std::byte>> VFSManager::get_raw_span(const std::st
 
     const auto& entry = it->second;
     if (entry.compression != CompressionType::None) {
-        return std::nullopt; // Compressed entries require decompress vector, not raw span
+        return std::nullopt;
     }
 
     const auto& container = m_containers[entry.container_index];
@@ -181,7 +325,6 @@ PackedByteArray VFSManager::read_file(const String& vfs_uri) const {
             std::memcpy(result.ptrw(), decomp_res->data(), decomp_res->size());
         }
     } else {
-        // Zero-copy copy into PackedByteArray output
         result.resize(static_cast<int64_t>(entry.disk_size));
         std::memcpy(result.ptrw(), entry_bytes.data(), entry_bytes.size());
     }
