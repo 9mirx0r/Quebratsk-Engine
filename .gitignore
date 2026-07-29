@@ -38,6 +38,9 @@ Makefile
 *.pdf
 *.tmp
 
+# Private Handoff & Audit Documents (Excluded from GitHub)
+CLAUDE_HANDOFF_BRIEFING.md
+
 # IDE & OS
 .idea/
 .vscode/
