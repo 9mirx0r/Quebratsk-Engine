@@ -10,8 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned (10 Extreme Performance & QoL Features)
-- Zero-Copy Vulkan/DirectX Staging Buffers (`VFS_GPU_Direct`).
-- SIMD-Accelerated Vertex & Axis Remapping (`AVX2_AxisRemap`).
 - Background Texture Transcoding (DXT/BC7 to ASTC/ETC2).
 - Instanced Rendering Auto-Batching (`Auto_MultiMesh`).
 - Asynchronous Occlusion Culling Hull Generator.
@@ -22,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Developer Quality-of-Life: Configurable Memory Quotas via UI.
 
 ### Added
+- **SIMD-Accelerated Math (`src/core/math/simd_math.h/.cpp`)**: AVX2 and ARM Neon vectorization for vertex array Z-Up to Y-Up remapping and winding order inversion.
+- **Zero-Copy Vulkan/DirectX Staging Buffers (`src/core/vfs/gpu_direct_buffer.h/.cpp`)**: Direct RAM to VRAM staging buffer creation using `PackedByteArray` aliasing.
 - **Batch GLTF Converter (`src/converters/batch_gltf_converter.h/.cpp`)**: Mass container asset library exporter converting mounted VFS archives to standalone `.gltf` files.
 - **Headless CLI Command-Line Executable (`src/cli/main.cpp`)**: Standalone C++ terminal executable (`quebratsk-cli.exe`) for automated build pipelines, CI/CD asset conversion, and headless asset verification.
 - **Editor Drag-and-Drop Import Plugin (`demo/addons/quebratsk_editor/import_plugin.gd`)**: `EditorImportPlugin` converting raw `.wad`, `.gma`, `.pbo`, `.vpk`, `.pak`, or `.bundle` files dropped into Godot FileSystem dock into native resource files.
