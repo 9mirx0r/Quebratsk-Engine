@@ -10,10 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Unified GDScript API (Phase 5)**:
-  - `UnifiedAssetImporter` (`src/api/unified_asset_importer.h/.cpp`): Native C++ GDExtension class registered with Godot ClassDB.
-  - Auto-detection format engine dispatch (`load_mesh`, `load_material`, `load_terrain`).
-  - GDScript demo integration script in `demo/scripts/test_importer.gd`.
+- **Skeletal Retargeting Engine (Phase 6)**:
+  - `SkeletalRetargeter` (`src/converters/skeletal_retargeter.h/.cpp`): Retargets bone name hierarchies from GoldSrc, Source 1 (ValveBiped), and Bohemia Interactive (Arma/DayZ) skeletons to Godot 4 `SkeletonProfileHumanoid` standard.
+- **Unified GDScript API (Phase 5)**: `UnifiedAssetImporter` class bound to Godot ClassDB.
 - **Native Godot 4 Converters (Phase 4)**: `MeshConverter`, `SkeletonConverter`, `MaterialConverter`, `AnimationConverter`, `CollisionConverter`, `TerrainConverter`.
 - **Source Engine 1 Parsers (Phase 3b)**: `GMAParser`, `VTFParser`, `VMTParser`, `SourceMDLParser`.
 - **Real Virtuality / Enfusion Parsers (Phase 3c)**: `PBOParser`, `PAADecoder`, `P3DMLODParser`, `WRPParser`.
