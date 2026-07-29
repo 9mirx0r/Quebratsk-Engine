@@ -29,9 +29,43 @@ Quebratsk Engine takes the opposite path:
 
 ---
 
-## Supported Engine Formats
+## 🗺️ Project Roadmap & Future Vision
 
-Quebratsk Engine reads assets from three engine families:
+<p align="center">
+  <img src="roadmap.jpg" alt="Quebratsk Engine Visual Roadmap" width="100%" style="border-radius: 8px;"/>
+</p>
+
+### Phase Breakdown & Expansion Vision
+
+```
+[ Phase 1: VFS Core (Done) ] ──► [ Phase 2: IR & Math (Done) ] ──► [ Phase 3: Classic Engine Parsers ]
+                                                                                   │
+                                                                                   ▼
+[ Future Tier 2: Tarkov / Unity ] ◄── [ Future Tier 1: CS2 & Reforger ] ◄── [ Phase 4-8: Godot 4 Native Importers ]
+```
+
+#### Current Milestones (Tier 0 - In Progress)
+- [x] **Phase 1: VFS Zero-Copy Core** — Memory mapping (`mmap`), URI scheme, WAD3/GMA/PBO mounting, LZSS CPRS decompressor.
+- [x] **Phase 2: Intermediate Representation & Spatial Math** — `IRMeshData`, `IRSkeletonData`, `IRMaterialData`, $Z$-Up $\to$ $Y$-Up axis remapping, Hammer Unit scaling, CW $\to$ CCW winding inversion.
+- [ ] **Phase 3: Classic Engine Parsers** — GoldSrc (`.wad`, `.bsp`, `.mdl`, `.spr`), Source 1 (`.gma`, `.bsp`, `.mdl`, `.vtf`, `.vmt`), Real Virtuality (`.pbo`, `.p3d`, `.wrp`, `.paa`, `.rvmat`).
+- [ ] **Phase 4-8: Godot 4 Native Converters** — ArrayMesh, Skeleton3D, StandardMaterial3D, HeightMapShape3D, Two-Bone IK, unified GDScript API.
+
+#### Future Target Expansions (Tier 1 & 2 Roadmap)
+1. **Enfusion Engine / Arma Reforger Support**
+   - `.pak` container format support (Enfusion chunk archives).
+   - `.edds` Enfusion DirectDraw Surface texture decoder.
+   - Enfusion P3D/mesh format extensions.
+2. **Source Engine 2 / Counter-Strike 2 (CS2) Support**
+   - `.vpk_c` compiled Source 2 archive format.
+   - `.vmdl_c` compiled Source 2 model and skeleton format.
+   - `.vtex_c` compiled texture container.
+3. **Unity / Escape from Tarkov Asset Support**
+   - Unity `.bundle` / AssetBundle container mounting in VFS.
+   - Mesh and animation extraction from Unity serialized format streams.
+
+---
+
+## Supported Engine Formats (Current Scope)
 
 | Engine | Archive / VFS | Models & Animations | Textures & Materials | Physics & Terrains |
 | :--- | :--- | :--- | :--- | :--- |
@@ -59,12 +93,6 @@ Quebratsk Engine reads assets from three engine families:
       [ Native Godot 4 Resources & Nodes ]
  (ArrayMesh, Skeleton3D, StandardMaterial3D, HeightMapShape3D)
 ```
-
-### Core Engineering Details
-1. **Virtual File System (VFS):** Mounts container archives into memory via `mmap`. Files read directly from mapped memory without copying buffers into RAM. CPRS LZSS streams decompressed on demand.
-2. **Axis & Scale Remap:** Automatically transforms Z-Up left-handed coordinates to Godot's Y-Up right-handed system. Converts Hammer Units to meters ($1\text{ HU} = 0.0254\text{m}$) and swaps face indices to maintain proper counter-clockwise winding order.
-3. **Materials & Shaders:** Reconstructs Z-channel normals from DXT5nm compressed normal maps ($Z = \sqrt{1 - X^2 - Y^2}$). Packs BSP lightmaps into UV2 atlases.
-4. **Skeletal Retargeting:** Maps bone hierarchies from GoldSrc, Source, and Bohemia skeletons to Godot 4's `SkeletonProfileHumanoid` standard, normalizing A-Pose rest angles to T-Pose.
 
 ---
 
@@ -110,23 +138,6 @@ func _ready() -> void:
     hands_data.skeleton.add_child(anim_player)
     anim_player.play("reload")
 ```
-
----
-
-## Project Status & Development Roadmap
-
-This project is actively under construction. Updates, parser extensions, and performance improvements commit regularly.
-
-- [x] Initial C++ architecture and VFS zero-copy design
-- [x] Skill and mathematical transform specifications
-- [ ] VFS implementation (`mmap` + LZSS decompression)
-- [ ] GoldSrc parsers (WAD3, BSP30, MDL v10, SPR)
-- [ ] Source 1 parsers (GMA, BSP, MDL v44-49, VTF, VMT)
-- [ ] Real Virtuality parsers (PBO, P3D, PAA, WRP, RVMAT)
-- [ ] Godot 4 resource converters (ArrayMesh, Skeleton3D, StandardMaterial3D)
-- [ ] Unified GDScript GDExtension API
-
-Check [CHANGELOG.md](CHANGELOG.md) for version release logs.
 
 ---
 
