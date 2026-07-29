@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Skeletal Retargeting Engine (Phase 6)**:
-  - `SkeletalRetargeter` (`src/converters/skeletal_retargeter.h/.cpp`): Retargets bone name hierarchies from GoldSrc, Source 1 (ValveBiped), and Bohemia Interactive (Arma/DayZ) skeletons to Godot 4 `SkeletonProfileHumanoid` standard.
+- **Source Engine 2 / Counter-Strike 2 Subsystem (Tier 1 Expansion)**:
+  - `VPK2Parser` (`src/parsers/source2/vpk2_parser.h/.cpp`): Source 2 VPK v2 package indexer.
+  - `VMDLParser` (`src/parsers/source2/vmdl_parser.h/.cpp`): Source 2 `.vmdl_c` compiled 3D model parser into `IRMeshData` & `IRSkeletonData`.
+- **Skeletal Retargeting Engine (Phase 6)**: `SkeletalRetargeter` for Godot 4 `SkeletonProfileHumanoid` bone mapping.
 - **Unified GDScript API (Phase 5)**: `UnifiedAssetImporter` class bound to Godot ClassDB.
 - **Native Godot 4 Converters (Phase 4)**: `MeshConverter`, `SkeletonConverter`, `MaterialConverter`, `AnimationConverter`, `CollisionConverter`, `TerrainConverter`.
 - **Source Engine 1 Parsers (Phase 3b)**: `GMAParser`, `VTFParser`, `VMTParser`, `SourceMDLParser`.
