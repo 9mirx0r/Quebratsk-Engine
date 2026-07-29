@@ -10,13 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **GoldSrc Engine Parsers (Phase 3a)**:
-  - `WAD3Parser`: Decodes Miptex 8-bit paletted textures into uncompressed RGBA8 pixel buffers in `src/parsers/goldsrc/wad3_parser.h/.cpp`.
-  - `BSP30Parser`: Parses GoldSrc map geometry (vertices, faces, surfedges, texinfo, lightmaps) and clipnodes into `IRMeshData` and `IRCollisionData` in `src/parsers/goldsrc/bsp30_parser.h/.cpp`.
-  - `MDL10Parser`: Parses StudioMDL v10 bone hierarchies, local rest poses, bodyparts, and submeshes into `IRSkeletonData` and `IRMeshData` in `src/parsers/goldsrc/mdl10_parser.h/.cpp`.
-  - `SPRParser`: Decodes GoldSrc `.spr` sprite frames and 256-color palettes into RGBA8 frames in `src/parsers/goldsrc/spr_parser.h/.cpp`.
-- **Intermediate Representation (IR) Layer**: Complete C++20 IR headers (`IRMeshData`, `IRSkeletonData`, `IRMaterialData`, `IRAnimationData`, `IRCollisionData`, `IRTerrainData`).
-- **Coordinate Conversion & Axis Remap Module**: Vector, normal, quaternion, and matrix transforms for $Z$-Up $\to$ $Y$-Up conversion.
+- **Source Engine 1 Parsers (Phase 3b)**:
+  - `GMAParser`: Garry's Mod Addon (`.gma`) container indexer and binary stream reader in `src/parsers/source1/gma_parser.h/.cpp`.
+  - `VTFParser`: Valve Texture Format (`.vtf` v7.0-7.5) image header and payload decoder in `src/parsers/source1/vtf_parser.h/.cpp`.
+  - `VMTParser`: Valve Material Type (`.vmt`) KeyValues material parser in `src/parsers/source1/vmt_parser.h/.cpp`.
+  - `SourceMDLParser`: Source 1 StudioMDL (`.mdl` v44-49) skeleton and mesh parser into `IRSkeletonData` and `IRMeshData` in `src/parsers/source1/mdl_source_parser.h/.cpp`.
+- **Real Virtuality / Enfusion Parsers (Phase 3c)**:
+  - `PBOParser`: Bohemia Interactive `.pbo` archive directory indexer and CPRS LZSS block reader in `src/parsers/rv_enfusion/pbo_parser.h/.cpp`.
+  - `PAADecoder`: Bohemia `.paa` / `.pac` texture mipmap decoder into RGBA8 pixel streams in `src/parsers/rv_enfusion/paa_decoder.h/.cpp`.
+  - `P3DMLODParser`: Bohemia `.p3d` (MLOD/ODOL) 3D model parser into `IRMeshData` and `IRSkeletonData` in `src/parsers/rv_enfusion/p3d_mlod_parser.h/.cpp`.
+  - `WRPParser`: Bohemia `.wrp` (OPRW/8WVR) terrain map heightmap parser into `IRTerrainData` in `src/parsers/rv_enfusion/wrp_parser.h/.cpp`.
+- **GoldSrc Engine Parsers (Phase 3a)**: `WAD3Parser`, `BSP30Parser`, `MDL10Parser`, `SPRParser`.
+- **Intermediate Representation (IR) Layer (Phase 2)**: Complete C++20 IR headers (`IRMeshData`, `IRSkeletonData`, `IRMaterialData`, `IRAnimationData`, `IRCollisionData`, `IRTerrainData`).
+- **Coordinate Conversion & Axis Remap Module (Phase 2)**: Vector, normal, quaternion, and matrix transforms for $Z$-Up $\to$ $Y$-Up conversion.
 
 ## [0.1.0-alpha] - 2026-07-29
 
