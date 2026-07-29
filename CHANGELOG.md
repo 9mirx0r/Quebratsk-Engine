@@ -10,9 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Bohemia Enfusion / Arma Reforger Subsystem (Tier 1 Expansion)**:
-  - `EnfusionPakParser` (`src/parsers/enfusion/enfusion_pak_parser.h/.cpp`): Bohemia Enfusion `.pak` archive container indexer.
-  - `XOBParser` (`src/parsers/enfusion/xob_parser.h/.cpp`): Bohemia Enfusion `.xob` compiled 3D model parser into `IRMeshData` & `IRSkeletonData`.
+- **Unity Engine / Escape from Tarkov Subsystem (Tier 2 Expansion)**:
+  - `UnityBundleParser` (`src/parsers/unity/bundle_parser.h/.cpp`): Unity AssetBundle (`.bundle`) container indexer.
+  - `UnityMeshParser` (`src/parsers/unity/unity_mesh_parser.h/.cpp`): Serialized Unity 3D `Mesh` object parser into `IRMeshData`.
+- **Bohemia Enfusion / Arma Reforger Subsystem (Tier 1 Expansion)**: `EnfusionPakParser`, `XOBParser`.
 - **Source Engine 2 / Counter-Strike 2 Subsystem (Tier 1 Expansion)**: `VPK2Parser`, `VMDLParser`.
 - **Skeletal Retargeting Engine (Phase 6)**: `SkeletalRetargeter` for Godot 4 `SkeletonProfileHumanoid` bone mapping.
 - **Unified GDScript API (Phase 5)**: `UnifiedAssetImporter` class bound to Godot ClassDB.
