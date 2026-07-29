@@ -10,9 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Unity Engine / Escape from Tarkov Subsystem (Tier 2 Expansion)**:
-  - `UnityBundleParser` (`src/parsers/unity/bundle_parser.h/.cpp`): Unity AssetBundle (`.bundle`) container indexer.
-  - `UnityMeshParser` (`src/parsers/unity/unity_mesh_parser.h/.cpp`): Serialized Unity 3D `Mesh` object parser into `IRMeshData`.
+- **5 Advanced Quality & Performance Subsystems (Roadmap Expansion)**:
+  - V-HACD 4.0 Convex Hull Physics & BSP Entity Trigger Exporter specification.
+  - Automated Lightmap UV2 2D Bin-Packing & Specialized Shader Bridge for GoldSrc/Source.
+  - Async Multi-Threaded Ingestion Pipeline (`std::jthread`) & SIMD vectorization for coordinate transforms.
+  - Native GLTF / OBJ Exporter & Audio Bank VFS Decoder (`.wav`, `.ogg`).
+  - Godot Editor Dock Plugin & In-Memory Texture/Material Cache Manager.
+- **Unity Engine / Escape from Tarkov Subsystem (Tier 2 Expansion)**: `UnityBundleParser`, `UnityMeshParser`.
 - **Bohemia Enfusion / Arma Reforger Subsystem (Tier 1 Expansion)**: `EnfusionPakParser`, `XOBParser`.
 - **Source Engine 2 / Counter-Strike 2 Subsystem (Tier 1 Expansion)**: `VPK2Parser`, `VMDLParser`.
 - **Skeletal Retargeting Engine (Phase 6)**: `SkeletalRetargeter` for Godot 4 `SkeletonProfileHumanoid` bone mapping.
