@@ -1,0 +1,72 @@
+#pragma once
+
+#include <cstdint>
+#include <cstddef>
+#include <array>
+#include <span>
+
+namespace quebratsk::parsers::goldsrc {
+
+inline constexpr int32_t kBsp30Version = 30;
+
+#pragma pack(push, 1)
+struct LumpEntry {
+    int32_t file_offset;
+    int32_t file_length;
+};
+
+/// GoldSrc BSP v30 Main Header (124 bytes)
+struct BSP30Header {
+    int32_t version;       // 30
+    LumpEntry lumps[15];   // 15 standard lumps
+};
+
+/// Lump 3: Vertices (12 bytes)
+struct BSPVertex {
+    float x, y, z;
+};
+
+/// Lump 1: Planes (20 bytes)
+struct BSPPlane {
+    float normal[3];
+    float distance;
+    int32_t type;
+};
+
+/// Lump 12: Edges (4 bytes)
+struct BSPEdge {
+    uint16_t v[2];
+};
+
+/// Lump 6: TexInfo (40 bytes)
+struct BSPTexInfo {
+    float vector_s[4]; // S projection vector + offset
+    float vector_t[4]; // T projection vector + offset
+    int32_t miptex_index;
+    int32_t flags;
+};
+
+/// Lump 7: Faces (20 bytes)
+struct BSPFace {
+    uint16_t plane_index;
+    uint16_t plane_side;
+    int32_t first_edge_index;
+    int16_t num_edges;
+    int16_t texinfo_index;
+    uint8_t styles[4];
+    int32_t lightmap_offset;
+};
+
+/// Lump 9: ClipNodes for collision (8 bytes)
+struct BSPClipNode {
+    int32_t plane_index;
+    int16_t children[2]; // Positive = node, negative = contents
+};
+#pragma pack(pop)
+
+static_assert(sizeof(BSP30Header) == 124, "BSP30Header size mismatch");
+static_assert(sizeof(BSPVertex) == 12, "BSPVertex size mismatch");
+static_assert(sizeof(BSPFace) == 20, "BSPFace size mismatch");
+static_assert(sizeof(BSPClipNode) == 8, "BSPClipNode size mismatch");
+
+} // namespace quebratsk::parsers::goldsrc
