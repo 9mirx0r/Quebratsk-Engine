@@ -12,7 +12,13 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"/></a>
   <a href="https://godotengine.org"><img src="https://img.shields.io/badge/Godot-4.x-blueviolet.svg?logo=godotengine&logoColor=white" alt="Godot 4"/></a>
   <a href="https://en.cppreference.com/w/cpp/20"><img src="https://img.shields.io/badge/C%2B%2B-20-00599C.svg?logo=c%2B%2B&logoColor=white" alt="C++20"/></a>
+  <a href="TUTORIAL_GODOT4.md"><img src="https://img.shields.io/badge/Beginner's_Guide-Godot_4-green.svg" alt="Beginner Tutorial"/></a>
 </p>
+
+---
+
+## 📖 [Beginner's Guide & Tutorial (Click Here)](TUTORIAL_GODOT4.md)
+New to Godot 4 or GDExtension? Read our step-by-step [Beginner's Guide for Godot 4](TUTORIAL_GODOT4.md) to learn how to mount archives and spawn 3D models in 3 simple steps!
 
 ---
 
