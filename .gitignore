@@ -22,6 +22,7 @@ Makefile
 *.so
 *.dylib
 *.dll
+!demo/bin/*.dll
 *.exe
 *.obj
 *.o
