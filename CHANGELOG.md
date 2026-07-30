@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[HIGH] VRAMGarbageCollector used std::thread**: Replaced with `std::jthread` + `std::stop_token` for cooperative cancellation and automatic join-on-destruct, preventing 5-second hangs during editor shutdown.
 
 ### Added
+- **Native Background Task Progress Tracker (`src/api/task_progress_tracker.h/.cpp`)**: `TaskProgressTracker` class bound to ClassDB providing thread-safe atomic percentage tracking and status string reporting for Godot Editor progress bar overlays.
+- **Fuzzy-Match Material Auto-Fixer (`src/converters/fuzzy_material_fixer.h/.cpp`)**: `FuzzyMaterialFixer` subsystem calculating Levenshtein distance string matching across VFS file lists to automatically recover missing texture files.
+- **Asset Dependency Graph Builder (`src/api/dependency_graph_builder.h/.cpp`)**: `DependencyGraphBuilder` class generating structured Dictionary node trees representing asset dependencies for rendering in Godot's GraphEdit UI.
 - **Drag-and-Drop VFS Mounting (`src/api/vfs_drop_handler.h/.cpp`)**: `VFSDropHandler` class bound to ClassDB that automatically mounts dropped `.wad`, `.gma`, `.pbo`, `.vpk`, `.pak`, or `.bundle` files using the filename stem as the mount point.
 - **One-Click Import Presets (`src/core/config/import_presets.h/.cpp`)**: `ImportPresets` helper providing 3 simple presets (`MAX_PERFORMANCE`, `RETRO_FIDELITY`, `MAX_QUALITY`) to configure VRAM eviction timeouts, thread limits, and shader pre-caching with a single call.
 - **Steam Library Auto-Detection (`src/core/vfs/steam_library_detector.h/.cpp`)**: `SteamLibraryDetector` scanning Win32 registry `HKCU\Software\Valve\Steam` and `libraryfolders.vdf` to discover installed games (Half-Life, CS 1.6, Garry's Mod, CS2, Arma 3, DayZ) for instant mounting.
