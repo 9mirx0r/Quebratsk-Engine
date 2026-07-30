@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Roadmap 1.0 Complete!** All 10 Extreme Performance & QoL features have been implemented.
 
 ### Fixed
+- **[CRITICAL] BSP30Parser out-of-bounds array indexing**: Added strict bounds checks for `face.first_edge_index`, `num_surfedges`, and `num_edges` during face polygon vertex iteration, preventing out-of-bounds memory reads on corrupted BSP maps.
+- **[HIGH] BatchingManager Data Race**: `BatchingManager::register_instance()`, `flush()`, and `clear()` lacked thread synchronization. Added `std::mutex` and `std::lock_guard` to enable safe multi-threaded mesh registration.
+- **[PERFORMANCE] MeshConverter Copy-on-Write Overhead**: Replaced scalar `.set(i, val)` calls on Godot's `PackedVector3Array`, `PackedFloat32Array`, and `PackedVector2Array` with direct writable pointer access `.ptrw()` and SIMD-aligned `std::memcpy`.
 - **[CRITICAL] OcclusionGenerator thread-safety crash**: `BoxOccluder3D::instantiate()` was called from `std::async` background thread, violating Godot's ClassDB thread-safety. Refactored to return pure `OcclusionResult` struct from background; Godot object creation now happens exclusively on main thread via `create_from_result()`.
 - **[CRITICAL] AsyncCollisionBuilder PhysicsServer crash**: `ConcavePolygonShape3D::set_faces()` called `PhysicsServer3D` from background thread. Refactored to `prepare_faces_async()` (pure data copy in background) + `create_shape()` (main thread only).
 - **[CRITICAL] VRAMGarbageCollector race condition + Resource destruction crash**: `Ref<Resource>::unref()` could trigger `RenderingServer::free()` from background thread. Replaced with 2-phase eviction: background thread collects candidates, `evict_expired_resources()` frees them on main thread. Also migrated from `std::thread` to `std::jthread` with cooperative `stop_token`, and replaced `OS::get_ticks_msec()` with `std::chrono::steady_clock`.
