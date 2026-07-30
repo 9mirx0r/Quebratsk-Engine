@@ -54,12 +54,14 @@ ir::IRMeshData UnifiedAssetImporter::parse_mesh_ir(std::span<const std::byte> da
     }
 
     if (lowercase_uri.ends_with(".mdl")) {
-        // Try Source 1 MDL first, then fall back to GoldSrc MDL v10.
-        if (auto src1_res = parsers::source1::SourceMDLParser::parse(data); src1_res.has_value()) {
-            return std::move(src1_res->mesh_data);
-        }
+        // GoldSrc and Source share the "IDST" magic, so route on the version field.
+        // Source .mdl carries no vertex data at all (it lives in .vvd/.vtx), so only
+        // the GoldSrc path can yield geometry today.
         if (auto gs_res = parsers::goldsrc::MDL10Parser::parse(data); gs_res.has_value()) {
             return std::move(gs_res->mesh_data);
+        }
+        if (auto src1_res = parsers::source1::SourceMDLParser::parse(data); src1_res.has_value()) {
+            return std::move(src1_res->mesh_data); // skeleton-only: empty mesh
         }
     } else if (lowercase_uri.ends_with(".bsp")) {
         if (auto bsp_res = parsers::goldsrc::BSP30Parser::parse(data); bsp_res.has_value()) {

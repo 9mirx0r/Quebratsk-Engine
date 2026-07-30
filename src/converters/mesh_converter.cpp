@@ -1,4 +1,5 @@
 #include "mesh_converter.h"
+#include "texture_converter.h"
 #include "texture_loader.h"
 
 #include <godot_cpp/classes/standard_material3d.hpp>
@@ -98,25 +99,36 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh, TextureLoad
 
         array_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, surface_arrays);
 
-        // Attach the surface's texture. IRSurface::material_name carries the legacy
-        // texture reference (a WAD3 lump name for BSP, a VMT path for models); without
-        // this step the UVs computed by the parsers had nothing to sample.
-        if (loader && loader->is_valid() && !surf.material_name.empty()) {
-            if (Ref<Texture2D> tex = loader->load(surf.material_name); tex.is_valid()) {
-                Ref<StandardMaterial3D> mat;
-                mat.instantiate();
-                mat->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, tex);
-                // Legacy content is authored for point sampling; bilinear filtering
-                // blurs 64x64 GoldSrc textures into mush.
-                mat->set_texture_filter(BaseMaterial3D::TEXTURE_FILTER_NEAREST_WITH_MIPMAPS);
+        // Attach the surface's texture. Two sources, in priority order:
+        //   1. A texture embedded in the asset itself (GoldSrc .mdl carries its own).
+        //   2. IRSurface::material_name resolved through the VFS (BSP lump names, VMT
+        //      paths), which needs a loader.
+        // Without this step the UVs computed by the parsers have nothing to sample.
+        Ref<Texture2D> texture;
+        bool masked = !surf.material_name.empty() && surf.material_name.front() == '{';
 
-                // Names beginning with '{' are GoldSrc's palette-keyed transparency.
-                if (surf.material_name.front() == '{') {
-                    mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA_SCISSOR);
-                }
+        if (surf.embedded_texture_index >= 0 &&
+            static_cast<size_t>(surf.embedded_texture_index) < ir_mesh.embedded_textures.size()) {
+            const auto& embedded = ir_mesh.embedded_textures[surf.embedded_texture_index];
+            texture = TextureConverter::convert(embedded);
+            masked = masked || embedded.has_alpha;
+        } else if (loader && loader->is_valid() && !surf.material_name.empty()) {
+            texture = loader->load(surf.material_name);
+        }
 
-                array_mesh->surface_set_material(array_mesh->get_surface_count() - 1, mat);
+        if (texture.is_valid()) {
+            Ref<StandardMaterial3D> mat;
+            mat.instantiate();
+            mat->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, texture);
+            // Legacy content is authored for point sampling; bilinear filtering blurs
+            // 64x64 GoldSrc textures into mush.
+            mat->set_texture_filter(BaseMaterial3D::TEXTURE_FILTER_NEAREST_WITH_MIPMAPS);
+
+            if (masked) {
+                mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA_SCISSOR);
             }
+
+            array_mesh->surface_set_material(array_mesh->get_surface_count() - 1, mat);
         }
     }
 

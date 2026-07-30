@@ -11,6 +11,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0-alpha] - 2026-07-30
+
+GoldSrc `.mdl` models now import with geometry. Previously `MDL10Parser` extracted only
+the skeleton, so every Half-Life / Counter-Strike 1.6 model imported as an empty mesh.
+
+### Added
+
+- **GoldSrc StudioMDL v10 mesh extraction (`mdl10_parser.cpp`)**. The full path is now
+  implemented: body parts to models to meshes to the triangle command stream.
+  - **Bone-space resolution.** GoldSrc stores every vertex in the local space of the bone
+    it is attached to, so the bone hierarchy has to be composed (`parent.world * local`)
+    and each vertex transformed by its owning bone's rest transform. Without this the
+    mesh decodes as a cloud of fragments scattered around the origin. Normals are rotated
+    by the basis only, never translated.
+  - **Triangle command stream decoding.** An `int16` count followed by that many 4×`int16`
+    corners; negative means fan, positive means strip, zero terminates. Strips alternate
+    orientation, so odd-numbered triangles swap their first two corners to keep winding
+    consistent with the `GL_TRIANGLE_STRIP` convention the original renderer used.
+  - **UV normalization** against the real texture dimensions from the model's texture
+    table, resolved through the skin table (`skin_ref` to skin family to texture index).
+  - **Embedded texture decoding.** GoldSrc models carry their own 8-bit palettized
+    textures; these are decoded to RGBA8 and surfaced through the new
+    `IRMeshData::embedded_textures` / `IRSurface::embedded_texture_index`, so models
+    import fully textured with no VFS lookup at all. `STUDIO_NF_MASKED` (flag `0x40`)
+    maps palette index 255 to transparent.
+  - Corner deduplication keyed on (vertex, normal, s, t), and rigid one-bone-per-vertex
+    skinning weights recorded in the IR.
+- **`StudioMesh` and `StudioTexture` structs**, plus `static_assert`s pinning every
+  StudioMDL struct size and — because `StudioHeader` is deliberately truncated and
+  `sizeof` therefore proves nothing — `offsetof` assertions on the eight header fields
+  the parser actually indexes by.
+- **`tests/mdl10_parser_test.cpp`**: builds a synthetic `.mdl` in memory and verifies
+  header offsets, bone hierarchy composition, bone-local to model-space transformation,
+  strip expansion, UV normalization and embedded texture decoding. 30 assertions, all
+  passing. Build instructions in the file header.
+- `MeshConverter` prefers an embedded texture over a VFS lookup when the surface has one.
+
+### Fixed
+
+- **[HIGH] GoldSrc models were routed to the Source parser and silently discarded.**
+  `SourceMDLParser` validated only the `"IDST"` magic — which GoldSrc StudioMDL uses too —
+  so a GoldSrc `.mdl` was accepted there, returned an empty mesh, and
+  `UnifiedAssetImporter` never fell through to `MDL10Parser`. The Source parser now
+  requires version 44–49, and the importer routes GoldSrc first.
+
+### Changed
+
+- **`SourceMDLParser` scope documented.** Unlike GoldSrc, a Source `.mdl` contains no
+  vertex data whatsoever: positions, UVs and weights live in a companion `.vvd` and the
+  index/strip data in a `.dx90.vtx`. Producing Source mesh output requires reading three
+  files together, which this parser does not do — `mesh_data` is always empty, and the
+  header now says so rather than leaving callers to discover it.
+
+---
+
 ## [0.3.0-alpha] - 2026-07-30
 
 First release in which imported GoldSrc maps are actually textured. Supersedes

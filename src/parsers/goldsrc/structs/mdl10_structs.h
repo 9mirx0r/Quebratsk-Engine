@@ -7,6 +7,10 @@
 
 namespace quebratsk::parsers::goldsrc {
 
+// Triangle command stream markers. Each command is an int16 count followed by
+// `abs(count)` vertex records of 4 int16 (vertex, normal, s, t).
+inline constexpr int16_t kTriCommandEnd = 0; // negative = fan, positive = strip
+
 inline constexpr std::array<char, 4> kMdl10Magic = {'I', 'D', 'S', 'T'};
 inline constexpr int32_t kMdl10Version = 10;
 
@@ -78,18 +82,53 @@ struct StudioModel {
     float bounding_radius;
     int32_t num_mesh;
     int32_t mesh_index;
-    int32_t num_verts;
-    int32_t vert_info_index;
-    int32_t vert_index;
+    int32_t num_verts;       // unique vertex positions
+    int32_t vert_info_index; // uint8 per vertex: which bone it is attached to
+    int32_t vert_index;      // vec3 array, in BONE-LOCAL space
     int32_t num_norms;
-    int32_t norm_info_index;
-    int32_t norm_index;
+    int32_t norm_info_index; // uint8 per normal: owning bone
+    int32_t norm_index;      // vec3 array, bone-local
     int32_t num_groups;
     int32_t group_index;
+};
+
+/// Mesh descriptor (20 bytes). `tri_index` points at the triangle command stream.
+struct StudioMesh {
+    int32_t num_tris;
+    int32_t tri_index;
+    int32_t skin_ref;   // index into the skin table, which maps to a texture
+    int32_t num_norms;
+    int32_t norm_index;
+};
+
+/// Texture descriptor (80 bytes). Present only when the model embeds its textures;
+/// otherwise they live in a companion "<name>T.mdl" and num_textures is 0.
+struct StudioTexture {
+    char name[64];
+    int32_t flags;
+    int32_t width;
+    int32_t height;
+    int32_t index;   // offset to 8-bit palettized pixels
 };
 #pragma pack(pop)
 
 static_assert(sizeof(StudioHeader) >= 200, "StudioHeader size mismatch");
 static_assert(sizeof(StudioBone) == 112, "StudioBone size mismatch");
+static_assert(sizeof(StudioBodyPart) == 76, "StudioBodyPart size mismatch");
+static_assert(sizeof(StudioModel) == 112, "StudioModel size mismatch");
+static_assert(sizeof(StudioMesh) == 20, "StudioMesh size mismatch");
+static_assert(sizeof(StudioTexture) == 80, "StudioTexture size mismatch");
+
+// The header struct is deliberately truncated after attachment_index (sound and
+// transition tables are unused), so sizeof() cannot pin the layout. Pin the field
+// offsets the parser actually indexes by instead.
+static_assert(offsetof(StudioHeader, num_bones) == 140, "num_bones offset drift");
+static_assert(offsetof(StudioHeader, bone_index) == 144, "bone_index offset drift");
+static_assert(offsetof(StudioHeader, num_textures) == 180, "num_textures offset drift");
+static_assert(offsetof(StudioHeader, texture_index) == 184, "texture_index offset drift");
+static_assert(offsetof(StudioHeader, num_skin_ref) == 192, "num_skin_ref offset drift");
+static_assert(offsetof(StudioHeader, skin_index) == 200, "skin_index offset drift");
+static_assert(offsetof(StudioHeader, num_bodyparts) == 204, "num_bodyparts offset drift");
+static_assert(offsetof(StudioHeader, bodypart_index) == 208, "bodypart_index offset drift");
 
 } // namespace quebratsk::parsers::goldsrc
