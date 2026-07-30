@@ -94,7 +94,9 @@ Ref<ArrayMesh> UnifiedAssetImporter::load_mesh(const String& vfs_uri) {
         return {};
     }
 
-    return converters::MeshConverter::convert(ir_mesh);
+    // Resolve each surface's texture against the mounted archives.
+    converters::TextureLoader loader(m_vfs);
+    return converters::MeshConverter::convert(ir_mesh, &loader);
 }
 
 Ref<StandardMaterial3D> UnifiedAssetImporter::load_material(const String& vfs_uri) {

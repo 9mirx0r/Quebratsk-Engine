@@ -11,6 +11,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0-alpha] - 2026-07-30
+
+First release in which imported GoldSrc maps are actually textured. Supersedes
+`v0.2.0-alpha`, which remains published for reference.
+
+### Added
+
+- **BSP30 UV generation (`bsp30_parser.cpp`)**: face UVs are now projected from the
+  `BSPTexInfo` S/T axes that were sitting unused right next to the face loop:
+  `u = (dot(vertex, vector_s.xyz) + vector_s.w) / texture_width`, likewise for `v`.
+  The projection vectors are expressed in the map's original Hammer-unit space, so the
+  raw vertex is used rather than the Godot-remapped one. Every vertex previously
+  received a hardcoded `(0, 0)`.
+- **BSP30 per-face normals**: taken from the face's plane and negated when `plane_side`
+  is set, then remapped to Godot space. Every vertex previously received a hardcoded
+  `(0, 1, 0)`, which made all map lighting flat.
+- **BSP30 texture directory (lump 2)**: parsed for real texture names and dimensions.
+  Names are required to normalize UVs and to let `TextureLoader` resolve the surface
+  against mounted WAD archives; `IRSurface::material_name` used to be a synthetic
+  `"texture_<n>"` that could never match anything in the VFS. Entries with a `-1` offset
+  (texture stored in an external WAD) are handled.
+- **`MeshConverter` attaches materials**: each surface's `material_name` is resolved
+  through the VFS and bound as a `StandardMaterial3D` albedo texture. Legacy content is
+  given `TEXTURE_FILTER_NEAREST_WITH_MIPMAPS` (bilinear turns 64x64 GoldSrc textures to
+  mush) and GoldSrc `{`-prefixed names get alpha-scissor transparency. Without this the
+  new UVs had nothing to sample.
+- **`tests/dxt_decoder_test.cpp`**: standalone verification of the DXT decoders, with no
+  engine, no godot-cpp and no test framework. Covers both DXT1 colour modes (including
+  punch-through transparency), DXT5 interpolated alpha, blocks clipped by
+  non-multiple-of-4 dimensions, and rejection of truncated input. 17 assertions, all
+  passing. Build instructions are in the file header.
+- `static_assert`s pinning `BSPPlane`, `BSPEdge` and `BSPTexInfo` sizes, which the struct
+  header declared but never verified.
+
+### Fixed
+
+- **`AsyncAssetImporter` produced untextured meshes** where the synchronous path produced
+  textured ones. The pending job now carries the importer's `ObjectID` (not a raw
+  pointer, which could dangle if the node were freed mid-decode); it is re-resolved on
+  the main thread to build the texture loader.
+- Duplicate load of BSP lump 1: the planes lump was read twice, once for collision and
+  now once for normals. Read once and reused.
+
+---
+
 ## Audit Follow-Up — Texture Pipeline, Correctness & Cleanup — 2026-07-30
 
 Second pass over the findings the first audit pass left open. The headline item was not

@@ -39,6 +39,9 @@ private:
     struct PendingJob {
         ir::IRMeshData mesh_ir;
         godot::Callable callback;
+        /// ObjectID, not a raw pointer: the importer may be freed while the worker runs.
+        /// Re-resolved on the main thread to build the texture loader.
+        uint64_t importer_id = 0;
     };
 
     /// Main-thread continuation queued by the worker via call_deferred().

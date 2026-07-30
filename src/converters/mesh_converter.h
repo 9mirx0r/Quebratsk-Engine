@@ -7,10 +7,18 @@
 
 namespace quebratsk::converters {
 
+class TextureLoader;
+
 class MeshConverter {
 public:
-    /// Convert Intermediate Representation IRMeshData into native Godot 4 ArrayMesh
-    [[nodiscard]] static godot::Ref<godot::ArrayMesh> convert(const ir::IRMeshData& ir_mesh);
+    /// Convert IRMeshData into a native Godot 4 ArrayMesh.
+    ///
+    /// When `loader` is non-null, each surface's `material_name` is resolved through the
+    /// VFS and attached as a StandardMaterial3D. Passing null yields an untextured mesh.
+    ///
+    /// MAIN THREAD ONLY when `loader` is provided.
+    [[nodiscard]] static godot::Ref<godot::ArrayMesh> convert(const ir::IRMeshData& ir_mesh,
+                                                              TextureLoader* loader = nullptr);
 };
 
 } // namespace quebratsk::converters
