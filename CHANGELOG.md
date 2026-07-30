@@ -9,13 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned (10 Extreme Performance & QoL Features)
-- Smart VRAM Garbage Collector (Texture/Mesh Eviction).
-- Automated Shader Pre-Caching (Pipeline State Object Generation).
-- Multi-Threaded Collision BVH Builder.
-- Developer Quality-of-Life: Configurable Memory Quotas via UI.
+### Planned
+- **Roadmap 1.0 Complete!** All 10 Extreme Performance & QoL features have been implemented.
 
 ### Added
+- **Smart VRAM Garbage Collector (`vram_garbage_collector.h/.cpp`)**: Background `jthread` tracking resource access timestamps via `OS::get_ticks_msec()` and automatically calling `.unref()` on cached textures/meshes that exceed the idle timeout to prevent OOM crashes on low-end hardware.
+- **Automated Shader Pre-Caching (`shader_precacher.h/.cpp`)**: Compiles all materials into dummy Pipeline State Objects (PSOs) via Godot's `RenderingServer` during map load to eliminate runtime shader compilation stutter.
+- **Multi-Threaded Collision BVH Builder (`async_collision_builder.h/.cpp`)**: Offloads `ConcavePolygonShape3D` generation for massive map chunks to `std::async`, preserving main thread framerate.
+- **Configurable Memory Quotas via UI (`quebratsk_settings.h/.cpp`)**: Registers new sliders in `ProjectSettings` (e.g., `quebratsk/performance/vram_eviction_timeout_msec`) to give developers full control over the engine's extreme limits directly from the Godot Editor.
 - **Asynchronous Occlusion Culling Hull Generator (`src/core/vfs/occlusion_generator.h/.cpp`)**: Background `jthread` extracting AABB/OBB bounding volumes from raw meshes to generate Godot `BoxOccluder3D` nodes, preventing GPU overdraw.
 - **Lazy-Loaded VFS Streaming (`src/core/vfs/lazy_memory_mapper.h/.cpp`)**: True zero-memory mapping using `MapViewOfFile` to map only requested byte windows of large archives into RAM, dropping base memory footprint to under 100MB.
 - **Instanced Rendering Auto-Batching (`src/converters/batching_manager.h/.cpp`)**: Consolidates duplicate `MeshInstance3D` spawn requests into a single `MultiMeshInstance3D` automatically to minimize CPU draw calls.
