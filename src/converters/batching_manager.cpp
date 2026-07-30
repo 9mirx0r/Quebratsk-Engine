@@ -16,6 +16,7 @@ void BatchingManager::_bind_methods() {
 void BatchingManager::register_instance(const String& vfs_path, const Transform3D& transform, const Ref<Mesh>& mesh_ref) {
     if (mesh_ref.is_null()) return;
 
+    std::lock_guard<std::mutex> lock(_mutex);
     std::string key = vfs_path.utf8().get_data();
     auto& entry = _batch_registry[key];
     if (entry.mesh.is_null()) {
@@ -27,6 +28,7 @@ void BatchingManager::register_instance(const String& vfs_path, const Transform3
 void BatchingManager::flush(Node* parent_node) {
     if (!parent_node) return;
 
+    std::lock_guard<std::mutex> lock(_mutex);
     for (const auto& [path, entry] : _batch_registry) {
         size_t count = entry.instances.size();
         if (count == 0) continue;
@@ -59,10 +61,11 @@ void BatchingManager::flush(Node* parent_node) {
         }
     }
 
-    clear();
+    _batch_registry.clear();
 }
 
 void BatchingManager::clear() {
+    std::lock_guard<std::mutex> lock(_mutex);
     _batch_registry.clear();
 }
 

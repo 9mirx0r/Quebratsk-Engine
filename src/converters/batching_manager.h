@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <mutex>
 
 namespace quebratsk::converters {
 
@@ -41,6 +42,7 @@ private:
     };
 
     std::unordered_map<std::string, MeshEntry> _batch_registry;
+    mutable std::mutex _mutex;
 };
 
 } // namespace quebratsk::converters

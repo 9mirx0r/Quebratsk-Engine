@@ -43,10 +43,12 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     // Lump 12: Edges
     auto edge_lump = get_lump(12);
     auto* bsp_edges = reinterpret_cast<const BSPEdge*>(edge_lump.data());
+    size_t num_edges = edge_lump.size() / sizeof(BSPEdge);
 
     // Lump 13: SurfEdges
     auto surfedge_lump = get_lump(13);
     auto* bsp_surfedges = reinterpret_cast<const int32_t*>(surfedge_lump.data());
+    size_t num_surfedges = surfedge_lump.size() / sizeof(int32_t);
 
     // Lump 6: TexInfo
     auto texinfo_lump = get_lump(6);
@@ -75,8 +77,14 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         std::vector<godot::Vector3> poly_positions;
 
         for (int16_t e = 0; e < face.num_edges; ++e) {
-            int32_t surfedge = bsp_surfedges[face.first_edge_index + e];
-            uint16_t vert_idx = (surfedge >= 0) ? bsp_edges[surfedge].v[0] : bsp_edges[-surfedge].v[1];
+            size_t surfedge_idx = static_cast<size_t>(face.first_edge_index + e);
+            if (surfedge_idx >= num_surfedges) break;
+
+            int32_t surfedge = bsp_surfedges[surfedge_idx];
+            size_t abs_edge_idx = static_cast<size_t>(surfedge >= 0 ? surfedge : -surfedge);
+            if (abs_edge_idx >= num_edges) continue;
+
+            uint16_t vert_idx = (surfedge >= 0) ? bsp_edges[abs_edge_idx].v[0] : bsp_edges[abs_edge_idx].v[1];
 
             if (vert_idx < num_verts) {
                 const auto& v = bsp_verts[vert_idx];
