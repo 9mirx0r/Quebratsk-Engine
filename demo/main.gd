@@ -43,14 +43,15 @@ func _ready() -> void:
 	print("\n📓 [Obsidian Doc Exporter] Markdown Preview Generated:\n")
 	print(markdown_doc)
 	
+	# Connect Godot 4 native file drop signal
+	get_window().files_dropped.connect(_on_files_dropped)
+	
 	print("==================================================")
 	print("   ✅ ALL SUB-SYSTEMS INITIALIZED SUCCESSFULLY!")
 	print("==================================================")
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_DROP_FILES:
-		var dropped_files: PackedStringArray = get_viewport().get_tree().root.get_meta("dropped_files", [])
-		if dropped_files.size() > 0:
-			var mounted: bool = VFSDropHandler.handle_dropped_files(dropped_files, vfs)
-			if mounted:
-				print("🖱️ [VFSDropHandler] Dropped archive files mounted successfully!")
+func _on_files_dropped(files: PackedStringArray) -> void:
+	if files.size() > 0:
+		var mounted: bool = VFSDropHandler.handle_dropped_files(files, vfs)
+		if mounted:
+			print("🖱️ [VFSDropHandler] Dropped archive files mounted successfully!")
