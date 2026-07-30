@@ -11,6 +11,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0-alpha] - 2026-07-30
+
+Closes the two gaps `v0.4.0-alpha` left open: skinned models now bind to a real
+`Skeleton3D`, and Source 1 models import with geometry.
+
+### Added
+
+- **Skinning bound to `Skeleton3D`.** The IR carried bone indices and weights but
+  nothing consumed them, so models imported as static geometry. Now complete:
+  - `MeshConverter` emits `ARRAY_BONES` / `ARRAY_WEIGHTS` (Godot requires both together
+    at 4 entries per vertex; emitting one alone makes the surface fail).
+  - `SkeletonConverter::make_skin()` builds the `Skin`, binding each bone with the
+    inverse of its global rest transform. Mesh vertices are emitted in model space with
+    the rest baked in, so without this the skinned mesh collapses to the origin at
+    runtime — a failure invisible until the model is in a scene.
+  - `ir::compute_global_rest_transforms()` composes model-space rests from the
+    parent-relative locals. Pure IR math, no Godot Object, safe on any thread.
+  - `UnifiedAssetImporter::load_model()` returns a `Skeleton3D` with a skinned
+    `MeshInstance3D` child, or a bare `MeshInstance3D` when the asset has no bones.
+    Exposed to GDScript.
+- **Source 1 mesh extraction from `.mdl` + `.vvd` + `.dx90.vtx`.** A Source `.mdl`
+  contains no vertex data at all, so all three files are read together:
+  - `vvd_structs.h` / `vtx_structs.h` with every struct size pinned by `static_assert`.
+  - `VVDParser::load_vertices()` applies the **fixup table**. When fixups are present
+    the on-disk vertex array is not in mesh order and must be rebuilt by copying the
+    runs it describes; reading it linearly yields a scrambled mesh.
+  - `SourceMDLParser::parse_bundle()` walks body part → model → LOD 0 → mesh → strip
+    group → strips, resolving the three-hop index chain (strip index → strip-group
+    `Vertex_t` → `orig_mesh_vert_id` + mesh vertex offset + model vertex base) and
+    handling both triangle lists and strips. Bone weights (up to 3 influences) carry
+    through to the IR.
+  - Material names resolved from the `.mdl` texture table.
+  - Checksums are cross-checked across all three files, so a `.mdl` paired with someone
+    else's companions is rejected rather than decoded into nonsense.
+- **`AssetBundleBytes` + `UnifiedAssetImporter::read_asset_bundle()`.** Companion files
+  are resolved and read on the main thread, then handed to the parser as plain buffers.
+  This keeps `parse_asset_ir()` pure and off-thread, preserving the threading guarantee
+  the async path depends on. Tries the sibling next to the `.mdl` first, then falls back
+  to a VFS suffix search; `.dx90.vtx`, `.vtx`, `.dx80.vtx` and `.sw.vtx` are all accepted.
+- **`tests/source_mdl_test.cpp`**: 26 assertions covering VVD with and without fixups,
+  rejection of bad magic / version / overrunning fixup runs, the full three-file bundle
+  with its relative-offset traversal, checksum mismatch, and the skeleton-only fallback.
+- Skin bind-pose assertions added to `tests/mdl10_parser_test.cpp` (now 36).
+
+### Fixed
+
+- **[CRITICAL] `SourceStudioHeader` was missing three fields**, so `num_bodyparts` and
+  `bodypart_index` were reading `num_skin_ref` and `num_skin_families`. Any body-part
+  traversal would have walked garbage offsets. This was reported as M3 in the original
+  audit and had not been applied; it blocked the Source mesh work entirely. Added
+  `num_skin_ref`, `num_skin_families` and `skin_index`, plus `offsetof` assertions
+  pinning the six header fields the parser indexes by against the Source SDK layout.
+- **`SkeletonConverter` could make a bone its own parent.** The guard compared
+  `parent_index` against `get_bone_count()`, which already counts the bone just added.
+  Now compared against the bone's own index.
+
+### Changed
+
+- `parse_mesh_ir()` became `parse_asset_ir()` and returns the skeleton alongside the
+  mesh. It previously discarded the skeleton, which is why nothing downstream could
+  build a `Skin`.
+- `SourceMesh`, `SourceModel`, `SourceBodyPart` and `SourceTexture` structs added, with
+  sizes pinned (148, 116, 16 and 64 bytes respectively).
+
+---
+
 ## [0.4.0-alpha] - 2026-07-30
 
 GoldSrc `.mdl` models now import with geometry. Previously `MDL10Parser` extracted only

@@ -25,6 +25,7 @@
 // Exits non-zero on failure.
 
 #include "parsers/goldsrc/mdl10_parser.h"
+#include "core/ir/ir_skeleton_data.h"
 
 #include <cmath>
 #include <cstdio>
@@ -283,6 +284,28 @@ int main() {
     if (s.bone_indices.size() == 3) {
         check_i("v1 bone id", s.bone_indices[1][0], 1);
         check("v1 weight", s.bone_weights[1][0], 1.0);
+    }
+
+    // The Skin resource binds each bone with the INVERSE of its global rest transform.
+    // Mesh vertices are emitted in model space with the rest already baked in, so if
+    // this composition is wrong the skinned mesh collapses to the origin at runtime --
+    // a failure that is invisible until the model is actually in a scene.
+    std::printf("Global rest composition (Skin bind poses):\n");
+    {
+        const auto global = quebratsk::ir::compute_global_rest_transforms(skel);
+        check_i("global rest count", (long long)global.size(), 2);
+        if (global.size() == 2) {
+            check("bone0 global origin.x", global[0].origin.x, 0.0);
+            // bone1 is a child translated +100 source units on X -> 100 * 0.0254 metres.
+            check("bone1 global origin.x", global[1].origin.x, 100.0f * kScale);
+            check("bone1 global origin.y", global[1].origin.y, 0.0);
+
+            // Round trip: global_rest * inverse(global_rest) must be identity, which is
+            // what the runtime does when it applies the bind pose.
+            const godot::Transform3D round_trip = global[1] * global[1].affine_inverse();
+            check("bind pose round trip x", round_trip.origin.x, 0.0);
+            check("bind pose round trip basis", round_trip.basis[0][0], 1.0);
+        }
     }
 
     std::printf("\n%s (%d failure%s)\n", failures == 0 ? "ALL PASS" : "FAILURES",

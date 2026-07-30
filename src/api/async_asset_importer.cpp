@@ -46,10 +46,10 @@ void AsyncAssetImporter::load_mesh_async(UnifiedAssetImporter* importer,
     }
 
     // Read on the main thread: VFSManager owns memory mappings whose lifetime is tied
-    // to mount/unmount, and PackedByteArray allocation belongs to the owning thread.
-    // The worker then operates purely on this owned buffer.
-    std::vector<std::byte> owned_bytes = importer->read_asset_bytes(vfs_uri);
-    if (owned_bytes.empty()) {
+    // to mount/unmount, and resolving companion files (a Source .mdl needs its .vvd and
+    // .vtx) requires VFS lookups. The worker then operates purely on these owned buffers.
+    AssetBundleBytes owned_bundle = importer->read_asset_bundle(vfs_uri);
+    if (owned_bundle.empty()) {
         UtilityFunctions::printerr("[QuebratskAsync] Empty or unreadable asset: ", vfs_uri);
         return;
     }
@@ -65,13 +65,13 @@ void AsyncAssetImporter::load_mesh_async(UnifiedAssetImporter* importer,
     std::erase_if(_workers, [](const std::jthread& t) { return !t.joinable(); });
 
     _workers.emplace_back(
-        [this, job_id, importer_id, bytes = std::move(owned_bytes), uri_lower, callback](std::stop_token stoken) {
+        [this, job_id, importer_id, bundle = std::move(owned_bundle), uri_lower, callback](std::stop_token stoken) {
             if (stoken.stop_requested()) {
                 return;
             }
 
             // Pure-data decode. No Ref<>, no memnew(), no server calls.
-            ir::IRMeshData mesh_ir = UnifiedAssetImporter::parse_mesh_ir(bytes, uri_lower);
+            ir::IRMeshData mesh_ir = UnifiedAssetImporter::parse_asset_ir(bundle, uri_lower).mesh;
 
             if (stoken.stop_requested()) {
                 return;
