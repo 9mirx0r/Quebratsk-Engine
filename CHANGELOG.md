@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **All binary parsers now read through a single bounds-checked primitive**,
+  `io::ByteReader` (`src/core/io/byte_reader.h`).
+
+  Every parser had been hand-rolling the same "check, then memcpy, then advance"
+  sequence, and it had drifted into **four subtly different implementations** of the same
+  bounds test — three copies of `fits(offset, count, elem_size, total)` plus a separate
+  `range_fits(offset, length, size)`. Four of the twelve critical findings in the original
+  engineering audit (C3, C5, C6, C8) were unchecked reads or overflowing offset arithmetic
+  in exactly that pattern.
+
+  `ByteReader` holds one invariant, and it is total: **no operation can leave the cursor
+  past the end of the buffer, and no read can return data that is not fully inside it.**
+  There is no partial-read path. Offset arithmetic is done with subtraction and division
+  so it cannot wrap, which is the failure the audit kept finding — `offset + count * size`
+  overflows for values taken from an untrusted file and then reports success.
+
+  Migrated: `bsp30_parser`, `mdl10_parser`, `mdl_source_parser`, `vvd_parser`,
+  `vfs_manager`. The local `fits()` / `range_fits()` copies are gone.
+
+  This is a behaviour-preserving refactor, verified at four levels:
+
+  | Check | Result |
+  |---|---|
+  | `tests/byte_reader_test.cpp` (new, 54 assertions) | pass — includes adversarial overflow cases |
+  | `dxt_decoder_test` · `mdl10_parser_test` · `source_mdl_test` | pass, unchanged |
+  | Retail assets (`cs_assault`, `de_dust2`, `arcticorange`, HL2 `envballs`) | **byte-identical output** |
+  | Godot 4.7.1 end-to-end | 149/149 textured, 53 bones, skin bound, 121 DayZ entries — unchanged |
+
+### Added
+
+- `tests/byte_reader_test.cpp` — 54 assertions over the reader's invariant, including
+  `size_t` overflow in both the offset and the count, unterminated strings, cursor
+  position after a *failed* read, and construction past the end of the buffer.
+
 ---
 
 ## [0.5.0-alpha] - 2026-07-30
