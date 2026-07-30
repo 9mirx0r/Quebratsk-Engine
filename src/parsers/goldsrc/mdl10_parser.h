@@ -23,9 +23,15 @@ struct ParsedMDL10Model {
 
 class MDL10Parser {
 public:
-    /// Parse raw StudioMDL v10 binary data into Intermediate Representation mesh & skeleton
+    /// Parse StudioMDL v10 into IR mesh and skeleton.
+    ///
+    /// `texture_mdl_bytes` is the optional companion "<name>T.mdl". Many GoldSrc models
+    /// — including much of the stock Counter-Strike 1.6 content — declare zero textures
+    /// and keep them in that separate file; without it those models import with
+    /// placeholder material names and no texture at all.
     [[nodiscard]] static std::expected<ParsedMDL10Model, MDL10ParseError> parse(
-        std::span<const std::byte> mdl_bytes
+        std::span<const std::byte> mdl_bytes,
+        std::span<const std::byte> texture_mdl_bytes = {}
     );
 };
 

@@ -1,7 +1,12 @@
+; Built against godot-cpp godot-4.3-stable. GDExtensions are forward-compatible only,
+; so declaring a lower version invites older Godot builds to load a binary they cannot
+; support.
+;
+; NOTE: this file is parsed by Godot's ConfigFile, where comments start with ';'.
+; A '#' comment is a parse error that silently drops the keys around it — which is
+; exactly how compatibility_minimum went missing and stopped the extension loading.
 [configuration]
 entry_symbol = "quebratsk_library_init"
-# Built against godot-cpp godot-4.3-stable. GDExtensions are forward-compatible only,
-# so declaring 4.1 made Godot 4.1/4.2 load a binary they cannot support.
 compatibility_minimum = "4.3"
 
 [libraries]

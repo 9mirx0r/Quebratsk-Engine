@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 
 namespace quebratsk::vfs {
 
@@ -16,6 +18,7 @@ using namespace godot;
 
 void VFSManager::_bind_methods() {
     ClassDB::bind_method(D_METHOD("mount_container", "vfs_prefix", "real_path"), &VFSManager::mount_container);
+    ClassDB::bind_method(D_METHOD("mount_directory", "vfs_prefix", "real_dir"), &VFSManager::mount_directory);
     ClassDB::bind_method(D_METHOD("unmount", "vfs_prefix"), &VFSManager::unmount);
     ClassDB::bind_method(D_METHOD("file_exists", "vfs_uri"), &VFSManager::file_exists);
     ClassDB::bind_method(D_METHOD("list_files", "prefix"), &VFSManager::list_files, DEFVAL(""));
@@ -131,6 +134,62 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
             break;
     }
     return true;
+}
+
+int64_t VFSManager::mount_directory(const String& vfs_prefix, const String& real_dir) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    const std::string prefix_std = normalize_prefix(to_lower(vfs_prefix.utf8().get_data()));
+    const std::string dir_std = real_dir.utf8().get_data();
+
+    std::error_code ec;
+    const std::filesystem::path root(dir_std);
+    if (!std::filesystem::is_directory(root, ec) || ec) {
+        UtilityFunctions::printerr("[QuebratskVFS] Not a directory: ", real_dir);
+        return 0;
+    }
+
+    int64_t indexed = 0;
+
+    // The error_code overload keeps a permission-denied subdirectory from aborting the
+    // whole walk (and, with exceptions disabled, from terminating the process).
+    std::filesystem::recursive_directory_iterator it(
+        root, std::filesystem::directory_options::skip_permission_denied, ec);
+    if (ec) {
+        UtilityFunctions::printerr("[QuebratskVFS] Cannot walk directory: ", real_dir);
+        return 0;
+    }
+
+    const std::filesystem::recursive_directory_iterator end;
+    for (; it != end; it.increment(ec)) {
+        if (ec) break;
+        if (!it->is_regular_file(ec) || ec) continue;
+
+        const std::filesystem::path rel = std::filesystem::relative(it->path(), root, ec);
+        if (ec) continue;
+
+        std::string rel_str = rel.generic_string();
+        std::replace(rel_str.begin(), rel_str.end(), '\\', '/');
+
+        const std::string vfs_uri = "vfs://" + prefix_std + "/" + to_lower(rel_str);
+
+        const auto size = std::filesystem::file_size(it->path(), ec);
+        if (ec) continue;
+
+        VFSEntry entry;
+        entry.virtual_path = vfs_uri;
+        entry.loose_path = it->path().string();
+        entry.disk_size = static_cast<size_t>(size);
+        entry.uncompressed_size = entry.disk_size;
+        entry.compression = CompressionType::None;
+
+        m_index[vfs_uri] = std::move(entry);
+        ++indexed;
+    }
+
+    UtilityFunctions::print("[QuebratskVFS] Mounted directory (", indexed,
+                            " files): vfs://", String(prefix_std.c_str()), "/");
+    return indexed;
 }
 
 void VFSManager::unmount(const String& vfs_prefix) {
@@ -307,10 +366,19 @@ void VFSManager::index_pbo(size_t container_idx) {
             break;
         }
 
-        // Handle "Vers" version extension block
+        // Handle the "Vers" properties block.
+        //
+        // What follows a Vers entry is a run of NUL-terminated key/value string pairs
+        // ending in an empty string — NOT a data_size-sized blob. Skipping by data_size
+        // (which is 0 here) left the cursor on the first property key, so "product" was
+        // read as a filename and the whole index collapsed. Every DayZ and Arma PBO
+        // starts with one of these, which is why none of them indexed.
         if (fields.packing_method == parsers::rv_enfusion::kPboMagicVers) {
-            if (!range_fits(cursor, fields.data_size, bytes.size())) break;
-            cursor += fields.data_size; // Skip version key-value block
+            while (true) {
+                auto prop = read_cstr_bounded(bytes, cursor);
+                if (!prop) break;          // truncated
+                if (prop->empty()) break;  // end of the property list
+            }
             continue;
         }
 
@@ -390,6 +458,11 @@ std::optional<std::span<const std::byte>> VFSManager::get_raw_span(const std::st
     if (entry.compression != CompressionType::None) {
         return std::nullopt;
     }
+    // Loose files are not memory-mapped, so there is no persistent span to hand out.
+    // Callers must go through read_owned().
+    if (entry.is_loose()) {
+        return std::nullopt;
+    }
 
     if (entry.container_index >= m_containers.size()) return std::nullopt;
     const auto& container = m_containers[entry.container_index];
@@ -421,6 +494,29 @@ std::string VFSManager::find_by_suffix(const std::string& lowercase_suffix) cons
 std::vector<std::byte> VFSManager::read_owned(const std::string& vfs_uri_str) const {
     std::vector<std::byte> owned;
 
+    // Loose files (mount_directory) are read on demand rather than mapped, so they must
+    // be handled before the container paths.
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        const auto it = m_index.find(to_lower(vfs_uri_str));
+        if (it != m_index.end() && it->second.is_loose()) {
+            const std::string path = it->second.loose_path;
+            const size_t expected = it->second.disk_size;
+            // Copy what we need, then drop the lock before touching the filesystem.
+            std::ifstream file(path, std::ios::binary);
+            if (!file) {
+                UtilityFunctions::printerr("[QuebratskVFS] Loose file vanished: ",
+                                           String(path.c_str()));
+                return owned;
+            }
+            owned.resize(expected);
+            file.read(reinterpret_cast<char*>(owned.data()),
+                      static_cast<std::streamsize>(expected));
+            owned.resize(static_cast<size_t>(file.gcount()));
+            return owned;
+        }
+    }
+
     // Uncompressed entries can be copied straight out of the mapping.
     if (auto raw = get_raw_span(vfs_uri_str); raw.has_value()) {
         owned.assign(raw->begin(), raw->end());
@@ -437,7 +533,9 @@ std::vector<std::byte> VFSManager::read_owned(const std::string& vfs_uri_str) co
 }
 
 PackedByteArray VFSManager::read_file(const String& vfs_uri) const {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    // unique_lock, not lock_guard: the loose-file path below has to release the mutex
+    // before delegating to read_owned(), which takes it again.
+    std::unique_lock<std::mutex> lock(m_mutex);
     PackedByteArray result;
 
     std::string uri_std = to_lower(vfs_uri.utf8().get_data());
@@ -448,6 +546,19 @@ PackedByteArray VFSManager::read_file(const String& vfs_uri) const {
     }
 
     const auto& entry = it->second;
+    if (entry.is_loose()) {
+        // Loose entries have no container; defer to the on-demand reader.
+        // read_owned() takes the mutex itself, so release it first.
+        const std::string uri_copy = uri_std;
+        lock.unlock();
+        const std::vector<std::byte> bytes = read_owned(uri_copy);
+        if (!bytes.empty()) {
+            result.resize(static_cast<int64_t>(bytes.size()));
+            std::memcpy(result.ptrw(), bytes.data(), bytes.size());
+        }
+        return result;
+    }
+
     if (entry.container_index >= m_containers.size()) {
         UtilityFunctions::printerr("[QuebratskVFS] Stale container index for: ", vfs_uri);
         return result;

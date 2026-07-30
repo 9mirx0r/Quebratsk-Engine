@@ -1,6 +1,7 @@
 #include "bsp30_parser.h"
 #include "../../core/math/axis_remap.h"
 #include "structs/wad3_structs.h" // MiptexHeader, shared with the WAD3 reader
+#include "wad3_parser.h"          // reuse the miptex decoder for embedded textures
 
 #include <cstring>
 #include <string>
@@ -83,6 +84,7 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         std::string name;
         uint32_t width = 64;   // fallback keeps UVs finite for a corrupt directory
         uint32_t height = 64;
+        int32_t embedded_index = -1; // into map_data.mesh_data.embedded_textures
     };
     std::vector<MipTexEntry> miptextures;
 
@@ -112,6 +114,20 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
                             mh->width <= 4096 && mh->height <= 4096) {
                             entry.width = mh->width;
                             entry.height = mh->height;
+                        }
+
+                        // A non-zero mip offset means the pixels are stored right here
+                        // in the BSP rather than in an external WAD. Most compiled
+                        // GoldSrc maps embed their textures, so decoding them is the
+                        // difference between a textured map and a blank grey one.
+                        if (mh->offsets[0] != 0) {
+                            const auto miptex_span = tex_lump.subspan(static_cast<size_t>(ofs));
+                            if (auto decoded = WAD3Parser::parse_miptex(miptex_span);
+                                decoded.has_value() && decoded->is_valid()) {
+                                entry.embedded_index =
+                                    static_cast<int32_t>(map_data.mesh_data.embedded_textures.size());
+                                map_data.mesh_data.embedded_textures.push_back(std::move(decoded.value()));
+                            }
                         }
                     }
                     miptextures.push_back(std::move(entry));
@@ -149,6 +165,9 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
             surf.material_name = (miptex && !miptex->name.empty())
                                ? miptex->name
                                : "texture_" + std::to_string(tex_idx);
+            // Prefer the map's own copy; TextureLoader is only the fallback for maps
+            // that reference external WADs.
+            surf.embedded_texture_index = miptex ? miptex->embedded_index : -1;
         }
 
         // Face normal comes from its plane, flipped when the face is on the back side.

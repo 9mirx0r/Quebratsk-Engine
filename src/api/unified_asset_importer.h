@@ -37,6 +37,7 @@ struct AssetBundleBytes {
     std::vector<std::byte> primary;   // the asset named by the URI
     std::vector<std::byte> vertices;  // Source .vvd, empty when absent or not applicable
     std::vector<std::byte> indices;   // Source .dx90.vtx, likewise
+    std::vector<std::byte> textures;  // GoldSrc "<name>T.mdl", likewise
 
     [[nodiscard]] bool empty() const { return primary.empty(); }
 };
