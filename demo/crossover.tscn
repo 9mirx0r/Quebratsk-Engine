@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bqxk3n7vcross0"]
+
+[ext_resource type="Script" path="res://crossover.gd" id="1_cross"]
+
+[node name="Crossover" type="Node3D"]
+script = ExtResource("1_cross")
