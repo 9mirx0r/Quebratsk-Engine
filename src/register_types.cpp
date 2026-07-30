@@ -3,7 +3,10 @@
 #include "api/unified_asset_importer.h"
 #include "api/async_asset_importer.h"
 #include "api/vfs_file_tree.h"
+#include "api/vfs_drop_handler.h"
 #include "core/config/quebratsk_settings.h"
+#include "core/config/import_presets.h"
+#include "core/vfs/steam_library_detector.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -21,9 +24,12 @@ void initialize_quebratsk_module(ModuleInitializationLevel p_level) {
     ClassDB::register_class<quebratsk::api::UnifiedAssetImporter>();
     ClassDB::register_class<quebratsk::api::AsyncAssetImporter>();
     ClassDB::register_class<quebratsk::api::VFSFileTree>();
+    ClassDB::register_class<quebratsk::api::VFSDropHandler>();
     ClassDB::register_class<quebratsk::config::QuebratskSettings>();
+    ClassDB::register_class<quebratsk::config::ImportPresets>();
+    ClassDB::register_class<quebratsk::vfs::SteamLibraryDetector>();
 
-    // FIX A2: Initialize project settings so they appear in the Godot Editor UI
+    // Initialize project settings so they appear in the Godot Editor UI
     quebratsk::config::QuebratskSettings::register_settings();
 }
 
