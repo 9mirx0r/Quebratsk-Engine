@@ -1,4 +1,5 @@
 #include "vfs_manager.h"
+#include "../io/byte_reader.h"
 #include "../../parsers/goldsrc/structs/wad3_structs.h"
 #include "../../parsers/source1/structs/gma_structs.h"
 #include "../../parsers/rv_enfusion/structs/pbo_structs.h"
@@ -46,26 +47,20 @@ static std::string normalize_prefix(std::string prefix) {
     return prefix;
 }
 
-/// Read a NUL-terminated string from `bytes` starting at `pos`, never scanning past
-/// the end of the buffer. Returns nullopt when no terminator exists before EOF, which
-/// means the container is truncated. Constructing std::string from a raw pointer here
-/// would run off the end of the memory mapping.
+/// Read a NUL-terminated string, never scanning past the end of the buffer. Returns
+/// nullopt when no terminator exists before EOF, which means the container is truncated.
+///
+/// Thin adapter over io::ByteReader so the cursor-style call sites below stay readable.
 static std::optional<std::string> read_cstr_bounded(std::span<const std::byte> bytes, size_t& pos) {
-    const size_t start = pos;
-    while (pos < bytes.size() && static_cast<char>(bytes[pos]) != '\0') {
-        ++pos;
-    }
-    if (pos >= bytes.size()) {
-        return std::nullopt;
-    }
-    std::string out(reinterpret_cast<const char*>(bytes.data() + start), pos - start);
-    ++pos; // consume the terminator
+    io::ByteReader reader(bytes, pos);
+    auto out = reader.read_cstr();
+    pos = reader.position();
     return out;
 }
 
 /// Overflow-safe replacement for `offset + length > size`.
 static bool range_fits(size_t offset, size_t length, size_t size) {
-    return offset <= size && length <= size - offset;
+    return io::range_fits(offset, length, 1, size);
 }
 
 bool VFSManager::mount_container(const String& vfs_prefix, const String& real_path) {
@@ -229,25 +224,23 @@ void VFSManager::index_wad3(size_t container_idx) {
         return;
     }
 
-    auto* header = reinterpret_cast<const parsers::goldsrc::WAD3Header*>(bytes.data());
+    const io::ByteReader reader(bytes);
+    const auto header_span = reader.array_at<parsers::goldsrc::WAD3Header>(0, 1);
+    if (header_span.empty()) return;
+    const auto* header = header_span.data();
+
     // num_lumps and dir_offset are int32_t on disk; a negative value would cast to a
-    // huge size_t and make the multiplication below wrap.
+    // huge size_t and make the element-count arithmetic wrap. array_at() rejects the
+    // whole range rather than trusting it.
     if (header->dir_offset <= 0 || header->num_lumps < 0) {
         return;
     }
 
-    const size_t num_lumps = static_cast<size_t>(header->num_lumps);
-    const size_t dir_ofs = static_cast<size_t>(header->dir_offset);
-    constexpr size_t kLumpSize = sizeof(parsers::goldsrc::WAD3Lump);
+    const auto lumps = reader.array_at<parsers::goldsrc::WAD3Lump>(
+        static_cast<size_t>(header->dir_offset), static_cast<size_t>(header->num_lumps));
+    if (lumps.empty()) return;
 
-    if (dir_ofs > bytes.size() || num_lumps > (bytes.size() - dir_ofs) / kLumpSize) {
-        return;
-    }
-
-    auto* lumps = reinterpret_cast<const parsers::goldsrc::WAD3Lump*>(bytes.data() + dir_ofs);
-
-    for (size_t i = 0; i < num_lumps; ++i) {
-        const auto& lump = lumps[i];
+    for (const auto& lump : lumps) {
         if (lump.file_pos < 0 || lump.disk_size < 0 || lump.uncompressed_size < 0) {
             continue;
         }

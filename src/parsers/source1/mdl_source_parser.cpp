@@ -1,5 +1,6 @@
 #include "mdl_source_parser.h"
 #include "vvd_parser.h"
+#include "../../core/io/byte_reader.h"
 #include "../../core/math/axis_remap.h"
 
 #include <cstring>
@@ -8,61 +9,48 @@
 
 namespace quebratsk::parsers::source1 {
 
+using io::ByteReader;
+
 namespace {
 
-/// Overflow-safe "do `count` elements of `elem_size` fit at `offset`?".
-bool fits(size_t offset, size_t count, size_t elem_size, size_t total) {
-    if (offset > total) return false;
-    if (elem_size == 0) return count == 0;
-    return count <= (total - offset) / elem_size;
-}
-
-/// Read a NUL-terminated string without scanning past the end of the buffer.
-std::string read_cstr(std::span<const std::byte> data, size_t offset) {
-    if (offset >= data.size()) return {};
-    const char* base = reinterpret_cast<const char*>(data.data());
-    const size_t max_len = data.size() - offset;
-    const size_t len = ::strnlen(base + offset, max_len);
-    if (len >= max_len) return {}; // no terminator inside the buffer
-    return std::string(base + offset, len);
-}
-
 /// Every *_offset in a VTX file is relative to the address of the struct holding it,
-/// never to the start of the file. This helper makes that explicit at each use.
+/// never to the start of the file. This helper makes that explicit at each use and
+/// keeps the relative-to-absolute arithmetic overflow-safe in one place.
 template <typename T>
-const T* at_relative(std::span<const std::byte> data, size_t struct_offset, int32_t rel,
+const T* at_relative(const ByteReader& reader, size_t struct_offset, int32_t rel,
                      size_t count = 1) {
     if (rel < 0) return nullptr;
-    const size_t abs = struct_offset + static_cast<size_t>(rel);
-    if (!fits(abs, count, sizeof(T), data.size())) return nullptr;
-    return reinterpret_cast<const T*>(data.data() + abs);
+    // struct_offset is always <= size (it came from a checked read), so this cannot wrap.
+    if (struct_offset > reader.size()) return nullptr;
+    if (static_cast<size_t>(rel) > reader.size() - struct_offset) return nullptr;
+
+    const auto span = reader.array_at<T>(struct_offset + static_cast<size_t>(rel), count);
+    return span.empty() ? nullptr : span.data();
 }
 
 /// Bone hierarchy is not needed here: unlike GoldSrc, Source stores vertices already in
 /// model space, so positions can be used directly.
-void fill_skeleton(std::span<const std::byte> mdl, const SourceStudioHeader* header,
+void fill_skeleton(const ByteReader& mdl, const SourceStudioHeader* header,
                    ir::IRSkeletonData& out) {
-    if (header->num_bones <= 0 || header->bone_index <= 0 ||
-        !fits(static_cast<size_t>(header->bone_index),
-              static_cast<size_t>(header->num_bones), sizeof(SourceStudioBone), mdl.size())) {
-        return;
-    }
+    if (header->num_bones <= 0 || header->bone_index <= 0) return;
 
-    const auto* bones = reinterpret_cast<const SourceStudioBone*>(mdl.data() + header->bone_index);
+    const auto bones = mdl.array_at<SourceStudioBone>(static_cast<size_t>(header->bone_index),
+                                                      static_cast<size_t>(header->num_bones));
+    if (bones.empty()) return;
 
     for (int32_t i = 0; i < header->num_bones; ++i) {
-        const auto& b = bones[i];
+        const auto& b = bones[static_cast<size_t>(i)];
         ir::IRBone ir_b;
 
         // name_index is relative to the start of this bone record.
         const size_t bone_base = static_cast<size_t>(header->bone_index) +
                                  static_cast<size_t>(i) * sizeof(SourceStudioBone);
         bool named = false;
-        if (b.name_index > 0 && bone_base < mdl.size() &&
-            static_cast<size_t>(b.name_index) < mdl.size() - bone_base) {
-            std::string name = read_cstr(mdl, bone_base + static_cast<size_t>(b.name_index));
-            if (!name.empty()) {
-                ir_b.name = std::move(name);
+        if (b.name_index > 0 && bone_base <= mdl.size() &&
+            static_cast<size_t>(b.name_index) <= mdl.size() - bone_base) {
+            if (auto name = mdl.cstr_at(bone_base + static_cast<size_t>(b.name_index));
+                name.has_value() && !name->empty()) {
+                ir_b.name = std::move(*name);
                 named = true;
             }
         }
@@ -88,13 +76,14 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse(
 std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_bundle(
     const SourceModelBundle& bundle
 ) {
-    const std::span<const std::byte> mdl = bundle.mdl;
+    const ByteReader mdl(bundle.mdl);
 
-    if (mdl.size() < sizeof(SourceStudioHeader)) {
+    const auto header_span = mdl.array_at<SourceStudioHeader>(0, 1);
+    if (header_span.empty()) {
         return std::unexpected(SourceMDLParseError::InvalidHeader);
     }
+    const SourceStudioHeader* header = header_span.data();
 
-    const auto* header = reinterpret_cast<const SourceStudioHeader*>(mdl.data());
     if (std::memcmp(header->magic, kSourceMdlMagic.data(), 4) != 0) {
         return std::unexpected(SourceMDLParseError::InvalidHeader);
     }
@@ -137,11 +126,12 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
     }
 
     // ------------------------------------------------------------------ .vtx ----
-    const std::span<const std::byte> vtx = bundle.vtx;
-    if (vtx.size() < sizeof(VTXHeader)) {
+    const ByteReader vtx(bundle.vtx);
+    const auto vtx_header_span = vtx.array_at<VTXHeader>(0, 1);
+    if (vtx_header_span.empty()) {
         return std::unexpected(SourceMDLParseError::CorruptedData);
     }
-    const auto* vtx_header = reinterpret_cast<const VTXHeader*>(vtx.data());
+    const VTXHeader* vtx_header = vtx_header_span.data();
     if (vtx_header->version != kVtxVersion) {
         return std::unexpected(SourceMDLParseError::VersionMismatch);
     }
@@ -151,19 +141,20 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
 
     // -------------------------------------------------------- material names ----
     std::vector<std::string> material_names;
-    if (header->num_textures > 0 && header->texture_index > 0 &&
-        fits(static_cast<size_t>(header->texture_index),
-             static_cast<size_t>(header->num_textures), sizeof(SourceTexture), mdl.size())) {
+    if (header->num_textures > 0 && header->texture_index > 0) {
+        const auto textures = mdl.array_at<SourceTexture>(
+            static_cast<size_t>(header->texture_index), static_cast<size_t>(header->num_textures));
 
-        const auto* textures = reinterpret_cast<const SourceTexture*>(mdl.data() + header->texture_index);
-        material_names.reserve(static_cast<size_t>(header->num_textures));
-
-        for (int32_t i = 0; i < header->num_textures; ++i) {
+        material_names.reserve(textures.size());
+        for (size_t i = 0; i < textures.size(); ++i) {
             const size_t base = static_cast<size_t>(header->texture_index) +
-                                static_cast<size_t>(i) * sizeof(SourceTexture);
+                                i * sizeof(SourceTexture);
             std::string name;
-            if (textures[i].name_index > 0) {
-                name = read_cstr(mdl, base + static_cast<size_t>(textures[i].name_index));
+            if (textures[i].name_index > 0 && base <= mdl.size() &&
+                static_cast<size_t>(textures[i].name_index) <= mdl.size() - base) {
+                if (auto n = mdl.cstr_at(base + static_cast<size_t>(textures[i].name_index))) {
+                    name = std::move(*n);
+                }
             }
             material_names.push_back(name.empty() ? ("material_" + std::to_string(i)) : name);
         }
@@ -171,8 +162,8 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
 
     // ------------------------------------------------- body parts / geometry ----
     if (header->num_bodyparts <= 0 || header->bodypart_index <= 0 ||
-        !fits(static_cast<size_t>(header->bodypart_index),
-              static_cast<size_t>(header->num_bodyparts), sizeof(SourceBodyPart), mdl.size())) {
+        mdl.array_at<SourceBodyPart>(static_cast<size_t>(header->bodypart_index),
+                                     static_cast<size_t>(header->num_bodyparts)).empty()) {
         return result;
     }
     if (vtx_header->num_body_parts <= 0) {
@@ -187,12 +178,16 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
     for (int32_t bp = 0; bp < body_part_count; ++bp) {
         const size_t mdl_bp_ofs = static_cast<size_t>(header->bodypart_index) +
                                   static_cast<size_t>(bp) * sizeof(SourceBodyPart);
-        const auto* mdl_bp = reinterpret_cast<const SourceBodyPart*>(mdl.data() + mdl_bp_ofs);
+        const auto mdl_bp_span = mdl.array_at<SourceBodyPart>(mdl_bp_ofs, 1);
+        if (mdl_bp_span.empty()) continue;
+        const SourceBodyPart* mdl_bp = mdl_bp_span.data();
 
+        if (vtx_header->body_part_offset < 0) continue;
         const size_t vtx_bp_ofs = static_cast<size_t>(vtx_header->body_part_offset) +
                                   static_cast<size_t>(bp) * sizeof(VTXBodyPart);
-        const auto* vtx_bp = at_relative<VTXBodyPart>(vtx, 0, static_cast<int32_t>(vtx_bp_ofs));
-        if (!vtx_bp) continue;
+        const auto vtx_bp_span = vtx.array_at<VTXBodyPart>(vtx_bp_ofs, 1);
+        if (vtx_bp_span.empty()) continue;
+        const VTXBodyPart* vtx_bp = vtx_bp_span.data();
 
         // Only the first model of a body part is imported; the rest are runtime
         // alternates (weapon variants and similar) and stacking them would overlap.

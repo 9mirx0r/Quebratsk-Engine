@@ -1,4 +1,5 @@
 #include "mdl10_parser.h"
+#include "../../core/io/byte_reader.h"
 #include "../../core/math/axis_remap.h"
 
 #include <godot_cpp/variant/basis.hpp>
@@ -10,14 +11,9 @@
 
 namespace quebratsk::parsers::goldsrc {
 
-namespace {
+using io::ByteReader;
 
-/// Overflow-safe "do `count` elements of `elem_size` fit at `offset`?".
-bool fits(size_t offset, size_t count, size_t elem_size, size_t total) {
-    if (offset > total) return false;
-    if (elem_size == 0) return count == 0;
-    return count <= (total - offset) / elem_size;
-}
+namespace {
 
 /// StudioMDL stores XYZ Euler angles applied X, then Y, then Z, matching Valve's
 /// AngleQuaternion(). Godot's Basis/Quaternion Euler constructors use YXZ, so the
@@ -71,7 +67,7 @@ uint64_t corner_key(const TriCorner& c) {
 
 /// Decode the 8-bit palettized pixels embedded in the model into RGBA8.
 /// Layout at `tex.index`: width*height indices, followed by a 256-entry RGB palette.
-bool decode_embedded_texture(std::span<const std::byte> mdl, const StudioTexture& tex,
+bool decode_embedded_texture(const ByteReader& mdl, const StudioTexture& tex,
                              ir::IRTextureData& out) {
     if (tex.index <= 0 || tex.width <= 0 || tex.height <= 0 ||
         tex.width > 4096 || tex.height > 4096) {
@@ -82,10 +78,11 @@ bool decode_embedded_texture(std::span<const std::byte> mdl, const StudioTexture
     const size_t pixels = static_cast<size_t>(tex.width) * static_cast<size_t>(tex.height);
     constexpr size_t kPaletteBytes = 256 * 3;
 
-    if (!fits(offset, pixels + kPaletteBytes, 1, mdl.size())) return false;
+    const auto payload = mdl.array_at<uint8_t>(offset, pixels + kPaletteBytes);
+    if (payload.empty()) return false;
 
-    const auto* indices = reinterpret_cast<const uint8_t*>(mdl.data() + offset);
-    const auto* palette = indices + pixels;
+    const uint8_t* indices = payload.data();
+    const uint8_t* palette = indices + pixels;
 
     out.name.assign(tex.name, strnlen(tex.name, sizeof(tex.name)));
     out.width = static_cast<uint32_t>(tex.width);
@@ -113,11 +110,14 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
     std::span<const std::byte> mdl_bytes,
     std::span<const std::byte> texture_mdl_bytes
 ) {
-    if (mdl_bytes.size() < sizeof(StudioHeader)) {
+    const ByteReader mdl(mdl_bytes);
+
+    const auto header_span = mdl.array_at<StudioHeader>(0, 1);
+    if (header_span.empty()) {
         return std::unexpected(MDL10ParseError::InvalidHeader);
     }
+    const StudioHeader* header = header_span.data();
 
-    auto* header = reinterpret_cast<const StudioHeader*>(mdl_bytes.data());
     if (std::memcmp(header->magic, kMdl10Magic.data(), 4) != 0 || header->version != kMdl10Version) {
         return std::unexpected(MDL10ParseError::VersionMismatch);
     }
@@ -133,11 +133,11 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
     const StudioBone* bones = nullptr;
     std::vector<godot::Transform3D> bone_rest; // model space, source Z-up frame
 
-    if (header->num_bones > 0 && header->bone_index > 0 &&
-        fits(static_cast<size_t>(header->bone_index),
-             static_cast<size_t>(header->num_bones), sizeof(StudioBone), mdl_bytes.size())) {
-
-        bones = reinterpret_cast<const StudioBone*>(mdl_bytes.data() + header->bone_index);
+    if (header->num_bones > 0 && header->bone_index > 0) {
+        const auto bone_span = mdl.array_at<StudioBone>(static_cast<size_t>(header->bone_index),
+                                                        static_cast<size_t>(header->num_bones));
+        if (!bone_span.empty()) {
+        bones = bone_span.data();
         bone_rest = build_bone_rest_transforms(bones, header->num_bones);
 
         for (int32_t i = 0; i < header->num_bones; ++i) {
@@ -150,6 +150,7 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
                 godot::Quaternion(studio_euler_to_basis(b.value[3], b.value[4], b.value[5])));
             result.skeleton_data.bones.push_back(std::move(ir_b));
         }
+        }
     }
 
     // ------------------------------------------------------------- Textures ----
@@ -161,30 +162,35 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
 
     // Textures live either in this file or in the companion "<name>T.mdl", which has
     // the same header layout with its own texture table. Pick whichever declares them.
-    std::span<const std::byte> tex_source = mdl_bytes;
+    ByteReader tex_source = mdl;
     const StudioHeader* tex_header = header;
 
-    if (header->num_textures <= 0 && !texture_mdl_bytes.empty() &&
-        texture_mdl_bytes.size() >= sizeof(StudioHeader)) {
-        const auto* t_hdr = reinterpret_cast<const StudioHeader*>(texture_mdl_bytes.data());
-        if (std::memcmp(t_hdr->magic, kMdl10Magic.data(), 4) == 0 && t_hdr->num_textures > 0) {
-            tex_source = texture_mdl_bytes;
-            tex_header = t_hdr;
+    if (header->num_textures <= 0 && !texture_mdl_bytes.empty()) {
+        const ByteReader companion(texture_mdl_bytes);
+        const auto t_span = companion.array_at<StudioHeader>(0, 1);
+        if (!t_span.empty() &&
+            std::memcmp(t_span[0].magic, kMdl10Magic.data(), 4) == 0 &&
+            t_span[0].num_textures > 0) {
+            tex_source = companion;
+            tex_header = t_span.data();
         }
     }
 
-    if (tex_header->num_textures > 0 && tex_header->texture_index > 0 &&
-        fits(static_cast<size_t>(tex_header->texture_index),
-             static_cast<size_t>(tex_header->num_textures), sizeof(StudioTexture), tex_source.size())) {
+    if (tex_header->num_textures > 0 && tex_header->texture_index > 0) {
+        const auto tex_span = tex_source.array_at<StudioTexture>(
+            static_cast<size_t>(tex_header->texture_index),
+            static_cast<size_t>(tex_header->num_textures));
 
-        textures = reinterpret_cast<const StudioTexture*>(tex_source.data() + tex_header->texture_index);
-        num_textures = static_cast<size_t>(tex_header->num_textures);
+        if (!tex_span.empty()) {
+            textures = tex_span.data();
+            num_textures = tex_span.size();
 
-        result.mesh_data.embedded_textures.resize(num_textures);
-        for (size_t i = 0; i < num_textures; ++i) {
-            ir::IRTextureData decoded;
-            if (decode_embedded_texture(tex_source, textures[i], decoded)) {
-                result.mesh_data.embedded_textures[i] = std::move(decoded);
+            result.mesh_data.embedded_textures.resize(num_textures);
+            for (size_t i = 0; i < num_textures; ++i) {
+                ir::IRTextureData decoded;
+                if (decode_embedded_texture(tex_source, textures[i], decoded)) {
+                    result.mesh_data.embedded_textures[i] = std::move(decoded);
+                }
             }
         }
     }
@@ -196,11 +202,13 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
     const int16_t* skin_table = nullptr;
     size_t num_skin_ref = 0;
 
-    if (header->num_skin_ref > 0 && header->skin_index > 0 &&
-        fits(static_cast<size_t>(header->skin_index),
-             static_cast<size_t>(header->num_skin_ref), sizeof(int16_t), mdl_bytes.size())) {
-        skin_table = reinterpret_cast<const int16_t*>(mdl_bytes.data() + header->skin_index);
-        num_skin_ref = static_cast<size_t>(header->num_skin_ref);
+    if (header->num_skin_ref > 0 && header->skin_index > 0) {
+        const auto skin_span = mdl.array_at<int16_t>(static_cast<size_t>(header->skin_index),
+                                                     static_cast<size_t>(header->num_skin_ref));
+        if (!skin_span.empty()) {
+            skin_table = skin_span.data();
+            num_skin_ref = skin_span.size();
+        }
     }
 
     auto resolve_texture = [&](int32_t skin_ref) -> int32_t {
@@ -215,14 +223,16 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
     };
 
     // ------------------------------------------------------------ Body parts ----
-    if (header->num_bodyparts <= 0 || header->bodypart_index <= 0 ||
-        !fits(static_cast<size_t>(header->bodypart_index),
-              static_cast<size_t>(header->num_bodyparts), sizeof(StudioBodyPart), mdl_bytes.size())) {
-        return result; // skeleton-only model, or a corrupt bodypart table
+    if (header->num_bodyparts <= 0 || header->bodypart_index <= 0) {
+        return result; // skeleton-only model
     }
-
-    const auto* bodyparts = reinterpret_cast<const StudioBodyPart*>(
-        mdl_bytes.data() + header->bodypart_index);
+    const auto bodypart_span = mdl.array_at<StudioBodyPart>(
+        static_cast<size_t>(header->bodypart_index),
+        static_cast<size_t>(header->num_bodyparts));
+    if (bodypart_span.empty()) {
+        return result; // corrupt bodypart table
+    }
+    const StudioBodyPart* bodyparts = bodypart_span.data();
 
     // One surface per texture, so the mesh ends up with as few draw calls as the
     // source material set allows.
@@ -236,54 +246,55 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
         // alternates selected at runtime by the "body" value (e.g. weapon variants),
         // and importing all of them would stack overlapping geometry.
         if (body.num_models <= 0 || body.model_index <= 0 ||
-            !fits(static_cast<size_t>(body.model_index), 1, sizeof(StudioModel), mdl_bytes.size())) {
+            mdl.array_at<StudioModel>(static_cast<size_t>(body.model_index), 1).empty()) {
             continue;
         }
 
-        const auto* model = reinterpret_cast<const StudioModel*>(mdl_bytes.data() + body.model_index);
+        const auto* model = mdl.array_at<StudioModel>(static_cast<size_t>(body.model_index), 1).data();
 
-        if (model->num_verts <= 0 || model->vert_index <= 0 ||
-            !fits(static_cast<size_t>(model->vert_index),
-                  static_cast<size_t>(model->num_verts) * 3, sizeof(float), mdl_bytes.size())) {
-            continue;
-        }
+        if (model->num_verts <= 0 || model->vert_index <= 0) continue;
+        const auto vert_span = mdl.array_at<float>(static_cast<size_t>(model->vert_index),
+                                                   static_cast<size_t>(model->num_verts) * 3);
+        if (vert_span.empty()) continue;
 
-        const auto* verts = reinterpret_cast<const float*>(mdl_bytes.data() + model->vert_index);
+        const float* verts = vert_span.data();
         const size_t num_verts = static_cast<size_t>(model->num_verts);
 
         const float* norms = nullptr;
         size_t num_norms = 0;
-        if (model->num_norms > 0 && model->norm_index > 0 &&
-            fits(static_cast<size_t>(model->norm_index),
-                 static_cast<size_t>(model->num_norms) * 3, sizeof(float), mdl_bytes.size())) {
-            norms = reinterpret_cast<const float*>(mdl_bytes.data() + model->norm_index);
-            num_norms = static_cast<size_t>(model->num_norms);
+        if (model->num_norms > 0 && model->norm_index > 0) {
+            const auto norm_span = mdl.array_at<float>(static_cast<size_t>(model->norm_index),
+                                                       static_cast<size_t>(model->num_norms) * 3);
+            if (!norm_span.empty()) {
+                norms = norm_span.data();
+                num_norms = static_cast<size_t>(model->num_norms);
+            }
         }
 
         // One bone index per vertex; vertices are stored in that bone's local space.
         const uint8_t* vert_bones = nullptr;
-        if (model->vert_info_index > 0 &&
-            fits(static_cast<size_t>(model->vert_info_index), num_verts, 1, mdl_bytes.size())) {
-            vert_bones = reinterpret_cast<const uint8_t*>(mdl_bytes.data() + model->vert_info_index);
+        if (model->vert_info_index > 0) {
+            const auto span = mdl.array_at<uint8_t>(static_cast<size_t>(model->vert_info_index),
+                                                    num_verts);
+            if (!span.empty()) vert_bones = span.data();
         }
 
         const uint8_t* norm_bones = nullptr;
-        if (model->norm_info_index > 0 && num_norms > 0 &&
-            fits(static_cast<size_t>(model->norm_info_index), num_norms, 1, mdl_bytes.size())) {
-            norm_bones = reinterpret_cast<const uint8_t*>(mdl_bytes.data() + model->norm_info_index);
+        if (model->norm_info_index > 0 && num_norms > 0) {
+            const auto span = mdl.array_at<uint8_t>(static_cast<size_t>(model->norm_info_index),
+                                                    num_norms);
+            if (!span.empty()) norm_bones = span.data();
         }
 
-        if (model->num_mesh <= 0 || model->mesh_index <= 0 ||
-            !fits(static_cast<size_t>(model->mesh_index),
-                  static_cast<size_t>(model->num_mesh), sizeof(StudioMesh), mdl_bytes.size())) {
-            continue;
-        }
-
-        const auto* meshes = reinterpret_cast<const StudioMesh*>(mdl_bytes.data() + model->mesh_index);
+        if (model->num_mesh <= 0 || model->mesh_index <= 0) continue;
+        const auto mesh_span = mdl.array_at<StudioMesh>(static_cast<size_t>(model->mesh_index),
+                                                        static_cast<size_t>(model->num_mesh));
+        if (mesh_span.empty()) continue;
+        const StudioMesh* meshes = mesh_span.data();
 
         for (int32_t m = 0; m < model->num_mesh; ++m) {
             const auto& mesh = meshes[m];
-            if (mesh.tri_index <= 0 || static_cast<size_t>(mesh.tri_index) >= mdl_bytes.size()) {
+            if (mesh.tri_index <= 0 || static_cast<size_t>(mesh.tri_index) >= mdl.size()) {
                 continue;
             }
 
@@ -364,15 +375,13 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
 
             // Triangle command stream: an int16 count, then abs(count) corners of four
             // int16 each. A negative count is a fan, positive is a strip, 0 terminates.
-            size_t cursor = static_cast<size_t>(mesh.tri_index);
+            ByteReader tris(mdl_bytes, static_cast<size_t>(mesh.tri_index));
             std::vector<TriCorner> run;
 
             while (true) {
-                if (!fits(cursor, 1, sizeof(int16_t), mdl_bytes.size())) break;
-
-                int16_t cmd = 0;
-                std::memcpy(&cmd, mdl_bytes.data() + cursor, sizeof(int16_t));
-                cursor += sizeof(int16_t);
+                const auto cmd_opt = tris.read<int16_t>();
+                if (!cmd_opt) break;
+                const int16_t cmd = *cmd_opt;
                 if (cmd == kTriCommandEnd) break;
 
                 const bool is_fan = cmd < 0;
@@ -380,19 +389,11 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
                 const size_t count = static_cast<size_t>(is_fan ? -static_cast<int>(cmd)
                                                                 : static_cast<int>(cmd));
 
-                if (!fits(cursor, count * 4, sizeof(int16_t), mdl_bytes.size())) break;
+                // Each corner is four int16: vertex, normal, s, t.
+                const auto corners = tris.read_array<TriCorner>(count);
+                if (corners.empty() && count != 0) break;
 
-                run.clear();
-                run.reserve(count);
-                for (size_t k = 0; k < count; ++k) {
-                    TriCorner c;
-                    std::memcpy(&c.vertex, mdl_bytes.data() + cursor + 0, sizeof(int16_t));
-                    std::memcpy(&c.normal, mdl_bytes.data() + cursor + 2, sizeof(int16_t));
-                    std::memcpy(&c.s,      mdl_bytes.data() + cursor + 4, sizeof(int16_t));
-                    std::memcpy(&c.t,      mdl_bytes.data() + cursor + 6, sizeof(int16_t));
-                    cursor += 4 * sizeof(int16_t);
-                    run.push_back(c);
-                }
+                run.assign(corners.begin(), corners.end());
 
                 if (run.size() < 3) continue;
 

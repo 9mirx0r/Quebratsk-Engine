@@ -1,4 +1,5 @@
 #include "bsp30_parser.h"
+#include "../../core/io/byte_reader.h"
 #include "../../core/math/axis_remap.h"
 #include "structs/wad3_structs.h" // MiptexHeader, shared with the WAD3 reader
 #include "wad3_parser.h"          // reuse the miptex decoder for embedded textures
@@ -13,29 +14,27 @@ namespace quebratsk::parsers::goldsrc {
 std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     std::span<const std::byte> bsp_bytes
 ) {
-    if (bsp_bytes.size() < sizeof(BSP30Header)) {
+    const io::ByteReader bsp(bsp_bytes);
+
+    const auto header_span = bsp.array_at<BSP30Header>(0, 1);
+    if (header_span.empty()) {
         return std::unexpected(BSP30ParseError::InvalidHeader);
     }
+    const BSP30Header* header = header_span.data();
 
-    auto* header = reinterpret_cast<const BSP30Header*>(bsp_bytes.data());
     if (header->version != kBsp30Version) {
         return std::unexpected(BSP30ParseError::VersionMismatch);
     }
 
+    // Lump offsets and lengths are int32_t on disk, so a negative value would cast to a
+    // huge size_t. bytes_at() rejects any range that does not fit entirely, returning an
+    // empty span rather than the undefined behaviour subspan() would give.
     auto get_lump = [&](size_t idx) -> std::span<const std::byte> {
         if (idx >= 15) return {};
-        // Lump offsets/lengths are int32_t on disk. A negative value casts to a huge
-        // size_t and ofs + len wraps, so the old check passed and subspan() was called
-        // with offset > size() — undefined behaviour, not a throw.
         const int32_t raw_ofs = header->lumps[idx].file_offset;
         const int32_t raw_len = header->lumps[idx].file_length;
         if (raw_ofs < 0 || raw_len < 0) return {};
-
-        const size_t ofs = static_cast<size_t>(raw_ofs);
-        const size_t len = static_cast<size_t>(raw_len);
-        if (ofs > bsp_bytes.size()) return {};
-        if (len > bsp_bytes.size() - ofs) return {}; // subtraction cannot overflow
-        return bsp_bytes.subspan(ofs, len);
+        return bsp.bytes_at(static_cast<size_t>(raw_ofs), static_cast<size_t>(raw_len));
     };
 
     ParsedBSP30Map map_data;
@@ -89,26 +88,23 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     std::vector<MipTexEntry> miptextures;
 
     {
-        auto tex_lump = get_lump(2);
-        if (tex_lump.size() >= sizeof(BSPMipTexLumpHeader)) {
-            int32_t count = 0;
-            std::memcpy(&count, tex_lump.data(), sizeof(int32_t));
+        io::ByteReader tex(get_lump(2));
+        if (const auto lump_hdr = tex.read<BSPMipTexLumpHeader>(); lump_hdr.has_value()) {
+            const int32_t count = lump_hdr->num_miptex;
+            const auto offsets = tex.read_array<int32_t>(
+                count > 0 ? static_cast<size_t>(count) : 0);
 
-            const size_t table_space = tex_lump.size() - sizeof(BSPMipTexLumpHeader);
-            if (count > 0 && static_cast<size_t>(count) <= table_space / sizeof(int32_t)) {
-                const auto* offsets = reinterpret_cast<const int32_t*>(
-                    tex_lump.data() + sizeof(BSPMipTexLumpHeader));
-
-                miptextures.reserve(static_cast<size_t>(count));
-                for (int32_t i = 0; i < count; ++i) {
+            if (!offsets.empty()) {
+                miptextures.reserve(offsets.size());
+                for (int32_t ofs : offsets) {
                     MipTexEntry entry;
-                    const int32_t ofs = offsets[i];
 
                     // -1 marks a texture that lives entirely in an external WAD.
-                    if (ofs >= 0 && static_cast<size_t>(ofs) <= tex_lump.size() &&
-                        sizeof(MiptexHeader) <= tex_lump.size() - static_cast<size_t>(ofs)) {
-                        const auto* mh = reinterpret_cast<const MiptexHeader*>(
-                            tex_lump.data() + ofs);
+                    const auto mh_span = ofs >= 0
+                        ? tex.array_at<MiptexHeader>(static_cast<size_t>(ofs), 1)
+                        : std::span<const MiptexHeader>{};
+                    if (!mh_span.empty()) {
+                        const MiptexHeader* mh = mh_span.data();
                         entry.name.assign(mh->name, strnlen(mh->name, sizeof(mh->name)));
                         if (mh->width > 0 && mh->height > 0 &&
                             mh->width <= 4096 && mh->height <= 4096) {
@@ -121,7 +117,7 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
                         // GoldSrc maps embed their textures, so decoding them is the
                         // difference between a textured map and a blank grey one.
                         if (mh->offsets[0] != 0) {
-                            const auto miptex_span = tex_lump.subspan(static_cast<size_t>(ofs));
+                            const auto miptex_span = tex.tail_at(static_cast<size_t>(ofs));
                             if (auto decoded = WAD3Parser::parse_miptex(miptex_span);
                                 decoded.has_value() && decoded->is_valid()) {
                                 entry.embedded_index =
