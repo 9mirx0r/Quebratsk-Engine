@@ -38,6 +38,9 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh, TextureLoad
         if (!surf.uv1.empty()      && surf.uv1.size()      != vcount) continue;
         if (!surf.tangents.empty() && surf.tangents.size() != vcount * 4) continue;
         if (surf.indices.size() % 3 != 0) continue;
+        // Bone data is optional, but if present both arrays must cover every vertex.
+        if (!surf.bone_indices.empty() && surf.bone_indices.size() != vcount) continue;
+        if (!surf.bone_weights.empty() && surf.bone_weights.size() != vcount) continue;
 
         const bool has_bad_index = std::any_of(
             surf.indices.begin(), surf.indices.end(),
@@ -89,7 +92,22 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh, TextureLoad
             surface_arrays[ArrayMesh::ARRAY_TEX_UV2] = uv2s;
         }
 
-        // 6. Indices (ARRAY_INDEX = 12)
+        // 6. Skinning (ARRAY_BONES = 10, ARRAY_WEIGHTS = 11)
+        // Godot requires both arrays together, at 4 (or 8) entries per vertex. Emitting
+        // one without the other, or with a mismatched count, makes the surface fail.
+        if (surf.bone_indices.size() == vcount && surf.bone_weights.size() == vcount) {
+            PackedInt32Array bones;
+            bones.resize(static_cast<int64_t>(vcount) * 4);
+            std::memcpy(bones.ptrw(), surf.bone_indices.data(), vcount * 4 * sizeof(int32_t));
+            surface_arrays[ArrayMesh::ARRAY_BONES] = bones;
+
+            PackedFloat32Array weights;
+            weights.resize(static_cast<int64_t>(vcount) * 4);
+            std::memcpy(weights.ptrw(), surf.bone_weights.data(), vcount * 4 * sizeof(float));
+            surface_arrays[ArrayMesh::ARRAY_WEIGHTS] = weights;
+        }
+
+        // 7. Indices (ARRAY_INDEX = 12)
         // Indices were validated above as < vcount, so every value fits in int32_t and
         // the uint32->int32 reinterpretation is exact. One memcpy beats a scalar loop.
         PackedInt32Array indices;
