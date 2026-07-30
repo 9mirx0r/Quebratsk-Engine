@@ -17,6 +17,8 @@
 #include "converters/batching_manager.h"
 #include "converters/bsp_map_renderer.h"
 #include "converters/vulkan_rt_builder.h"
+#include "converters/neural_material_translator.h"
+#include "converters/texture_upscaler_pipeline.h"
 #include "core/vfs/p2p_vfs_streamer.h"
 #include "parsers/unreal/uasset_mesh_extractor.h"
 #include "parsers/unity/bundle_mesh_extractor.h"
@@ -51,6 +53,8 @@ void initialize_quebratsk_module(ModuleInitializationLevel p_level) {
     ClassDB::register_class<quebratsk::converters::BatchingManager>();
     ClassDB::register_class<quebratsk::converters::BSPMapRenderer>();
     ClassDB::register_class<quebratsk::converters::VulkanRTBuilder>();
+    ClassDB::register_class<quebratsk::converters::NeuralMaterialTranslator>();
+    ClassDB::register_class<quebratsk::converters::TextureUpscalerPipeline>();
     ClassDB::register_class<quebratsk::vfs::P2PVFSStreamer>();
     ClassDB::register_class<quebratsk::parsers::unreal::UAssetMeshExtractor>();
     ClassDB::register_class<quebratsk::parsers::unity::BundleMeshExtractor>();
