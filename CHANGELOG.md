@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[HIGH] VRAMGarbageCollector used std::thread**: Replaced with `std::jthread` + `std::stop_token` for cooperative cancellation and automatic join-on-destruct, preventing 5-second hangs during editor shutdown.
 
 ### Added
+- **In-Editor "Map Fly-Through" Previewer (`src/api/map_preview_viewport.h/.cpp`)**: `MapPreviewViewport` sub-viewport class allowing live 3D map fly-through previews directly inside the Godot editor without launching game execution.
+- **Clickable Formatted Console Logger (`src/core/logging/quebratsk_logger.h/.cpp`)**: `QuebratskLogger` subsystem wrapping `UtilityFunctions::push_error` and `push_warning` to print clean, formatted messages with clickable VFS asset targets.
+- **Interactive Winding Order Visualizer (`src/converters/winding_visualizer.h/.cpp`)**: `WindingVisualizer` tool injecting debug materials to highlight back-faces in bright red and providing one-click normal flipping.
+- **Obsidian Auto-Doc Exporter (`src/core/vfs/obsidian_doc_exporter.h/.cpp`)**: `ObsidianDocExporter` class formatting current VFS mount states and scene node trees into Markdown documentation for sync with Obsidian Vaults.
 - **Native Background Task Progress Tracker (`src/api/task_progress_tracker.h/.cpp`)**: `TaskProgressTracker` class bound to ClassDB providing thread-safe atomic percentage tracking and status string reporting for Godot Editor progress bar overlays.
 - **Fuzzy-Match Material Auto-Fixer (`src/converters/fuzzy_material_fixer.h/.cpp`)**: `FuzzyMaterialFixer` subsystem calculating Levenshtein distance string matching across VFS file lists to automatically recover missing texture files.
 - **Asset Dependency Graph Builder (`src/api/dependency_graph_builder.h/.cpp`)**: `DependencyGraphBuilder` class generating structured Dictionary node trees representing asset dependencies for rendering in Godot's GraphEdit UI.
