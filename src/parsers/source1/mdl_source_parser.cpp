@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -67,14 +68,159 @@ void fill_skeleton(const ByteReader& mdl, const SourceStudioHeader* header,
     }
 }
 
+/// Walk the linked list of per-bone tracks starting at `start` and overwrite the entries
+/// of `src_pos`/`src_rot` it mentions. Returns true if any bone was touched.
+///
+/// `data` is not necessarily the .mdl: for a blocked animation the very same layout is
+/// read out of the companion .ani instead, which is why the reader is a parameter.
+///
+/// Rotations arrive either raw and quantised (Quaternion48/64) or as three run-length
+/// encoded Euler tracks scaled by the bone's rot_scale and added to its rest angles;
+/// positions work the same way. Bones absent from the chain keep their rest transform,
+/// which is what the format intends.
+bool walk_bone_tracks(const ByteReader& data, size_t start,
+                      std::span<const SourceStudioBone> bones,
+                      std::vector<godot::Vector3>& src_pos,
+                      std::vector<godot::Quaternion>& src_rot) {
+    size_t cursor = start;
+    int guard = 0;
+    bool any = false;
+
+    while (guard++ < 1024) {
+        const auto ba_span = data.array_at<SourceBoneAnim>(cursor, 1);
+        if (ba_span.empty()) break;
+        const SourceBoneAnim ba = ba_span[0];
+        if (ba.bone >= bones.size()) break;
+
+        const SourceStudioBone& bone = bones[ba.bone];
+        size_t payload = cursor + sizeof(SourceBoneAnim);
+
+        // --- rotation, which always precedes position in the payload ---
+        if (ba.flags & kAnimRawRot) {
+            if (const auto q = data.array_at<SourceQuat48>(payload, 1); !q.empty()) {
+                const auto d = AnimDecoder::decode_quat48(q[0]);
+                src_rot[ba.bone] = godot::Quaternion(d[0], d[1], d[2], d[3]);
+                any = true;
+            }
+            payload += sizeof(SourceQuat48);
+        } else if (ba.flags & kAnimRawRot2) {
+            if (const auto q = data.array_at<SourceQuat64>(payload, 1); !q.empty()) {
+                const auto d = AnimDecoder::decode_quat64(q[0]);
+                src_rot[ba.bone] = godot::Quaternion(d[0], d[1], d[2], d[3]);
+                any = true;
+            }
+            payload += sizeof(SourceQuat64);
+        } else if (ba.flags & kAnimAnimRot) {
+            const auto vp = data.array_at<SourceAnimValuePtr>(payload, 1);
+            if (!vp.empty()) {
+                float angle[3];
+                for (int axis = 0; axis < 3; ++axis) {
+                    angle[axis] = bone.radrot[axis];
+                    if (vp[0].offset[axis] == 0) continue;
+                    const size_t track_ofs = payload + static_cast<size_t>(vp[0].offset[axis]);
+                    // A generous window; sample_track stops at the run it needs.
+                    const auto track = data.array_at<SourceAnimValue>(
+                        track_ofs,
+                        std::min<size_t>(256, (data.size() - std::min(track_ofs, data.size())) / 2));
+                    if (auto v = AnimDecoder::sample_track(track, 0); v.has_value()) {
+                        angle[axis] += static_cast<float>(*v) * bone.rot_scale[axis];
+                    }
+                }
+                // StudioMDL Euler order is X then Y then Z, same as the bind pose.
+                const godot::Quaternion qx(godot::Vector3(1, 0, 0), angle[0]);
+                const godot::Quaternion qy(godot::Vector3(0, 1, 0), angle[1]);
+                const godot::Quaternion qz(godot::Vector3(0, 0, 1), angle[2]);
+                src_rot[ba.bone] = qz * qy * qx;
+                any = true;
+            }
+            payload += sizeof(SourceAnimValuePtr);
+        }
+
+        // --- position ---
+        if (ba.flags & kAnimRawPos) {
+            if (const auto v = data.array_at<SourceVec48>(payload, 1); !v.empty()) {
+                const auto d = AnimDecoder::decode_vec48(v[0]);
+                src_pos[ba.bone] = godot::Vector3(d[0], d[1], d[2]);
+                any = true;
+            }
+        } else if (ba.flags & kAnimAnimPos) {
+            const auto vp = data.array_at<SourceAnimValuePtr>(payload, 1);
+            if (!vp.empty()) {
+                float p[3];
+                for (int axis = 0; axis < 3; ++axis) {
+                    p[axis] = bone.pos[axis];
+                    if (vp[0].offset[axis] == 0) continue;
+                    const size_t track_ofs = payload + static_cast<size_t>(vp[0].offset[axis]);
+                    const auto track = data.array_at<SourceAnimValue>(
+                        track_ofs,
+                        std::min<size_t>(256, (data.size() - std::min(track_ofs, data.size())) / 2));
+                    if (auto v = AnimDecoder::sample_track(track, 0); v.has_value()) {
+                        p[axis] += static_cast<float>(*v) * bone.pos_scale[axis];
+                    }
+                }
+                src_pos[ba.bone] = godot::Vector3(p[0], p[1], p[2]);
+                any = true;
+            }
+        }
+
+        if (ba.next_offset <= 0) break;
+        cursor += static_cast<size_t>(ba.next_offset);
+    }
+    return any;
+}
+
+/// Where the track chain for frame 0 of one animation descriptor actually begins.
+struct TrackLocation {
+    bool external = false;  // true -> offset is into the .ani, false -> into the .mdl
+    size_t offset = 0;
+};
+
+/// Resolve `adesc` to a concrete byte offset, following section and block indirection.
+///
+/// Two levels of indirection stand between a descriptor and its data. A long animation is
+/// chopped into sections, so frame 0 must be looked up through section 0 rather than the
+/// descriptor. Whatever block that yields, a non-zero one means the bytes live in the
+/// companion .ani at `data_start + anim_index` instead of next to the descriptor.
+std::optional<TrackLocation> locate_tracks(const ByteReader& mdl, size_t adesc_ofs,
+                                           const SourceAnimDesc& adesc,
+                                           std::span<const SourceAnimBlock> blocks,
+                                           size_t ani_size) {
+    int32_t block = adesc.anim_block;
+    int32_t index = adesc.anim_index;
+
+    if (adesc.section_frames != 0 && adesc.section_index > 0) {
+        // Frame 0 always falls in section 0, so no frame arithmetic is needed here.
+        const auto section = at_relative<SourceAnimSection>(mdl, adesc_ofs, adesc.section_index, 1);
+        if (!section) return std::nullopt;
+        block = section->anim_block;
+        index = section->anim_index;
+    }
+    if (index <= 0) return std::nullopt;
+
+    if (block == 0) {
+        if (adesc_ofs > mdl.size()) return std::nullopt;
+        if (static_cast<size_t>(index) > mdl.size() - adesc_ofs) return std::nullopt;
+        return TrackLocation{false, adesc_ofs + static_cast<size_t>(index)};
+    }
+
+    if (block < 0 || static_cast<size_t>(block) >= blocks.size()) return std::nullopt;
+    const SourceAnimBlock& blk = blocks[static_cast<size_t>(block)];
+    if (blk.data_start < 0 || blk.data_end <= blk.data_start) return std::nullopt;
+    if (static_cast<size_t>(blk.data_start) >= ani_size) return std::nullopt;
+    // anim_index is relative to the block, not to the file.
+    if (static_cast<size_t>(index) > ani_size - static_cast<size_t>(blk.data_start)) {
+        return std::nullopt;
+    }
+    return TrackLocation{true, static_cast<size_t>(blk.data_start) + static_cast<size_t>(index)};
+}
+
 /// Lift frame 0 of every animation sequence out of the model.
 ///
-/// The chain is: sequence -> blend grid -> animation descriptor -> a linked list of
-/// per-bone tracks. Rotations arrive either raw and quantised (Quaternion48/64) or as
-/// three run-length encoded Euler tracks scaled by the bone's rot_scale and added to its
-/// rest angles; positions work the same way. Bones absent from the chain keep their rest
-/// transform, which is what the format intends.
-void extract_poses(const ByteReader& mdl, const SourceStudioHeader* header,
+/// The chain is: sequence -> blend grid -> animation descriptor -> section -> block ->
+/// a linked list of per-bone tracks. `ani` holds the companion animation-block file and
+/// may be empty, in which case blocked sequences are skipped.
+void extract_poses(const ByteReader& mdl, const ByteReader& ani,
+                   const SourceStudioHeader* header,
                    std::span<const SourceStudioBone> bones,
                    ir::IRSkeletonData& out) {
     if (bones.empty()) return;
@@ -86,6 +232,12 @@ void extract_poses(const ByteReader& mdl, const SourceStudioHeader* header,
     const auto anims = mdl.array_at<SourceAnimDesc>(static_cast<size_t>(header->local_anim_index),
                                                     static_cast<size_t>(header->num_local_anim));
     if (seqs.empty() || anims.empty()) return;
+
+    std::span<const SourceAnimBlock> blocks;
+    if (!ani.empty() && header->num_anim_blocks > 0 && header->anim_block_index > 0) {
+        blocks = mdl.array_at<SourceAnimBlock>(static_cast<size_t>(header->anim_block_index),
+                                               static_cast<size_t>(header->num_anim_blocks));
+    }
 
     for (size_t s = 0; s < seqs.size(); ++s) {
         const SourceSeqDesc& seq = seqs[s];
@@ -99,11 +251,13 @@ void extract_poses(const ByteReader& mdl, const SourceStudioHeader* header,
         if (anim_id < 0 || static_cast<size_t>(anim_id) >= anims.size()) continue;
 
         const SourceAnimDesc& adesc = anims[static_cast<size_t>(anim_id)];
-        // animblock != 0 means the data lives in a separate .ani file we do not load.
-        if (adesc.anim_block != 0 || adesc.anim_index <= 0 || adesc.num_frames <= 0) continue;
+        if (adesc.num_frames <= 0) continue;
 
         const size_t adesc_ofs = static_cast<size_t>(header->local_anim_index) +
                                  static_cast<size_t>(anim_id) * sizeof(SourceAnimDesc);
+
+        const auto loc = locate_tracks(mdl, adesc_ofs, adesc, blocks, ani.size());
+        if (!loc.has_value()) continue;
 
         ir::IRPose pose;
         if (auto n = mdl.cstr_at(seq_ofs + static_cast<size_t>(seq.name_index));
@@ -124,90 +278,8 @@ void extract_poses(const ByteReader& mdl, const SourceStudioHeader* header,
             src_rot.push_back(godot::Quaternion(b.rot[0], b.rot[1], b.rot[2], b.rot[3]));
         }
 
-        size_t cursor = adesc_ofs + static_cast<size_t>(adesc.anim_index);
-        int guard = 0;
-        bool any = false;
-
-        while (guard++ < 1024) {
-            const auto ba_span = mdl.array_at<SourceBoneAnim>(cursor, 1);
-            if (ba_span.empty()) break;
-            const SourceBoneAnim ba = ba_span[0];
-            if (ba.bone >= bones.size()) break;
-
-            const SourceStudioBone& bone = bones[ba.bone];
-            size_t payload = cursor + sizeof(SourceBoneAnim);
-
-            // --- rotation, which always precedes position in the payload ---
-            if (ba.flags & kAnimRawRot) {
-                if (const auto q = mdl.array_at<SourceQuat48>(payload, 1); !q.empty()) {
-                    const auto d = AnimDecoder::decode_quat48(q[0]);
-                    src_rot[ba.bone] = godot::Quaternion(d[0], d[1], d[2], d[3]);
-                    any = true;
-                }
-                payload += sizeof(SourceQuat48);
-            } else if (ba.flags & kAnimRawRot2) {
-                if (const auto q = mdl.array_at<SourceQuat64>(payload, 1); !q.empty()) {
-                    const auto d = AnimDecoder::decode_quat64(q[0]);
-                    src_rot[ba.bone] = godot::Quaternion(d[0], d[1], d[2], d[3]);
-                    any = true;
-                }
-                payload += sizeof(SourceQuat64);
-            } else if (ba.flags & kAnimAnimRot) {
-                const auto vp = mdl.array_at<SourceAnimValuePtr>(payload, 1);
-                if (!vp.empty()) {
-                    float angle[3];
-                    for (int axis = 0; axis < 3; ++axis) {
-                        angle[axis] = bone.radrot[axis];
-                        if (vp[0].offset[axis] == 0) continue;
-                        const size_t track_ofs = payload + static_cast<size_t>(vp[0].offset[axis]);
-                        // A generous window; sample_track stops at the run it needs.
-                        const auto track = mdl.array_at<SourceAnimValue>(
-                            track_ofs, std::min<size_t>(256, (mdl.size() - std::min(track_ofs, mdl.size())) / 2));
-                        if (auto v = AnimDecoder::sample_track(track, 0); v.has_value()) {
-                            angle[axis] += static_cast<float>(*v) * bone.rot_scale[axis];
-                        }
-                    }
-                    // StudioMDL Euler order is X then Y then Z, same as the bind pose.
-                    const godot::Quaternion qx(godot::Vector3(1, 0, 0), angle[0]);
-                    const godot::Quaternion qy(godot::Vector3(0, 1, 0), angle[1]);
-                    const godot::Quaternion qz(godot::Vector3(0, 0, 1), angle[2]);
-                    src_rot[ba.bone] = qz * qy * qx;
-                    any = true;
-                }
-                payload += sizeof(SourceAnimValuePtr);
-            }
-
-            // --- position ---
-            if (ba.flags & kAnimRawPos) {
-                if (const auto v = mdl.array_at<SourceVec48>(payload, 1); !v.empty()) {
-                    const auto d = AnimDecoder::decode_vec48(v[0]);
-                    src_pos[ba.bone] = godot::Vector3(d[0], d[1], d[2]);
-                    any = true;
-                }
-            } else if (ba.flags & kAnimAnimPos) {
-                const auto vp = mdl.array_at<SourceAnimValuePtr>(payload, 1);
-                if (!vp.empty()) {
-                    float p[3];
-                    for (int axis = 0; axis < 3; ++axis) {
-                        p[axis] = bone.pos[axis];
-                        if (vp[0].offset[axis] == 0) continue;
-                        const size_t track_ofs = payload + static_cast<size_t>(vp[0].offset[axis]);
-                        const auto track = mdl.array_at<SourceAnimValue>(
-                            track_ofs, std::min<size_t>(256, (mdl.size() - std::min(track_ofs, mdl.size())) / 2));
-                        if (auto v = AnimDecoder::sample_track(track, 0); v.has_value()) {
-                            p[axis] += static_cast<float>(*v) * bone.pos_scale[axis];
-                        }
-                    }
-                    src_pos[ba.bone] = godot::Vector3(p[0], p[1], p[2]);
-                    any = true;
-                }
-            }
-
-            if (ba.next_offset == 0) break;
-            if (ba.next_offset < 0) break;
-            cursor += static_cast<size_t>(ba.next_offset);
-        }
-
+        const bool any = walk_bone_tracks(loc->external ? ani : mdl, loc->offset,
+                                          bones, src_pos, src_rot);
         if (any) {
             pose.positions.reserve(bones.size());
             pose.rotations.reserve(bones.size());
@@ -222,10 +294,58 @@ void extract_poses(const ByteReader& mdl, const SourceStudioHeader* header,
 
 } // namespace
 
+std::vector<std::string> SourceMDLParser::list_include_models(
+    std::span<const std::byte> mdl_bytes
+) {
+    std::vector<std::string> out;
+    const ByteReader mdl(mdl_bytes);
+
+    const auto hdr = mdl.array_at<SourceStudioHeader>(0, 1);
+    if (hdr.empty()) return out;
+    const SourceStudioHeader& h = hdr[0];
+
+    if (std::memcmp(h.magic, kSourceMdlMagic.data(), 4) != 0) return out;
+    if (h.version < kSourceMdlMinVersion || h.version > kSourceMdlMaxVersion) return out;
+    if (h.num_include_models <= 0 || h.include_model_index <= 0) return out;
+
+    const auto groups = mdl.array_at<SourceModelGroup>(
+        static_cast<size_t>(h.include_model_index), static_cast<size_t>(h.num_include_models));
+
+    for (size_t i = 0; i < groups.size(); ++i) {
+        const size_t base = static_cast<size_t>(h.include_model_index) +
+                            i * sizeof(SourceModelGroup);
+        if (groups[i].name_index <= 0) continue;
+        if (base > mdl.size() || static_cast<size_t>(groups[i].name_index) > mdl.size() - base) continue;
+
+        if (auto name = mdl.cstr_at(base + static_cast<size_t>(groups[i].name_index));
+            name.has_value() && !name->empty()) {
+            out.push_back(std::move(*name));
+        }
+    }
+    return out;
+}
+
+std::string SourceMDLParser::anim_block_name(std::span<const std::byte> mdl_bytes) {
+    const ByteReader mdl(mdl_bytes);
+
+    const auto hdr = mdl.array_at<SourceStudioHeader>(0, 1);
+    if (hdr.empty()) return {};
+    const SourceStudioHeader& h = hdr[0];
+
+    if (std::memcmp(h.magic, kSourceMdlMagic.data(), 4) != 0) return {};
+    if (h.version < kSourceMdlMinVersion || h.version > kSourceMdlMaxVersion) return {};
+    if (h.num_anim_blocks <= 0 || h.anim_block_name_index <= 0) return {};
+
+    // Unlike most indices in this format, this one is from the file start.
+    auto name = mdl.cstr_at(static_cast<size_t>(h.anim_block_name_index));
+    if (!name.has_value()) return {};
+    return std::move(*name);
+}
+
 std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse(
     std::span<const std::byte> mdl_bytes
 ) {
-    return parse_bundle(SourceModelBundle{mdl_bytes, {}, {}});
+    return parse_bundle(SourceModelBundle{mdl_bytes, {}, {}, {}, {}});
 }
 
 std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_bundle(
@@ -264,7 +384,50 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
         const auto bone_span = mdl.array_at<SourceStudioBone>(
             static_cast<size_t>(header->bone_index), static_cast<size_t>(header->num_bones));
         if (!bone_span.empty()) {
-            extract_poses(mdl, header, bone_span, result.skeleton_data);
+            extract_poses(mdl, ByteReader(bundle.ani), header, bone_span, result.skeleton_data);
+        }
+    }
+
+    // Sequences borrowed from the shared animation models this one includes. Their bone
+    // tables are ordered independently, so poses are remapped by bone NAME rather than
+    // index — matching by index would scramble the skeleton.
+    for (const auto& inc : bundle.include_models) {
+        if (inc.mdl.empty()) continue;
+
+        const ByteReader inc_mdl(inc.mdl);
+        const auto inc_hdr = inc_mdl.array_at<SourceStudioHeader>(0, 1);
+        if (inc_hdr.empty()) continue;
+        if (std::memcmp(inc_hdr[0].magic, kSourceMdlMagic.data(), 4) != 0) continue;
+
+        ir::IRSkeletonData inc_skel;
+        fill_skeleton(inc_mdl, inc_hdr.data(), inc_skel);
+        if (inc_skel.bones.empty()) continue;
+
+        const auto inc_bones = inc_mdl.array_at<SourceStudioBone>(
+            static_cast<size_t>(inc_hdr[0].bone_index),
+            static_cast<size_t>(inc_hdr[0].num_bones));
+        if (inc_bones.empty()) continue;
+
+        extract_poses(inc_mdl, ByteReader(inc.ani), inc_hdr.data(), inc_bones, inc_skel);
+
+        for (const auto& src_pose : inc_skel.poses) {
+            ir::IRPose mapped;
+            mapped.name = src_pose.name;
+            mapped.positions.reserve(result.skeleton_data.bones.size());
+            mapped.rotations.reserve(result.skeleton_data.bones.size());
+
+            for (const auto& bone : result.skeleton_data.bones) {
+                const int32_t src = inc_skel.find_bone(bone.name);
+                if (src >= 0 && static_cast<size_t>(src) < src_pose.positions.size()) {
+                    mapped.positions.push_back(src_pose.positions[static_cast<size_t>(src)]);
+                    mapped.rotations.push_back(src_pose.rotations[static_cast<size_t>(src)]);
+                } else {
+                    // Bone the animation model does not know: keep our rest transform.
+                    mapped.positions.push_back(bone.position);
+                    mapped.rotations.push_back(bone.rotation);
+                }
+            }
+            result.skeleton_data.poses.push_back(std::move(mapped));
         }
     }
 

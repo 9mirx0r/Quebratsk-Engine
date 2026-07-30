@@ -3,6 +3,7 @@
 #include "../../parsers/goldsrc/structs/wad3_structs.h"
 #include "../../parsers/source1/structs/gma_structs.h"
 #include "../../parsers/rv_enfusion/structs/pbo_structs.h"
+#include "../../parsers/source2/vpk2_parser.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
@@ -80,19 +81,9 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
     container.mount_prefix = prefix_std;
     container.mapped_file = std::move(mmap_res.value());
 
-    // Reuse a slot freed by unmount() instead of growing forever. Existing entries
-    // reference containers by index, so slots are recycled, never erased.
-    size_t container_idx = m_containers.size();
-    for (size_t i = 0; i < m_containers.size(); ++i) {
-        if (!m_containers[i].mapped_file.is_valid()) {
-            container_idx = i;
-            break;
-        }
-    }
-
     auto bytes = container.mapped_file.bytes();
 
-    enum class Kind { WAD3, GMA, PBO };
+    enum class Kind { WAD3, GMA, VPK, PBO };
     Kind kind;
 
     if (parsers::goldsrc::validate_wad3_header(bytes)) {
@@ -101,6 +92,9 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
     } else if (parsers::source1::validate_gma_header(bytes)) {
         container.engine = EngineNamespace::Source1;
         kind = Kind::GMA;
+    } else if (parsers::source2::validate_vpk_header(bytes)) {
+        container.engine = EngineNamespace::Source1;
+        kind = Kind::VPK;
     } else {
         // Real Virtuality / Enfusion PBO: starts with a NUL-terminated filename, so
         // there is no magic to test. Anything unrecognised lands here.
@@ -108,11 +102,7 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
         kind = Kind::PBO;
     }
 
-    if (container_idx < m_containers.size()) {
-        m_containers[container_idx] = std::move(container);
-    } else {
-        m_containers.push_back(std::move(container));
-    }
+    const size_t container_idx = place_container(std::move(container));
 
     switch (kind) {
         case Kind::WAD3:
@@ -123,12 +113,118 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
             index_gma(container_idx);
             UtilityFunctions::print("[QuebratskVFS] Mounted Source 1 GMA: vfs://", String(prefix_std.c_str()), "/");
             break;
+        case Kind::VPK:
+            index_vpk(container_idx, path_std);
+            UtilityFunctions::print("[QuebratskVFS] Mounted Source VPK: vfs://", String(prefix_std.c_str()), "/");
+            break;
         case Kind::PBO:
             index_pbo(container_idx);
             UtilityFunctions::print("[QuebratskVFS] Mounted PBO Container: vfs://", String(prefix_std.c_str()), "/");
             break;
     }
     return true;
+}
+
+size_t VFSManager::place_container(MountedContainer&& container) {
+    // Reuse a slot freed by unmount() instead of growing forever. Existing entries
+    // reference containers by index, so slots are recycled, never erased.
+    for (size_t i = 0; i < m_containers.size(); ++i) {
+        if (!m_containers[i].mapped_file.is_valid()) {
+            m_containers[i] = std::move(container);
+            return i;
+        }
+    }
+    m_containers.push_back(std::move(container));
+    return m_containers.size() - 1;
+}
+
+void VFSManager::index_vpk(size_t container_idx, const std::string& dir_real_path) {
+    // Copy what we need before mounting side archives: placing them can reallocate
+    // m_containers and invalidate any reference held into it.
+    const std::string prefix = m_containers[container_idx].mount_prefix;
+    const auto dir_bytes = m_containers[container_idx].mapped_file.bytes();
+
+    auto parsed = parsers::source2::VPK2Parser::parse_directory(dir_bytes);
+    if (!parsed.has_value()) {
+        UtilityFunctions::printerr("[QuebratskVFS] Malformed VPK directory: ",
+                                   String(dir_real_path.c_str()));
+        return;
+    }
+
+    // A VPK is a directory file plus numbered side archives holding the payload:
+    // "hl2_misc_dir.vpk" is accompanied by "hl2_misc_000.vpk" and friends. Map each
+    // referenced index to its own container so entries can address them normally.
+    std::string base = dir_real_path;
+    if (base.size() >= 8 && to_lower(base.substr(base.size() - 8)) == "_dir.vpk") {
+        base.resize(base.size() - 8);
+    }
+
+    std::unordered_map<uint16_t, size_t> archive_containers;
+    for (int32_t i = 0; i <= parsed->max_archive_index; ++i) {
+        char suffix[16];
+        std::snprintf(suffix, sizeof(suffix), "_%03d.vpk", i);
+
+        auto side = MemoryMappedFile::open(base + suffix);
+        if (!side.has_value()) {
+            continue; // an unreferenced gap in the numbering is normal
+        }
+
+        MountedContainer mc;
+        mc.engine = EngineNamespace::Source1;
+        mc.real_path = base + suffix;
+        mc.mount_prefix = prefix;
+        mc.mapped_file = std::move(side.value());
+        archive_containers[static_cast<uint16_t>(i)] = place_container(std::move(mc));
+    }
+
+    size_t indexed = 0;
+    size_t skipped = 0;
+
+    for (const auto& e : parsed->entries) {
+        size_t owner = container_idx;
+        if (!e.is_inline()) {
+            const auto it = archive_containers.find(e.archive_index);
+            if (it == archive_containers.end()) {
+                ++skipped; // the side archive holding this file is not present
+                continue;
+            }
+            owner = it->second;
+        }
+
+        // Entries whose payload lives entirely in the directory's preload block have a
+        // zero length; serving the preload bytes keeps those files readable.
+        size_t offset = static_cast<size_t>(e.offset);
+        size_t length = static_cast<size_t>(e.length);
+        if (length == 0 && e.preload_bytes > 0) {
+            owner = container_idx;
+            offset = static_cast<size_t>(e.preload_offset);
+            length = e.preload_bytes;
+        }
+
+        if (owner >= m_containers.size()) { ++skipped; continue; }
+        if (!range_fits(offset, length, m_containers[owner].mapped_file.bytes().size())) {
+            ++skipped;
+            continue;
+        }
+
+        const std::string vfs_uri = "vfs://" + prefix + "/" + to_lower(e.path);
+
+        VFSEntry entry;
+        entry.virtual_path = vfs_uri;
+        entry.container_index = owner;
+        entry.offset = offset;
+        entry.disk_size = length;
+        entry.uncompressed_size = length;
+        entry.compression = CompressionType::None;
+
+        m_index[vfs_uri] = std::move(entry);
+        ++indexed;
+    }
+
+    UtilityFunctions::print("[QuebratskVFS]   VPK: ", static_cast<int64_t>(indexed),
+                            " files across ", static_cast<int64_t>(archive_containers.size()),
+                            " archives",
+                            skipped ? String(" (" + String::num_int64(static_cast<int64_t>(skipped)) + " unavailable)") : String(""));
 }
 
 int64_t VFSManager::mount_directory(const String& vfs_prefix, const String& real_dir) {

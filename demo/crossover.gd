@@ -9,6 +9,16 @@ extends Node3D
 const CS_ROOT := "C:/Program Files (x86)/Steam/steamapps/common/Half-Life/cstrike"
 const HL_ROOT := "C:/Program Files (x86)/Steam/steamapps/common/Half-Life/valve"
 const WORKSHOP := "C:/Program Files (x86)/Steam/steamapps/workshop/content/4000"
+## GMod player models carry only a "ragdoll" sequence and borrow every real stance from
+## a shared animation model. That model lives in Half-Life 2's VPK archives, so mounting
+## them is what turns a bind pose into a game pose.
+const HL2_DIR := "C:/Program Files (x86)/Steam/steamapps/common/half-life 2/hl2"
+## m_anm.mdl — the shared male animation model every GMod player model includes — ships
+## with Garry's Mod itself, not with Half-Life 2.
+const GMOD_DIRS := [
+	"C:/Program Files (x86)/Steam/steamapps/common/GarrysMod/garrysmod",
+	"C:/Program Files (x86)/Steam/steamapps/common/GarrysMod/sourceengine",
+]
 
 const MAP := "vfs://maps/cs_assault.bsp"
 
@@ -22,6 +32,14 @@ const SOLDIERS := {
 	"3735175058": "models/player/lowpoly/fplf_2002.mdl",       # FPLF Fighters
 	"3579662934": "models/player/lowpoly/4ervo/lp_soldier.mdl", # Special Forces
 }
+
+## Sequence label each soldier stands in, straight out of m_anm.ani. These are the same
+## stances Half-Life 2 NPCs hold, so the line-up reads as a squad at rest rather than a
+## row of T-posed mannequins.
+const STANCES := [
+	"idle_smg1", "idle_ar2", "idle_shotgun", "idle_pistol",
+	"idle_smg1", "idle_ar2", "idle_all_01",
+]
 
 var vfs: VFSManager
 var importer: UnifiedAssetImporter
@@ -37,6 +55,7 @@ func _ready() -> void:
 
 	_setup_view()
 	_mount_goldsrc()
+	_mount_hl2()
 	var mounted := _mount_workshop()
 	var ground := _load_map()
 	_spawn_soldiers(mounted, ground)
@@ -79,6 +98,26 @@ func _mount_goldsrc() -> void:
 				if vfs.mount_container("wad_" + f.get_basename(), root + "/" + f):
 					wads += 1
 	print("GoldSrc: %d WAD archives mounted" % wads)
+
+
+func _mount_hl2() -> void:
+	var roots: Array = GMOD_DIRS.duplicate()
+	roots.append(HL2_DIR)
+
+	var n := 0
+	for key in roots:
+		var root := str(key)
+		var dir := DirAccess.open(root)
+		if dir == null:
+			continue
+		for f in dir.get_files():
+			# Only the _dir.vpk is mounted; it pulls in its own numbered side archives.
+			if f.ends_with("_dir.vpk"):
+				if vfs.mount_container("source", root + "/" + f):
+					n += 1
+	print("Source content: %d VPK directories mounted" % n)
+	if n == 0:
+		print("  (no VPKs found — models will fall back to their bind pose)")
 
 
 ## Mount each subscribed addon as its own VFS namespace. Returns the ids that mounted.
@@ -138,7 +177,8 @@ func _spawn_soldiers(mounted: Array, ground_y: float) -> void:
 			push_error("  %s -> not found in VFS" % uri)
 			continue
 
-		var node := importer.load_model(uri)
+		var stance: String = STANCES[placed % STANCES.size()]
+		var node := importer.load_model(uri, stance)
 		if node == null:
 			push_error("  %s -> load_model returned null" % uri)
 			continue

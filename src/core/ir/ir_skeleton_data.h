@@ -47,6 +47,16 @@ struct IRSkeletonData {
     /// Poses recovered from the asset's animation sequences, in file order.
     std::vector<IRPose> poses;
 
+    /// Find a pose by its exact sequence label, or -1. Prefer this over find_pose() when
+    /// acting on a name a caller supplied: substrings collide badly here, since Source
+    /// names the crouched variant of "idle_smg1" simply "cidle_smg1".
+    [[nodiscard]] int32_t find_pose_exact(std::string_view name) const {
+        for (size_t i = 0; i < poses.size(); ++i) {
+            if (poses[i].name == name) return static_cast<int32_t>(i);
+        }
+        return -1;
+    }
+
     /// Find a pose whose name contains `needle` (case-sensitive), or -1.
     [[nodiscard]] int32_t find_pose(std::string_view needle) const {
         for (size_t i = 0; i < poses.size(); ++i) {
