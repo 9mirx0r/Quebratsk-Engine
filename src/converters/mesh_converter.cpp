@@ -1,5 +1,8 @@
 #include "mesh_converter.h"
+#include "texture_loader.h"
 
+#include <godot_cpp/classes/standard_material3d.hpp>
+#include <godot_cpp/classes/texture2d.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/packed_color_array.hpp>
 #include <godot_cpp/variant/packed_float32_array.hpp>
@@ -15,7 +18,7 @@ namespace quebratsk::converters {
 
 using namespace godot;
 
-Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh) {
+Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh, TextureLoader* loader) {
     Ref<ArrayMesh> array_mesh;
     array_mesh.instantiate();
 
@@ -94,6 +97,27 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh) {
         surface_arrays[ArrayMesh::ARRAY_INDEX] = indices;
 
         array_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, surface_arrays);
+
+        // Attach the surface's texture. IRSurface::material_name carries the legacy
+        // texture reference (a WAD3 lump name for BSP, a VMT path for models); without
+        // this step the UVs computed by the parsers had nothing to sample.
+        if (loader && loader->is_valid() && !surf.material_name.empty()) {
+            if (Ref<Texture2D> tex = loader->load(surf.material_name); tex.is_valid()) {
+                Ref<StandardMaterial3D> mat;
+                mat.instantiate();
+                mat->set_texture(BaseMaterial3D::TEXTURE_ALBEDO, tex);
+                // Legacy content is authored for point sampling; bilinear filtering
+                // blurs 64x64 GoldSrc textures into mush.
+                mat->set_texture_filter(BaseMaterial3D::TEXTURE_FILTER_NEAREST_WITH_MIPMAPS);
+
+                // Names beginning with '{' are GoldSrc's palette-keyed transparency.
+                if (surf.material_name.front() == '{') {
+                    mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA_SCISSOR);
+                }
+
+                array_mesh->surface_set_material(array_mesh->get_surface_count() - 1, mat);
+            }
+        }
     }
 
     return array_mesh;

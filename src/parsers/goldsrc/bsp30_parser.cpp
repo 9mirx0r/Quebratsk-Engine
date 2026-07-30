@@ -1,8 +1,11 @@
 #include "bsp30_parser.h"
 #include "../../core/math/axis_remap.h"
+#include "structs/wad3_structs.h" // MiptexHeader, shared with the WAD3 reader
 
 #include <cstring>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace quebratsk::parsers::goldsrc {
 
@@ -67,6 +70,56 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     auto* bsp_faces = reinterpret_cast<const BSPFace*>(face_lump.data());
     size_t num_faces = face_lump.size() / sizeof(BSPFace);
 
+    // Lump 1: Planes — needed here for per-face normals, and again below for collision.
+    auto plane_lump = get_lump(1);
+    auto* bsp_planes = reinterpret_cast<const BSPPlane*>(plane_lump.data());
+    size_t num_planes = plane_lump.size() / sizeof(BSPPlane);
+
+    // Lump 2: Texture directory. Needed for two things the parser previously skipped:
+    // the real texture name (so the material can be resolved against mounted WADs) and
+    // the texture dimensions, without which the S/T projection vectors cannot be turned
+    // into normalized UVs.
+    struct MipTexEntry {
+        std::string name;
+        uint32_t width = 64;   // fallback keeps UVs finite for a corrupt directory
+        uint32_t height = 64;
+    };
+    std::vector<MipTexEntry> miptextures;
+
+    {
+        auto tex_lump = get_lump(2);
+        if (tex_lump.size() >= sizeof(BSPMipTexLumpHeader)) {
+            int32_t count = 0;
+            std::memcpy(&count, tex_lump.data(), sizeof(int32_t));
+
+            const size_t table_space = tex_lump.size() - sizeof(BSPMipTexLumpHeader);
+            if (count > 0 && static_cast<size_t>(count) <= table_space / sizeof(int32_t)) {
+                const auto* offsets = reinterpret_cast<const int32_t*>(
+                    tex_lump.data() + sizeof(BSPMipTexLumpHeader));
+
+                miptextures.reserve(static_cast<size_t>(count));
+                for (int32_t i = 0; i < count; ++i) {
+                    MipTexEntry entry;
+                    const int32_t ofs = offsets[i];
+
+                    // -1 marks a texture that lives entirely in an external WAD.
+                    if (ofs >= 0 && static_cast<size_t>(ofs) <= tex_lump.size() &&
+                        sizeof(MiptexHeader) <= tex_lump.size() - static_cast<size_t>(ofs)) {
+                        const auto* mh = reinterpret_cast<const MiptexHeader*>(
+                            tex_lump.data() + ofs);
+                        entry.name.assign(mh->name, strnlen(mh->name, sizeof(mh->name)));
+                        if (mh->width > 0 && mh->height > 0 &&
+                            mh->width <= 4096 && mh->height <= 4096) {
+                            entry.width = mh->width;
+                            entry.height = mh->height;
+                        }
+                    }
+                    miptextures.push_back(std::move(entry));
+                }
+            }
+        }
+    }
+
     // Group surfaces by texture index
     std::unordered_map<int32_t, ir::IRSurface> surface_map;
 
@@ -76,20 +129,46 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         // texinfo_index was only checked for >= 0, never against the lump size, so a
         // crafted map read 40 bytes far outside lump 6 (and dereferenced null when the
         // lump was absent).
-        int32_t tex_idx = 0;
+        const BSPTexInfo* tex_info = nullptr;
+        int32_t tex_idx = -1;
         if (face.texinfo_index >= 0 && static_cast<size_t>(face.texinfo_index) < num_texinfos) {
-            tex_idx = bsp_texinfos[face.texinfo_index].miptex_index;
+            tex_info = &bsp_texinfos[face.texinfo_index];
+            tex_idx = tex_info->miptex_index;
+        }
+
+        const MipTexEntry* miptex = nullptr;
+        if (tex_idx >= 0 && static_cast<size_t>(tex_idx) < miptextures.size()) {
+            miptex = &miptextures[tex_idx];
         }
 
         auto& surf = surface_map[tex_idx];
         if (surf.material_name.empty()) {
-            surf.material_name = "texture_" + std::to_string(tex_idx);
+            // Use the real WAD texture name so TextureLoader can resolve it against
+            // mounted archives. It used to be a synthetic "texture_<n>", which could
+            // never match anything in the VFS.
+            surf.material_name = (miptex && !miptex->name.empty())
+                               ? miptex->name
+                               : "texture_" + std::to_string(tex_idx);
         }
+
+        // Face normal comes from its plane, flipped when the face is on the back side.
+        // Every vertex previously got a hardcoded (0,1,0), which made all lighting flat.
+        godot::Vector3 face_normal(0, 1, 0);
+        if (face.plane_index < num_planes) {
+            const auto& pl = bsp_planes[face.plane_index];
+            godot::Vector3 n(pl.normal[0], pl.normal[1], pl.normal[2]);
+            if (face.plane_side != 0) n = -n;
+            face_normal = math::transform_normal_zup_to_yup(n);
+        }
+
+        const float tex_w = static_cast<float>(miptex ? miptex->width : 64u);
+        const float tex_h = static_cast<float>(miptex ? miptex->height : 64u);
 
         uint32_t base_index = static_cast<uint32_t>(surf.positions.size());
 
         // Extract polygon vertices from surfedges
         std::vector<godot::Vector3> poly_positions;
+        std::vector<godot::Vector2> poly_uvs;
 
         for (int16_t e = 0; e < face.num_edges; ++e) {
             size_t surfedge_idx = static_cast<size_t>(face.first_edge_index + e);
@@ -109,6 +188,24 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
                 const auto& v = bsp_verts[vert_idx];
                 godot::Vector3 pos_raw(v.x, v.y, v.z);
                 poly_positions.push_back(math::source_to_godot(pos_raw));
+
+                // Planar UV projection. BSPTexInfo carries the S/T axes plus their
+                // offsets; dividing by the texture size normalizes texels to 0..1.
+                // These vectors are expressed in the map's original Hammer-unit space,
+                // so the RAW vertex must be used here, not the Godot-remapped one.
+                if (tex_info) {
+                    const float u = (pos_raw.x * tex_info->vector_s[0] +
+                                     pos_raw.y * tex_info->vector_s[1] +
+                                     pos_raw.z * tex_info->vector_s[2] +
+                                     tex_info->vector_s[3]) / tex_w;
+                    const float t = (pos_raw.x * tex_info->vector_t[0] +
+                                     pos_raw.y * tex_info->vector_t[1] +
+                                     pos_raw.z * tex_info->vector_t[2] +
+                                     tex_info->vector_t[3]) / tex_h;
+                    poly_uvs.emplace_back(u, t);
+                } else {
+                    poly_uvs.emplace_back(0.0f, 0.0f);
+                }
             }
         }
 
@@ -116,8 +213,8 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         if (poly_positions.size() >= 3) {
             for (size_t i = 0; i < poly_positions.size(); ++i) {
                 surf.positions.push_back(poly_positions[i]);
-                surf.normals.push_back(godot::Vector3(0, 1, 0)); // Normal remapping
-                surf.uv0.push_back(godot::Vector2(0, 0));
+                surf.normals.push_back(face_normal);
+                surf.uv0.push_back(poly_uvs[i]);
             }
 
             for (size_t i = 1; i + 1 < poly_positions.size(); ++i) {
@@ -140,15 +237,11 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         map_data.mesh_data.surfaces.push_back(std::move(surf));
     }
 
-    // Lump 9: ClipNodes for collision
+    // Lump 9: ClipNodes for collision. Planes (lump 1) were already loaded above for
+    // per-face normals and are reused here.
     auto clipnode_lump = get_lump(9);
     auto* bsp_clipnodes = reinterpret_cast<const BSPClipNode*>(clipnode_lump.data());
     size_t num_clipnodes = clipnode_lump.size() / sizeof(BSPClipNode);
-
-    // Lump 1: Planes
-    auto plane_lump = get_lump(1);
-    auto* bsp_planes = reinterpret_cast<const BSPPlane*>(plane_lump.data());
-    size_t num_planes = plane_lump.size() / sizeof(BSPPlane);
 
     map_data.collision_data.source_engine = ir::SourceEngine::GoldSrc;
     for (size_t c = 0; c < num_clipnodes; ++c) {

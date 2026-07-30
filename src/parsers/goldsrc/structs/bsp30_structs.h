@@ -62,11 +62,25 @@ struct BSPClipNode {
     int32_t plane_index;
     int16_t children[2]; // Positive = node, negative = contents
 };
+
+/// Lump 2 header: the texture directory.
+/// Followed immediately by `num_miptex` int32 offsets, each relative to the START of
+/// lump 2. An offset of -1 means the texture is absent from this file. Each offset
+/// points at a MiptexHeader (see wad3_structs.h) whose offsets[0] is 0 when the pixel
+/// data lives in an external WAD rather than being embedded in the BSP.
+struct BSPMipTexLumpHeader {
+    int32_t num_miptex;
+    // int32_t data_offsets[num_miptex] follows
+};
 #pragma pack(pop)
 
 static_assert(sizeof(BSP30Header) == 124, "BSP30Header size mismatch");
 static_assert(sizeof(BSPVertex) == 12, "BSPVertex size mismatch");
 static_assert(sizeof(BSPFace) == 20, "BSPFace size mismatch");
 static_assert(sizeof(BSPClipNode) == 8, "BSPClipNode size mismatch");
+static_assert(sizeof(BSPPlane) == 20, "BSPPlane size mismatch");
+static_assert(sizeof(BSPEdge) == 4, "BSPEdge size mismatch");
+static_assert(sizeof(BSPTexInfo) == 40, "BSPTexInfo size mismatch");
+static_assert(sizeof(BSPMipTexLumpHeader) == 4, "BSPMipTexLumpHeader size mismatch");
 
 } // namespace quebratsk::parsers::goldsrc

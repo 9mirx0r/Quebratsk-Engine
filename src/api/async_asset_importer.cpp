@@ -1,4 +1,5 @@
 #include "async_asset_importer.h"
+#include "../converters/texture_loader.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/callable_method_pointer.hpp>
@@ -58,12 +59,13 @@ void AsyncAssetImporter::load_mesh_async(UnifiedAssetImporter* importer,
                    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
     const int64_t job_id = _next_job_id.fetch_add(1, std::memory_order_relaxed);
+    const uint64_t importer_id = importer->get_instance_id();
 
     // Reap threads that already finished so the vector does not grow without bound.
     std::erase_if(_workers, [](const std::jthread& t) { return !t.joinable(); });
 
     _workers.emplace_back(
-        [this, job_id, bytes = std::move(owned_bytes), uri_lower, callback](std::stop_token stoken) {
+        [this, job_id, importer_id, bytes = std::move(owned_bytes), uri_lower, callback](std::stop_token stoken) {
             if (stoken.stop_requested()) {
                 return;
             }
@@ -77,7 +79,7 @@ void AsyncAssetImporter::load_mesh_async(UnifiedAssetImporter* importer,
 
             {
                 std::lock_guard<std::mutex> lock(_pending_mutex);
-                _pending.emplace(job_id, PendingJob{std::move(mesh_ir), callback});
+                _pending.emplace(job_id, PendingJob{std::move(mesh_ir), callback, importer_id});
             }
 
             // Hop back to the main thread; ArrayMesh is built there.
@@ -106,7 +108,16 @@ void AsyncAssetImporter::_deliver_mesh(int64_t job_id) {
     }
 
     // Main thread: safe to allocate Resources and talk to the RenderingServer.
-    Ref<ArrayMesh> mesh = converters::MeshConverter::convert(job.mesh_ir);
+    // Re-resolve the importer by ObjectID — it may have been freed while the worker ran.
+    Ref<ArrayMesh> mesh;
+    auto* importer = Object::cast_to<UnifiedAssetImporter>(ObjectDB::get_instance(job.importer_id));
+    if (importer && importer->get_vfs()) {
+        converters::TextureLoader loader(importer->get_vfs());
+        mesh = converters::MeshConverter::convert(job.mesh_ir, &loader);
+    } else {
+        mesh = converters::MeshConverter::convert(job.mesh_ir);
+    }
+
     if (job.callback.is_valid()) {
         job.callback.call(mesh);
     }
