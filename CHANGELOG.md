@@ -12,6 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - **Roadmap 1.0 Complete!** All 10 Extreme Performance & QoL features have been implemented.
 
+### Fixed
+- **[CRITICAL] OcclusionGenerator thread-safety crash**: `BoxOccluder3D::instantiate()` was called from `std::async` background thread, violating Godot's ClassDB thread-safety. Refactored to return pure `OcclusionResult` struct from background; Godot object creation now happens exclusively on main thread via `create_from_result()`.
+- **[CRITICAL] AsyncCollisionBuilder PhysicsServer crash**: `ConcavePolygonShape3D::set_faces()` called `PhysicsServer3D` from background thread. Refactored to `prepare_faces_async()` (pure data copy in background) + `create_shape()` (main thread only).
+- **[CRITICAL] VRAMGarbageCollector race condition + Resource destruction crash**: `Ref<Resource>::unref()` could trigger `RenderingServer::free()` from background thread. Replaced with 2-phase eviction: background thread collects candidates, `evict_expired_resources()` frees them on main thread. Also migrated from `std::thread` to `std::jthread` with cooperative `stop_token`, and replaced `OS::get_ticks_msec()` with `std::chrono::steady_clock`.
+- **[CRITICAL] LazyMemoryMapper lost base pointer**: `UnmapViewOfFile` was called on an offset pointer via fragile `VirtualQuery` hack. Now stores the original `MapViewOfFile`/`mmap` base pointer in a dedicated `_raw_base_view` field.
+- **[HIGH] TextureTranscoder dangling span**: `std::span` (non-owning view) was captured by value in `std::async` lambda, causing use-after-free if caller freed the backing buffer. Now copies bytes into a `shared_ptr<vector<byte>>` before dispatching.
+- **[HIGH] QuebratskSettings never registered**: `GDCLASS` was declared but `ClassDB::register_class` and `register_settings()` were never called. Added both to `register_types.cpp`.
+- **[HIGH] LazyMemoryMapper 64-bit truncation**: File offsets were stored as `DWORD` (32-bit), silently truncating offsets for files >4GB. Changed to `uint64_t` arithmetic.
+- **[HIGH] VRAMGarbageCollector used std::thread**: Replaced with `std::jthread` + `std::stop_token` for cooperative cancellation and automatic join-on-destruct, preventing 5-second hangs during editor shutdown.
+
 ### Added
 - **Smart VRAM Garbage Collector (`vram_garbage_collector.h/.cpp`)**: Background `jthread` tracking resource access timestamps via `OS::get_ticks_msec()` and automatically calling `.unref()` on cached textures/meshes that exceed the idle timeout to prevent OOM crashes on low-end hardware.
 - **Automated Shader Pre-Caching (`shader_precacher.h/.cpp`)**: Compiles all materials into dummy Pipeline State Objects (PSOs) via Godot's `RenderingServer` during map load to eliminate runtime shader compilation stutter.

@@ -1,5 +1,5 @@
 #include "texture_transcoder.h"
-#include <thread>
+#include <memory>
 
 namespace quebratsk::vfs {
 
@@ -11,15 +11,20 @@ std::future<TextureTranscoder::TranscodeResult> TextureTranscoder::enqueue_trans
     uint32_t width,
     uint32_t height
 ) {
-    // Dispatch to a background thread to prevent stalling the Godot main thread
-    return std::async(std::launch::async, [source_data, source_format, width, height]() -> TranscodeResult {
+    // FIX A1: Copy bytes into an owned vector to prevent dangling span in the async lambda.
+    // std::span is a non-owning view — if the caller frees the backing buffer before
+    // the async thread reads it, we get use-after-free.
+    auto owned_data = std::make_shared<std::vector<std::byte>>(
+        source_data.begin(), source_data.end());
+
+    return std::async(std::launch::async, [owned_data, source_format, width, height]() -> TranscodeResult {
+        std::span<const std::byte> data_view(*owned_data);
         switch (source_format) {
             case Format::DXT1:
-                return decode_dxt1_to_rgba8(source_data, width, height);
+                return decode_dxt1_to_rgba8(data_view, width, height);
             case Format::DXT5:
-                return decode_dxt5_to_rgba8(source_data, width, height);
+                return decode_dxt5_to_rgba8(data_view, width, height);
             default:
-                // Fallback / Unsupported for now, return empty
                 return TranscodeResult{{}, width, height, Image::FORMAT_MAX};
         }
     });
@@ -30,13 +35,12 @@ TextureTranscoder::TranscodeResult TextureTranscoder::decode_dxt1_to_rgba8(std::
     result.width = width;
     result.height = height;
     result.godot_format = Image::FORMAT_RGBA8;
-    
+
     // Allocate buffer for uncompressed RGBA8 (4 bytes per pixel)
     result.decoded_data.resize(width * height * 4);
-    
+
     // TODO: Integrate fast DXT1 decoding algorithm (e.g. stb_dxt or custom decoder)
-    // For this alpha stub, we just return the allocated buffer to simulate the pipeline.
-    
+
     return result;
 }
 
@@ -45,11 +49,11 @@ TextureTranscoder::TranscodeResult TextureTranscoder::decode_dxt5_to_rgba8(std::
     result.width = width;
     result.height = height;
     result.godot_format = Image::FORMAT_RGBA8;
-    
+
     result.decoded_data.resize(width * height * 4);
-    
+
     // TODO: Integrate fast DXT5 decoding algorithm
-    
+
     return result;
 }
 

@@ -3,6 +3,7 @@
 #include "api/unified_asset_importer.h"
 #include "api/async_asset_importer.h"
 #include "api/vfs_file_tree.h"
+#include "core/config/quebratsk_settings.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -20,12 +21,17 @@ void initialize_quebratsk_module(ModuleInitializationLevel p_level) {
     ClassDB::register_class<quebratsk::api::UnifiedAssetImporter>();
     ClassDB::register_class<quebratsk::api::AsyncAssetImporter>();
     ClassDB::register_class<quebratsk::api::VFSFileTree>();
+    ClassDB::register_class<quebratsk::config::QuebratskSettings>();
+
+    // FIX A2: Initialize project settings so they appear in the Godot Editor UI
+    quebratsk::config::QuebratskSettings::register_settings();
 }
 
 void uninitialize_quebratsk_module(ModuleInitializationLevel p_level) {
     if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
         return;
     }
+    // TODO B1: Add cleanup for VRAMGarbageCollector, TextureCache, etc.
 }
 
 extern "C" {
@@ -33,7 +39,7 @@ GDExtensionBool GDE_EXPORT quebratsk_library_init(
     GDExtensionInterfaceGetProcAddress p_get_proc_address,
     const GDExtensionClassLibraryPtr p_library,
     GDExtensionInitialization *r_initialization) {
-    
+
     godot::GDExtensionBinding::InitObject init_obj(p_get_proc_address, p_library, r_initialization);
     init_obj.register_initializer(initialize_quebratsk_module);
     init_obj.register_terminator(uninitialize_quebratsk_module);
