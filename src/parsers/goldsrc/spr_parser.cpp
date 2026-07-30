@@ -30,6 +30,11 @@ std::expected<ParsedSprite, SPRParseError> SPRParser::parse(
     std::memcpy(&palette_size, spr_bytes.data() + cursor, sizeof(uint16_t));
     cursor += sizeof(uint16_t);
 
+    // The 768-byte palette read below assumes 256 RGB triples.
+    if (palette_size != 256) {
+        return std::unexpected(SPRParseError::CorruptedData);
+    }
+
     const uint8_t* palette = reinterpret_cast<const uint8_t*>(spr_bytes.data() + cursor);
     cursor += 768; // 256 RGB colors
 
@@ -39,6 +44,15 @@ std::expected<ParsedSprite, SPRParseError> SPRParser::parse(
         auto* frame_hdr = reinterpret_cast<const SpriteFrameHeader*>(spr_bytes.data() + cursor);
         cursor += sizeof(SpriteFrameHeader);
 
+        // width/height are int32_t. A negative value casts to a huge size_t, the
+        // multiplication wraps, and both the resize() below and the pixel loop then
+        // run out of bounds. GoldSrc sprites never exceed 4096 px on a side.
+        constexpr int32_t kMaxSpriteDim = 4096;
+        if (frame_hdr->width <= 0 || frame_hdr->height <= 0 ||
+            frame_hdr->width > kMaxSpriteDim || frame_hdr->height > kMaxSpriteDim) {
+            break;
+        }
+
         DecodedSpriteFrame frame;
         frame.origin_x = frame_hdr->origin_x;
         frame.origin_y = frame_hdr->origin_y;
@@ -46,7 +60,8 @@ std::expected<ParsedSprite, SPRParseError> SPRParser::parse(
         frame.height = frame_hdr->height;
 
         size_t num_pixels = static_cast<size_t>(frame.width) * static_cast<size_t>(frame.height);
-        if (cursor + num_pixels > spr_bytes.size()) break;
+        // Subtraction, not addition: cursor + num_pixels can wrap.
+        if (cursor > spr_bytes.size() || num_pixels > spr_bytes.size() - cursor) break;
 
         const uint8_t* indices = reinterpret_cast<const uint8_t*>(spr_bytes.data() + cursor);
         cursor += num_pixels;

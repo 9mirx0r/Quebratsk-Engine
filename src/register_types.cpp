@@ -11,6 +11,7 @@
 #include "core/config/import_presets.h"
 #include "core/vfs/steam_library_detector.h"
 #include "core/vfs/obsidian_doc_exporter.h"
+#include "core/vfs/texture_cache.h"
 #include "core/logging/quebratsk_logger.h"
 #include "converters/fuzzy_material_fixer.h"
 #include "converters/winding_visualizer.h"
@@ -67,7 +68,13 @@ void uninitialize_quebratsk_module(ModuleInitializationLevel p_level) {
     if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
         return;
     }
-    // TODO B1: Add cleanup for VRAMGarbageCollector, TextureCache, etc.
+
+    // Function-local statics inside a shared library are destroyed at library unload,
+    // which happens *after* Godot has torn down ClassDB and the RenderingServer. Any
+    // Ref<Resource> still held at that point releases its last reference into a dead
+    // engine and crashes on exit. Drop every Godot handle here, while the servers are
+    // still alive; the static destructors then have nothing left to free.
+    quebratsk::vfs::TextureCache::instance().clear();
 }
 
 extern "C" {

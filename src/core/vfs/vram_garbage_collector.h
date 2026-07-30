@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <thread>
@@ -48,7 +49,9 @@ private:
     std::mutex _eviction_mutex;
 
     std::jthread _worker_thread;
-    uint64_t _max_idle_time_msec;
+    // Written by start() on the caller's thread, read by _gc_loop() on the worker.
+    // A plain uint64_t here is a data race (and tears on 32-bit ABIs).
+    std::atomic<uint64_t> _max_idle_time_msec;
 };
 
 } // namespace quebratsk::vfs

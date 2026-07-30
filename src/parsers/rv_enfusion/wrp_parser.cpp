@@ -19,19 +19,36 @@ std::expected<ir::IRTerrainData, WRPParseError> WRPParser::parse(
         return std::unexpected(WRPParseError::InvalidHeader);
     }
 
+    // Reject implausible grid dimensions before any arithmetic. Without this, a crafted
+    // header (e.g. 0x7FFFFFFF x 0x7FFFFFFF) makes num_cells * sizeof(float) wrap around
+    // size_t, the bounds check below passes, and assign() walks gigabytes past the mapping.
+    // Altis, the largest shipped Arma 3 terrain, is 8192x8192.
+    constexpr uint32_t kMaxWrpGridDim = 8192;
+    if (header->grid_width == 0 || header->grid_height == 0 ||
+        header->grid_width > kMaxWrpGridDim || header->grid_height > kMaxWrpGridDim) {
+        return std::unexpected(WRPParseError::InvalidHeader);
+    }
+
     ir::IRTerrainData terrain;
     terrain.source_engine = ir::SourceEngine::RealVirtuality;
     terrain.grid_width = static_cast<int32_t>(header->grid_width);
     terrain.grid_height = static_cast<int32_t>(header->grid_height);
     terrain.cell_size = 10.0f; // Default 10 meters per grid cell (OPRW metric)
 
-    size_t num_cells = static_cast<size_t>(terrain.grid_width) * static_cast<size_t>(terrain.grid_height);
-    size_t elevation_offset = sizeof(WRPHeader);
+    const size_t num_cells = static_cast<size_t>(header->grid_width) * header->grid_height;
+    constexpr size_t elevation_offset = sizeof(WRPHeader);
 
-    if (elevation_offset + num_cells * sizeof(float) <= wrp_bytes.size()) {
-        const float* heights = reinterpret_cast<const float*>(wrp_bytes.data() + elevation_offset);
-        terrain.heightmap.assign(heights, heights + num_cells);
+    if (wrp_bytes.size() < elevation_offset) {
+        return std::unexpected(WRPParseError::InvalidHeader);
     }
+    // Division instead of multiplication: cannot overflow.
+    if (num_cells > (wrp_bytes.size() - elevation_offset) / sizeof(float)) {
+        return std::unexpected(WRPParseError::CorruptedData);
+    }
+
+    const auto payload = wrp_bytes.subspan(elevation_offset, num_cells * sizeof(float));
+    terrain.heightmap.resize(num_cells);
+    std::memcpy(terrain.heightmap.data(), payload.data(), payload.size_bytes());
 
     return terrain;
 }
