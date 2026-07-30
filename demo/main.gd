@@ -42,11 +42,17 @@ func _ready() -> void:
 	var markdown_doc: String = ObsidianDocExporter.generate_vault_markdown_doc(vfs, self)
 	print("\n📓 [Obsidian Doc Exporter] Markdown Preview Generated:\n")
 	print(markdown_doc)
+
+	# 7. Demo: How to load and spawn a 3D Model in scene
+	print("\n🧊 [3D Mesh Loader Demo] Example usage:")
+	print("   1. Mount package: vfs.mount_container(\"my_pack\", \"C:/path/to/archive.gma\")")
+	print("   2. Load mesh: var mesh: ArrayMesh = importer.load_mesh(\"vfs://my_pack/models/model.mdl\")")
+	print("   3. Add to scene: var mi = MeshInstance3D.new(); mi.mesh = mesh; add_child(mi)")
 	
 	# Connect Godot 4 native file drop signal
 	get_window().files_dropped.connect(_on_files_dropped)
 	
-	print("==================================================")
+	print("\n==================================================")
 	print("   ✅ ALL SUB-SYSTEMS INITIALIZED SUCCESSFULLY!")
 	print("==================================================")
 
