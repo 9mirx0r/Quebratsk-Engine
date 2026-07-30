@@ -6,7 +6,9 @@
 #include <godot_cpp/variant/packed_int32_array.hpp>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
 #include <godot_cpp/variant/packed_vector3_array.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
 
+#include <algorithm>
 #include <cstring>
 
 namespace quebratsk::converters {
@@ -19,6 +21,26 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh) {
 
     for (const auto& surf : ir_mesh.surfaces) {
         if (surf.positions.empty() || surf.indices.empty()) {
+            continue;
+        }
+
+        // Godot requires every per-vertex array in a surface to have the same element
+        // count (ARRAY_TANGENT being 4 floats per vertex), and every index to be within
+        // the vertex range. Feeding add_surface_from_arrays() anything else produces an
+        // engine error at best and a corrupted vertex buffer in the driver at worst.
+        const size_t vcount = surf.positions.size();
+        if (!surf.normals.empty()  && surf.normals.size()  != vcount) continue;
+        if (!surf.uv0.empty()      && surf.uv0.size()      != vcount) continue;
+        if (!surf.uv1.empty()      && surf.uv1.size()      != vcount) continue;
+        if (!surf.tangents.empty() && surf.tangents.size() != vcount * 4) continue;
+        if (surf.indices.size() % 3 != 0) continue;
+
+        const bool has_bad_index = std::any_of(
+            surf.indices.begin(), surf.indices.end(),
+            [vcount](uint32_t i) { return static_cast<size_t>(i) >= vcount; });
+        if (has_bad_index) {
+            UtilityFunctions::printerr("[MeshConverter] Index out of range in surface '",
+                                       String(surf.material_name.c_str()), "', skipping.");
             continue;
         }
 
@@ -64,12 +86,11 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh) {
         }
 
         // 6. Indices (ARRAY_INDEX = 12)
+        // Indices were validated above as < vcount, so every value fits in int32_t and
+        // the uint32->int32 reinterpretation is exact. One memcpy beats a scalar loop.
         PackedInt32Array indices;
         indices.resize(static_cast<int64_t>(surf.indices.size()));
-        int32_t* idx_ptr = indices.ptrw();
-        for (size_t i = 0; i < surf.indices.size(); ++i) {
-            idx_ptr[i] = static_cast<int32_t>(surf.indices[i]);
-        }
+        std::memcpy(indices.ptrw(), surf.indices.data(), surf.indices.size() * sizeof(int32_t));
         surface_arrays[ArrayMesh::ARRAY_INDEX] = indices;
 
         array_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, surface_arrays);

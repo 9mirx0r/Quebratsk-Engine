@@ -9,8 +9,18 @@
 
 namespace quebratsk::math {
 
-/// Remap Z-Up Left-Handed coordinates to Godot Y-Up Right-Handed coordinates
+/// Remap Z-Up coordinates to Godot Y-Up coordinates.
 /// Source (X, Y, Z) -> Godot (X * scale, Z * scale, -Y * scale)
+///
+/// INVARIANT: the underlying basis change is
+///     M = [ 1  0  0 ]
+///         [ 0  0  1 ]      det(M) = +1
+///         [ 0 -1  0 ]
+/// A positive determinant means this transform PRESERVES orientation, so triangle
+/// winding is already correct in Godot. Do NOT pair it with invert_winding_order():
+/// doing so flips every face and the geometry renders inside-out under backface
+/// culling. The same reasoning is why source_quat_to_godot() only permutes the
+/// quaternion's vector part.
 [[nodiscard]] inline godot::Vector3 source_to_godot(const godot::Vector3& v, double scale = kHammerUnitsToMeters) {
     return godot::Vector3(
         static_cast<float>(v.x * scale),

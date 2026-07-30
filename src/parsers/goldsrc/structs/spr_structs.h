@@ -25,9 +25,12 @@ struct SpriteHeader {
     int32_t sync_type;
 };
 
-/// Frame header (16 bytes)
+/// Frame header — dspriteframe_t (16 bytes)
+/// NOTE: the frame-group selector is a separate int32 that precedes the frame *only*
+/// in grouped sprites; it is not a member of dspriteframe_t. Declaring it here made
+/// sizeof() 20 instead of 16, so every frame was read at the wrong offset and the
+/// cursor drifted 4 bytes per frame.
 struct SpriteFrameHeader {
-    int32_t group;          // 0 = Single frame, 1 = Group
     int32_t origin_x;
     int32_t origin_y;
     int32_t width;
@@ -36,6 +39,6 @@ struct SpriteFrameHeader {
 #pragma pack(pop)
 
 static_assert(sizeof(SpriteHeader) == 40, "SpriteHeader size mismatch");
-static_assert(sizeof(SpriteFrameHeader) == 20, "SpriteFrameHeader size mismatch");
+static_assert(sizeof(SpriteFrameHeader) == 16, "SpriteFrameHeader size mismatch");
 
 } // namespace quebratsk::parsers::goldsrc

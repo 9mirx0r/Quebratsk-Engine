@@ -1,0 +1,13 @@
+[configuration]
+entry_symbol = "quebratsk_library_init"
+# Built against godot-cpp godot-4.3-stable. GDExtensions are forward-compatible only,
+# so declaring 4.1 made Godot 4.1/4.2 load a binary they cannot support.
+compatibility_minimum = "4.3"
+
+[libraries]
+windows.debug.x86_64 = "res://bin/libquebratsk.windows.debug.x86_64.dll"
+windows.release.x86_64 = "res://bin/libquebratsk.windows.release.x86_64.dll"
+linux.debug.x86_64 = "res://bin/libquebratsk.linux.debug.x86_64.so"
+linux.release.x86_64 = "res://bin/libquebratsk.linux.release.x86_64.so"
+macos.debug = "res://bin/libquebratsk.macos.debug.framework"
+macos.release = "res://bin/libquebratsk.macos.release.framework"

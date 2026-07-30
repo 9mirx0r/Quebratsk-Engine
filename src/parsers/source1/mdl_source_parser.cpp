@@ -32,10 +32,26 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse(
             const auto& b = bones[i];
             ir::IRBone ir_b;
 
-            if (b.name_index > 0 && static_cast<size_t>(header->bone_index + i * sizeof(SourceStudioBone) + b.name_index) < mdl_bytes.size()) {
-                const char* name_ptr = reinterpret_cast<const char*>(mdl_bytes.data() + header->bone_index + i * sizeof(SourceStudioBone) + b.name_index);
-                ir_b.name = std::string(name_ptr);
-            } else {
+            // name_index is relative to the start of this bone record. Validating only
+            // the start offset is not enough: std::string(const char*) runs to the first
+            // NUL, which may lie past the end of the mapping. Bound the scan explicitly.
+            const size_t bone_base = static_cast<size_t>(header->bone_index) +
+                                     static_cast<size_t>(i) * sizeof(SourceStudioBone);
+            bool named = false;
+
+            if (b.name_index > 0 && bone_base < mdl_bytes.size() &&
+                static_cast<size_t>(b.name_index) < mdl_bytes.size() - bone_base) {
+                const size_t name_ofs = bone_base + static_cast<size_t>(b.name_index);
+                const char* base = reinterpret_cast<const char*>(mdl_bytes.data());
+                const size_t max_len = mdl_bytes.size() - name_ofs;
+                const size_t len = ::strnlen(base + name_ofs, max_len);
+                if (len < max_len) { // a real terminator was found inside the buffer
+                    ir_b.name.assign(base + name_ofs, len);
+                    named = true;
+                }
+            }
+
+            if (!named) {
                 ir_b.name = "ValveBiped.Bip01_Bone_" + std::to_string(i);
             }
 

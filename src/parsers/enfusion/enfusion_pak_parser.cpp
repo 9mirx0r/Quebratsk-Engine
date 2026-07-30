@@ -15,8 +15,17 @@ std::expected<std::vector<EnfusionPakEntry>, EnfusionPakParseError> EnfusionPakP
         return std::unexpected(EnfusionPakParseError::InvalidHeader);
     }
 
+    // entry_count is attacker-controlled. Reserving it blindly lets a 12-byte file
+    // request a multi-gigabyte allocation; with exceptions disabled (godot-cpp sets
+    // _HAS_EXCEPTIONS=0) the resulting length_error/bad_alloc becomes terminate().
+    // Bound it by what the file could physically contain.
+    const size_t max_possible_entries = pak_bytes.size() / sizeof(EnfusionPakHeader);
+    if (header->entry_count > max_possible_entries) {
+        return std::unexpected(EnfusionPakParseError::CorruptedData);
+    }
+
     std::vector<EnfusionPakEntry> entries;
-    entries.reserve(header->entry_count);
+    entries.reserve(static_cast<size_t>(header->entry_count));
     return entries;
 }
 

@@ -26,7 +26,7 @@ void VRAMGarbageCollector::ping_resource(const std::string& vfs_path) {
 }
 
 void VRAMGarbageCollector::start(uint64_t max_idle_time_msec) {
-    _max_idle_time_msec = max_idle_time_msec;
+    _max_idle_time_msec.store(max_idle_time_msec, std::memory_order_relaxed);
 
     // jthread: automatically joins on destruction, supports cooperative stop via stop_token
     _worker_thread = std::jthread([this](std::stop_token stoken) {
@@ -51,7 +51,7 @@ void VRAMGarbageCollector::stop() {
 
 void VRAMGarbageCollector::_gc_loop() {
     auto now = std::chrono::steady_clock::now();
-    auto max_idle = std::chrono::milliseconds(_max_idle_time_msec);
+    auto max_idle = std::chrono::milliseconds(_max_idle_time_msec.load(std::memory_order_relaxed));
 
     // Phase 1: Collect eviction candidates under lock (background thread)
     std::vector<std::string> candidates;

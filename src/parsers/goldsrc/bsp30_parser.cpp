@@ -21,9 +21,17 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
 
     auto get_lump = [&](size_t idx) -> std::span<const std::byte> {
         if (idx >= 15) return {};
-        size_t ofs = static_cast<size_t>(header->lumps[idx].file_offset);
-        size_t len = static_cast<size_t>(header->lumps[idx].file_length);
-        if (ofs + len > bsp_bytes.size()) return {};
+        // Lump offsets/lengths are int32_t on disk. A negative value casts to a huge
+        // size_t and ofs + len wraps, so the old check passed and subspan() was called
+        // with offset > size() — undefined behaviour, not a throw.
+        const int32_t raw_ofs = header->lumps[idx].file_offset;
+        const int32_t raw_len = header->lumps[idx].file_length;
+        if (raw_ofs < 0 || raw_len < 0) return {};
+
+        const size_t ofs = static_cast<size_t>(raw_ofs);
+        const size_t len = static_cast<size_t>(raw_len);
+        if (ofs > bsp_bytes.size()) return {};
+        if (len > bsp_bytes.size() - ofs) return {}; // subtraction cannot overflow
         return bsp_bytes.subspan(ofs, len);
     };
 
@@ -53,6 +61,7 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     // Lump 6: TexInfo
     auto texinfo_lump = get_lump(6);
     auto* bsp_texinfos = reinterpret_cast<const BSPTexInfo*>(texinfo_lump.data());
+    size_t num_texinfos = texinfo_lump.size() / sizeof(BSPTexInfo);
 
     // Lump 7: Faces
     auto face_lump = get_lump(7);
@@ -64,7 +73,14 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
 
     for (size_t f = 0; f < num_faces; ++f) {
         const auto& face = bsp_faces[f];
-        int32_t tex_idx = face.texinfo_index >= 0 ? bsp_texinfos[face.texinfo_index].miptex_index : 0;
+
+        // texinfo_index was only checked for >= 0, never against the lump size, so a
+        // crafted map read 40 bytes far outside lump 6 (and dereferenced null when the
+        // lump was absent).
+        int32_t tex_idx = 0;
+        if (face.texinfo_index >= 0 && static_cast<size_t>(face.texinfo_index) < num_texinfos) {
+            tex_idx = bsp_texinfos[face.texinfo_index].miptex_index;
+        }
 
         auto& surf = surface_map[tex_idx];
         if (surf.material_name.empty()) {
@@ -81,7 +97,11 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
             if (surfedge_idx >= num_surfedges) break;
 
             int32_t surfedge = bsp_surfedges[surfedge_idx];
-            size_t abs_edge_idx = static_cast<size_t>(surfedge >= 0 ? surfedge : -surfedge);
+            // Negating INT32_MIN is signed overflow (UB). Take the magnitude in
+            // unsigned arithmetic, where wrapping is well defined.
+            size_t abs_edge_idx = surfedge >= 0
+                ? static_cast<size_t>(static_cast<uint32_t>(surfedge))
+                : static_cast<size_t>(0u - static_cast<uint32_t>(surfedge));
             if (abs_edge_idx >= num_edges) continue;
 
             uint16_t vert_idx = (surfedge >= 0) ? bsp_edges[abs_edge_idx].v[0] : bsp_edges[abs_edge_idx].v[1];
@@ -113,8 +133,11 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     map_data.mesh_data.name = "GoldSrcMap";
 
     for (auto& [idx, surf] : surface_map) {
-        // Invert winding order from CW to CCW for Godot
-        math::invert_winding_order(surf.indices);
+        // NOTE: no winding inversion here. math::source_to_godot() applies
+        //   M = [1 0 0; 0 0 1; 0 -1 0],  det(M) = +1
+        // which preserves orientation, so GoldSrc winding is already correct in Godot.
+        // The previous invert_winding_order() call flipped every triangle and made the
+        // whole map render inside-out under backface culling.
         map_data.mesh_data.surfaces.push_back(std::move(surf));
     }
 
@@ -126,11 +149,15 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     // Lump 1: Planes
     auto plane_lump = get_lump(1);
     auto* bsp_planes = reinterpret_cast<const BSPPlane*>(plane_lump.data());
+    size_t num_planes = plane_lump.size() / sizeof(BSPPlane);
 
     map_data.collision_data.source_engine = ir::SourceEngine::GoldSrc;
     for (size_t c = 0; c < num_clipnodes; ++c) {
         const auto& node = bsp_clipnodes[c];
-        if (node.plane_index >= 0 && static_cast<size_t>(node.plane_index) * sizeof(BSPPlane) < plane_lump.size()) {
+        // Comparing the plane's start offset against the lump size allowed a read that
+        // began inside the lump and ran up to 19 bytes past its end. Compare the index
+        // against the element count instead.
+        if (node.plane_index >= 0 && static_cast<size_t>(node.plane_index) < num_planes) {
             const auto& plane = bsp_planes[node.plane_index];
             godot::Vector3 normal_raw(plane.normal[0], plane.normal[1], plane.normal[2]);
             

@@ -17,16 +17,16 @@ void SteamLibraryDetector::_bind_methods() {
 
 std::string SteamLibraryDetector::_get_steam_install_path() {
 #if defined(_WIN32)
-    HKEY hKey;
-    char path[MAX_PATH];
-    DWORD bufferSize = sizeof(path);
+    // RegQueryValueExA does NOT guarantee a NUL terminator for REG_SZ values: if the
+    // stored string exactly fills the buffer, std::string(path) reads off the end of the
+    // stack array. RegGetValueA guarantees termination and filters by value type.
+    char path[MAX_PATH + 1] = {};
+    DWORD buffer_size = MAX_PATH;
 
-    if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-        if (RegQueryValueExA(hKey, "SteamPath", NULL, NULL, (LPBYTE)path, &bufferSize) == ERROR_SUCCESS) {
-            RegCloseKey(hKey);
-            return std::string(path);
-        }
-        RegCloseKey(hKey);
+    if (RegGetValueA(HKEY_CURRENT_USER, "Software\\Valve\\Steam", "SteamPath",
+                     RRF_RT_REG_SZ, nullptr, path, &buffer_size) == ERROR_SUCCESS) {
+        path[MAX_PATH] = '\0';
+        return std::string(path);
     }
 #endif
     return "C:/Program Files (x86)/Steam"; // Default fallback
