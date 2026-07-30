@@ -1,12 +1,13 @@
 #pragma once
 
-#include "../math/simd_math.h"
 #include <godot_cpp/classes/occluder_instance3d.hpp>
 #include <godot_cpp/classes/box_occluder3d.hpp>
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/classes/ref.hpp>
 #include <future>
 #include <vector>
+
+#include <godot_cpp/variant/vector3.hpp>
 
 namespace quebratsk::vfs {
 

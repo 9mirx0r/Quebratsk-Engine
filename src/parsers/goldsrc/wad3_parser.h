@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../core/ir/ir_material_data.h"
+#include "../../core/ir/ir_texture_data.h"
 #include "structs/wad3_structs.h"
 
 #include <expected>
@@ -17,17 +18,12 @@ enum class WAD3ParseError {
     CorruptedData,
 };
 
-struct DecodedMiptex {
-    std::string name;
-    uint32_t width = 0;
-    uint32_t height = 0;
-    std::vector<uint8_t> rgba8_pixels; // RGBA8888 uncompressed pixel data
-};
-
 class WAD3Parser {
 public:
-    /// Parse a Miptex texture lump from WAD3 raw bytes into RGBA8 pixels
-    [[nodiscard]] static std::expected<DecodedMiptex, WAD3ParseError> parse_miptex(
+    /// Parse a Miptex texture lump from WAD3 raw bytes into RGBA8 pixels.
+    /// Returns the shared IRTextureData so TextureConverter can consume it directly;
+    /// the former DecodedMiptex struct was identical but incompatible by type.
+    [[nodiscard]] static std::expected<ir::IRTextureData, WAD3ParseError> parse_miptex(
         std::span<const std::byte> miptex_bytes
     );
 };

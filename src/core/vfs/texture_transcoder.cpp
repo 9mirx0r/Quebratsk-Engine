@@ -1,4 +1,5 @@
 #include "texture_transcoder.h"
+#include "../image/dxt_decoder.h"
 #include <memory>
 
 namespace quebratsk::vfs {
@@ -36,10 +37,13 @@ TextureTranscoder::TranscodeResult TextureTranscoder::decode_dxt1_to_rgba8(std::
     result.height = height;
     result.godot_format = Image::FORMAT_RGBA8;
 
-    // Allocate buffer for uncompressed RGBA8 (4 bytes per pixel)
-    result.decoded_data.resize(width * height * 4);
-
-    // TODO: Integrate fast DXT1 decoding algorithm (e.g. stb_dxt or custom decoder)
+    // Was a stub that resized a zero-filled buffer (and computed the size in uint32,
+    // which overflowed for large dimensions), so every DXT texture decoded to
+    // transparent black.
+    if (!image::decode_dxt1(data, width, height, result.decoded_data)) {
+        result.godot_format = Image::FORMAT_MAX; // signals failure to the caller
+        result.decoded_data.clear();
+    }
 
     return result;
 }
@@ -50,9 +54,10 @@ TextureTranscoder::TranscodeResult TextureTranscoder::decode_dxt5_to_rgba8(std::
     result.height = height;
     result.godot_format = Image::FORMAT_RGBA8;
 
-    result.decoded_data.resize(width * height * 4);
-
-    // TODO: Integrate fast DXT5 decoding algorithm
+    if (!image::decode_dxt5(data, width, height, result.decoded_data)) {
+        result.godot_format = Image::FORMAT_MAX;
+        result.decoded_data.clear();
+    }
 
     return result;
 }

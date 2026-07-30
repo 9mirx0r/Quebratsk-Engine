@@ -29,12 +29,13 @@ Dictionary VulkanRTBuilder::build_blas_descriptor(const ir::IRMeshData& ir_mesh)
 }
 
 bool VulkanRTBuilder::register_tlas_instance(const RID& mesh_rid, const Transform3D& transform) {
-    RenderingServer* rs = RenderingServer::get_singleton();
-    if (!rs || !mesh_rid.is_valid()) return false;
-
-    // Attach instance to Vulkan Top-Level Acceleration Structure (TLAS) scene graph
-    UtilityFunctions::print("[VulkanRTBuilder] Registered mesh RID in TLAS acceleration structure.");
-    return true;
+    // NOT IMPLEMENTED, and not implementable today: Godot 4.3 exposes no ray-tracing
+    // acceleration-structure API through RenderingServer or RenderingDevice. The
+    // previous body printed a success message and returned true.
+    UtilityFunctions::push_error(
+        "[VulkanRTBuilder] register_tlas_instance() is not implemented: Godot 4.3 "
+        "exposes no ray tracing acceleration structure API.");
+    return false;
 }
 
 } // namespace quebratsk::converters

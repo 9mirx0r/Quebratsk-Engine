@@ -9,10 +9,13 @@ ir::IRCollisionData VHACDDecomposer::decompose(
     const ir::IRMeshData& ir_mesh,
     const VHACDParameters& params
 ) {
+    // WARNING: this is NOT V-HACD. It merges every vertex into a single convex hull,
+    // which is the opposite of an approximate convex decomposition — concave geometry
+    // loses its cavities entirely. `params` is ignored. Treat this as a placeholder
+    // that produces one coarse hull, not as a decomposition.
     ir::IRCollisionData col_data;
     col_data.name = ir_mesh.name + "_Collision";
 
-    // Build initial convex hull from mesh vertices
     ir::IRConvexHull hull;
     hull.name = "Hull_0";
 

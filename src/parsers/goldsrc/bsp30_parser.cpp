@@ -1,6 +1,5 @@
 #include "bsp30_parser.h"
 #include "../../core/math/axis_remap.h"
-#include "../../core/math/winding_order.h"
 
 #include <cstring>
 #include <unordered_map>

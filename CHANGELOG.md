@@ -11,6 +11,145 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## Audit Follow-Up — Texture Pipeline, Correctness & Cleanup — 2026-07-30
+
+Second pass over the findings the first audit pass left open. The headline item was not
+on the original list: while wiring the remaining fixes it turned out that **no texture
+pipeline existed at all**, so every asset imported untextured regardless of how well the
+decoders worked.
+
+### Added
+
+- **Texture pipeline (`texture_converter`, `texture_loader`, `ir_texture_data`, `dxt_decoder`)**:
+  the missing bridge from decoded pixels to Godot materials. Previously the only code in
+  the entire project that constructed an `ImageTexture` was `TextureUpscalerPipeline`,
+  which takes an already-loaded `Image` from GDScript; `VMTParser` wrote
+  `IRMaterialData::albedo_texture` that nothing ever read; `MaterialConverter` never
+  called `set_texture()`; and `VTFParser` / `WAD3Parser` / `PAADecoder` produced RGBA8
+  buffers with no consumer. New pieces:
+  - `ir::IRTextureData` — one decoded-image type all texture decoders converge on, free
+    of Godot types so decoding stays thread-safe.
+  - `image::decode_dxt1` / `decode_dxt5` — real BC1/BC3 block decoders (correct RGB565
+    endpoint expansion, DXT1 punch-through alpha, DXT5 interpolated alpha tables), sized
+    in `size_t` throughout.
+  - `converters::TextureConverter` — `IRTextureData` to `ImageTexture`.
+  - `converters::TextureLoader` — resolves extension-less legacy references
+    ("metal/metalwall001a", WAD3 lump names) against the VFS by suffix, decodes, and
+    caches. Failed lookups are cached too, so a missing texture is searched for once.
+  - `VFSManager::find_by_suffix()` and `VFSManager::read_owned()`, the latter now the
+    single place that knows how to read both mapped and compressed entries.
+  - `UnifiedAssetImporter::load_texture()`, exposed to GDScript.
+- **`MaterialConverter::convert()` binds textures**: albedo, normal (enabling
+  `FEATURE_NORMAL_MAPPING`) and emission, plus additive blend support.
+- **`WindingVisualizer::flip_normals_and_winding()` now actually flips**: reverses index
+  winding, negates normals and inverts tangent handedness across every surface. It
+  previously only cleared the material override despite its name and its ClassDB binding.
+
+### Fixed
+
+- **[HIGH] `VTFParser` decoded every compressed texture into noise**: the parser used
+  `header_size` as the pixel-data offset — which points at the low-resolution thumbnail —
+  and then `memcpy`'d `width * height * 4` raw bytes regardless of the declared format.
+  Since DXT1/DXT5 covers the overwhelming majority of Source assets, every such texture
+  imported as garbage. Rewritten with real format dispatch (RGBA8888, BGRA8888, BGRX8888,
+  RGB888, BGR888, I8, IA88, A8, DXT1, DXT5), correct highest-mip location (VTF stores mips
+  smallest-first, so level 0 is at the end of the file), and an explicit
+  `UnsupportedFormat` error instead of a silent wrong answer.
+- **[HIGH] Euler order mismatch on GoldSrc bones (`mdl10_parser.cpp`)**: StudioMDL stores
+  XYZ Euler angles, but `Quaternion(Vector3)` in Godot applies YXZ. Poses were wrong as
+  soon as more than one axis was non-zero. The rotation is now composed explicitly in the
+  source frame before the basis change.
+- **[HIGH] `SkeletalRetargeter` could not satisfy `SkeletonProfileHumanoid`**:
+  `LeftShoulder` / `RightShoulder` are required by the profile and were absent from both
+  the bone-name list and the mapping table. Added, along with `UpperChest` and toes.
+- **[HIGH] Bohemia leg mapping was inverted**: the Arma/DayZ rig uses the Max Biped
+  convention where `<side>UpLeg` is the thigh and `<side>Leg` is the calf. The table
+  mapped `leftleg` to the *upper* leg and referenced a `leftlegup` bone that does not
+  exist, so both leg joints were wrong.
+- **[MEDIUM] `FuzzyMaterialFixer` returned near-random matches**: Levenshtein distance was
+  computed against the full VFS URI, so the shared path prefix dominated the score. It now
+  compares lowercased basenames, prunes candidates by length difference before paying for
+  the O(n·m) table, and applies a maximum-distance threshold — previously it always
+  returned *something*, however unrelated. Also removed undefined behaviour from passing
+  raw `char` to `std::tolower`.
+- **[MEDIUM] `VMTParser` mis-parsed keys and values**: `contains("$basetexture")` also
+  matched `$basetexturetransform` and `$basetexture2`, storing transform arguments as a
+  texture path; boolean tests used `contains("1")`, which matched a "1" anywhere on the
+  line. Replaced with identifier-boundary key matching and proper value extraction. The
+  parser now also tracks brace depth (so `Proxies{}` contents are not read as material
+  parameters), strips `//` comments, captures the shader name into
+  `IRMaterialData::shader_name` (never populated before), and handles `$normalmap`,
+  `$envmapmask`, `$selfillummask`, `$detail`, `$alphatest` and `$additive`.
+- **[MEDIUM] `NeuralMaterialTranslator` made most props chrome**: `VertexLitGeneric` — the
+  *default* Source model shader, used by wood, cloth, skin and plastic — was classified as
+  metal with `metallic = 0.85`. Removed that rule, added case normalization (so "Metal"
+  matches at all) and more material families.
+- **[MEDIUM] `TextureUpscalerPipeline` accepted any scale factor**: zero or negative
+  produced an invalid resize and large values overflowed `int` or exhausted memory. Now
+  bounded to [1, 8] with a 16384 px output ceiling, and compressed images are decompressed
+  first since `resize()` fails on them.
+- **[MEDIUM] `FileWatcher` could abort the process**: it used the throwing
+  `std::filesystem` overloads, which call `terminate()` under `_HAS_EXCEPTIONS=0`, and a
+  watched file can legitimately disappear between `exists()` and `last_write_time()`. Now
+  uses `error_code` throughout, holds a mutex (it had none), stores timestamps in the
+  filesystem's own clock instead of hand-rolling a clock conversion, and returns the list
+  of changed paths rather than taking a `VFSManager*` it never used.
+- **[MEDIUM] LZSS masked corruption**: a truncated or corrupt entry was zero-padded up to
+  the expected size and reported as success, so a partially blank asset was
+  indistinguishable from a valid one. Short output is now a `CorruptedData` error, and
+  `VFSManager::read_file()` logs the failure.
+- **[MEDIUM] `SteamLibraryDetector` used a throwing `exists()`** on paths taken from
+  `libraryfolders.vdf`. Switched to the `error_code` overload; also dropped an unused
+  `<iostream>` include.
+- **[LOW] `TaskProgressTracker` published inconsistent state**: the atomic percentage was
+  stored outside the mutex guarding the task name, so a reader could see the new value
+  paired with the previous label.
+- **[LOW] `WAD3Parser` accepted invalid dimensions**: the mip-chain size arithmetic assumes
+  both dimensions are multiples of 16 (which GoldSrc guarantees) but never checked it.
+- **[LOW] `CollisionConverter` rebuilt its point array per vertex**: replaced `append()` in
+  a loop with a single `resize()` + `memcpy`, and documented that it merges all hulls into
+  one shape — correct only because `VHACDDecomposer` calls it once per hull.
+
+### Changed
+
+- **Mocks now report failure instead of success.** These are registered in `ClassDB` and
+  callable from GDScript, so returning `true` from a function that does nothing actively
+  misled callers. `BSPMapRenderer::load_map()` (which printed "Successfully mounted and
+  parsed map faces & PVS leaves" without parsing anything), `BSPMapRenderer::perform_pvs_culling()`,
+  `VulkanRTBuilder::register_tlas_instance()` (Godot 4.3 exposes no ray-tracing API at
+  all), `P2PVFSStreamer::start_streaming()` (no networking exists in that class) and
+  `ShaderPrecacher::precache_all_materials()` (built and immediately destroyed one dummy
+  material per path, precaching nothing) now push an error and return failure.
+- **`PAADecoder` no longer fabricates output**: it returned a hardcoded 512x512 white image
+  regardless of input, so every Arma/DayZ texture imported as a blank square that looked
+  like a successful decode. It now returns `UnsupportedFormat` until a real decoder exists.
+- **`VHACDDecomposer` documented honestly**: it merges all vertices into a single convex
+  hull, which is the opposite of an approximate convex decomposition, and ignores its
+  `params`.
+- **`SkeletalRetargeter::retarget_to_humanoid()` scope documented**: it performs renaming
+  only. Rest-pose alignment and `IRBone::pose_to_bone` (declared but never written) are
+  still missing; renaming is a prerequisite for retargeting, not a substitute.
+- **`WAD3Parser::parse_miptex` returns `ir::IRTextureData`** instead of the identical but
+  incompatible `DecodedMiptex`, so decoded textures flow into the shared pipeline.
+
+### Removed
+
+- **`core/math/simd_math.{h,cpp}`**: its AVX2 branches contained only comments and always
+  fell through to scalar code, it duplicated `axis_remap.h` while silently omitting the
+  Hammer-units scale, and it had zero call sites. Keeping it invited using the wrong one
+  of two conflicting implementations.
+- **`core/math/winding_order.h`**: fully unreachable after the winding-inversion fix, and
+  its presence invited reintroducing that bug.
+
+### Performance
+
+- `SkeletalRetargeter::map_bone_name()` is a single hash lookup against a pre-lowercased
+  table; it previously lowercased every key in the map on every miss.
+- `TextureLoader` caches decoded textures (and failed lookups) in `TextureCache`, so a
+  texture shared by many materials is decoded once.
+
+---
+
 ## Engineering Audit Pass — 2026-07-30
 
 A full file-by-file audit of all 180 sources in `src/` (~7,000 lines). Every item below

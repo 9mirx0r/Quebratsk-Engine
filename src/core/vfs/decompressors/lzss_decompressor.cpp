@@ -55,9 +55,15 @@ std::expected<std::vector<std::byte>, DecompressError> LZSSDecompressor::decompr
         }
     }
 
-    if (output.size() != expected_output_size) {
-        // Soft fallback: if output is truncated or slightly over, resize to match expected
-        output.resize(expected_output_size, std::byte{0});
+    if (output.size() > expected_output_size) {
+        // Over-production is a decoder artefact of the final match run; the extra
+        // bytes are not part of the file.
+        output.resize(expected_output_size);
+    } else if (output.size() < expected_output_size) {
+        // Previously the shortfall was zero-filled and reported as success, so a
+        // truncated or corrupt entry was indistinguishable from a valid one and the
+        // caller silently got a partially blank asset.
+        return std::unexpected(DecompressError::CorruptedData);
     }
 
     return output;
