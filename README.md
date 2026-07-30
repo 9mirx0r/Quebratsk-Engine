@@ -116,39 +116,34 @@ Quebratsk Engine takes the opposite path:
 
 ---
 
-### 🎯 Upcoming Roadmap: 10 Extreme Performance & QoL Features
+#### 4. Extreme Performance & Hardware Optimization Subsystems
+- [x] **Zero-Copy Vulkan/DirectX Staging Buffers (`VFS_GPU_Direct`)** — Direct `mmap` RAM to VRAM staging buffer creation using `RenderingServer::mesh_create()`.
+- [x] **SIMD-Accelerated Vertex & Axis Remapping (`AVX2_AxisRemap`)** — AVX2 and ARM Neon vectorization for Z-Up to Y-Up remapping and winding order inversion.
+- [x] **Background Texture Transcoding (DXT1/5 to RGBA8)** — `std::jthread` pool architecture for real-time legacy PC texture decoding.
+- [x] **Instanced Rendering Auto-Batching (`Auto_MultiMesh`)** — Automatic consolidation of duplicate `MeshInstance3D` requests into single `MultiMeshInstance3D` draw calls.
+- [x] **Asynchronous Occlusion Culling Hull Generator** — Background AABB bounding volume extraction generating Godot `BoxOccluder3D` nodes to eliminate overdraw.
+- [x] **Lazy-Loaded VFS Streaming (Paged Memory)** — OS-level `MapViewOfFile` / `mmap` windowed streaming keeping baseline memory footprint under 100MB.
+- [x] **Smart VRAM Garbage Collector (Texture/Mesh Eviction)** — Access timestamp tracking via `std::chrono::steady_clock` with safe main-thread resource eviction.
+- [x] **Automated Shader Pre-Caching (PSO Generation)** — Upfront Pipeline State Object (PSO) compilation during load screens via `RenderingServer`.
+- [x] **Multi-Threaded Collision BVH Builder** — Background face array preparation for static mesh collision shapes.
+- [x] **Configurable Memory Quotas via UI** — Native sliders and controls injected into Godot `ProjectSettings` (`quebratsk/performance/*`).
 
-The next development phase focuses on extreme hardware optimization, VRAM management, and developer ergonomics:
+---
 
-#### 1. 🚀 Zero-Copy Vulkan/DirectX Staging Buffers (`VFS_GPU_Direct`)
-Bypass CPU-to-CPU copies by streaming `mmap` data directly from the VFS into Godot's RenderingDevice (Vulkan/D3D12) staging buffers using memory aliasing, achieving near-instantaneous 3D model spawning.
+### 🎯 Upcoming Roadmap: 10 UX & Intuitiveness Features
 
-#### 2. 🧮 SIMD-Accelerated Vertex & Axis Remapping (`AVX2_AxisRemap`)
-Vectorize the $Z$-Up to $Y$-Up and CW to CCW winding order conversions using AVX2 and ARM Neon intrinsics to process 4-8 vertices per clock cycle, converting multi-second blocks into microsecond operations.
+The next development phase focuses on developer ergonomics, workflow intuitiveness, and user experience:
 
-#### 3. 🖼️ Background Texture Transcoding (DXT/BC7 to ASTC/ETC2)
-A background thread pool transcodes legacy DXT1/5 or paletted textures into modern mobile/web-friendly compressed formats (ASTC/ETC2) during runtime, slashing VRAM usage on Android/iOS/WebGL.
-
-#### 4. 📦 Instanced Rendering Auto-Batching (`Auto_MultiMesh`)
-Automatically detect when the same `.mdl` or `.p3d` file is requested multiple times and transparently return a `MultiMeshInstance3D` instead of individual meshes, reducing thousands of draw calls down to 1.
-
-#### 5. 🏗️ Asynchronous Occlusion Culling Hull Generator
-Generate simplified bounding volumes (AABBs and OBBs) from `IRMeshData` in a background thread and register them with Godot's `OccluderInstance3D` to prevent the GPU from rendering unseen interiors.
-
-#### 6. 📖 Lazy-Loaded VFS Streaming (Paged Memory)
-Implement a page-fault driven lazy loader that only maps the exact bytes needed when an asset is requested, keeping initial startup time and baseline RAM usage incredibly low (< 100MB) regardless of mounted mod size.
-
-#### 7. 🧹 Smart VRAM Garbage Collector (Texture/Mesh Eviction)
-A reference-counting garbage collector within the `TextureCache` that monitors VRAM pressure and automatically evicts unused materials or LODs, preventing "Out of Memory" crashes on low-end hardware.
-
-#### 8. 🔥 Automated Shader Pre-Caching (Pipeline State Object Generation)
-Traverse the VFS ahead of time to compile a list of all unique material configurations and pre-compile Godot `ShaderMaterial`s during loading screens, eliminating shader compilation stutter.
-
-#### 9. 🧩 Multi-Threaded Collision BVH Builder
-Dispatch the construction of complex physics Bounding Volume Hierarchies (`ConcavePolygonShape3D` for static maps) to the `jthread` pool to prevent main thread freezing during terrain loading.
-
-#### 10. 🎛️ Developer Quality-of-Life: Configurable Memory Quotas
-Expose VFS memory limits, thread pool sizes, and cache eviction policies directly in the Godot Project Settings under a dedicated "Quebratsk" tab, making engine optimization accessible via simple UI sliders.
+1. 🖱️ **Drag-and-Drop VFS Mounting:** Drag `.wad`, `.gma`, or `.pbo` files directly into the Godot 3D Viewport to instantly mount them.
+2. 🎛️ **Lazy Import Presets:** 3 simple one-click presets ("Max Performance", "Retro Fidelity", "Max Quality") replacing complex checkbox menus.
+3. 🔍 **Steam Library Auto-Detection:** Automatically scan Windows registry to detect installed games (Half-Life, Arma 3, CS2) for instant mounting.
+4. 📊 **Native Background Loading UI Bar:** Injected progress bar overlay in the Godot Editor bottom panel for C++ `jthread` tasks.
+5. 🕷️ **Fuzzy-Match Material Auto-Fixer:** Intelligent string matching to automatically recover and link missing textures within mounted VFS archives.
+6. 🗺️ **Dependency Graph Explorer:** Visual node graph displaying connections between maps, models, and materials (highlighting missing assets in red).
+7. 📸 **In-Editor "Map Fly-Through" Preview:** Fly through loaded maps directly inside the Godot editor viewport without pressing Play.
+8. 🚨 **Human-Readable Clickable Console Errors:** Clickable error logs in Godot's console taking developers directly to offending VFS assets.
+9. 🔄 **Interactive Winding Order Visualizer:** Highlight inverted faces in red with a one-click "Flip Normals" button in the editor toolbar.
+10. 📓 **Obsidian Auto-Doc Exporter:** Direct MCP integration button exporting current VFS scene trees and memory states as Markdown notes into Obsidian.
 
 ---
 
