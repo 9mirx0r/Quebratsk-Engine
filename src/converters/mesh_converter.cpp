@@ -7,6 +7,8 @@
 #include <godot_cpp/variant/packed_vector2_array.hpp>
 #include <godot_cpp/variant/packed_vector3_array.hpp>
 
+#include <cstring>
+
 namespace quebratsk::converters {
 
 using namespace godot;
@@ -23,21 +25,17 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh) {
         Array surface_arrays;
         surface_arrays.resize(ArrayMesh::ARRAY_MAX);
 
-        // 1. Vertices (ARRAY_VERTEX = 0)
+        // 1. Vertices (ARRAY_VERTEX = 0) - Direct ptrw memcpy optimization
         PackedVector3Array vertices;
         vertices.resize(static_cast<int64_t>(surf.positions.size()));
-        for (size_t i = 0; i < surf.positions.size(); ++i) {
-            vertices.set(static_cast<int64_t>(i), surf.positions[i]);
-        }
+        std::memcpy(vertices.ptrw(), surf.positions.data(), surf.positions.size() * sizeof(Vector3));
         surface_arrays[ArrayMesh::ARRAY_VERTEX] = vertices;
 
         // 2. Normals (ARRAY_NORMAL = 1)
         if (!surf.normals.empty()) {
             PackedVector3Array normals;
             normals.resize(static_cast<int64_t>(surf.normals.size()));
-            for (size_t i = 0; i < surf.normals.size(); ++i) {
-                normals.set(static_cast<int64_t>(i), surf.normals[i]);
-            }
+            std::memcpy(normals.ptrw(), surf.normals.data(), surf.normals.size() * sizeof(Vector3));
             surface_arrays[ArrayMesh::ARRAY_NORMAL] = normals;
         }
 
@@ -45,9 +43,7 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh) {
         if (!surf.tangents.empty()) {
             PackedFloat32Array tangents;
             tangents.resize(static_cast<int64_t>(surf.tangents.size()));
-            for (size_t i = 0; i < surf.tangents.size(); ++i) {
-                tangents.set(static_cast<int64_t>(i), surf.tangents[i]);
-            }
+            std::memcpy(tangents.ptrw(), surf.tangents.data(), surf.tangents.size() * sizeof(float));
             surface_arrays[ArrayMesh::ARRAY_TANGENT] = tangents;
         }
 
@@ -55,9 +51,7 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh) {
         if (!surf.uv0.empty()) {
             PackedVector2Array uvs;
             uvs.resize(static_cast<int64_t>(surf.uv0.size()));
-            for (size_t i = 0; i < surf.uv0.size(); ++i) {
-                uvs.set(static_cast<int64_t>(i), surf.uv0[i]);
-            }
+            std::memcpy(uvs.ptrw(), surf.uv0.data(), surf.uv0.size() * sizeof(Vector2));
             surface_arrays[ArrayMesh::ARRAY_TEX_UV] = uvs;
         }
 
@@ -65,17 +59,16 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh) {
         if (!surf.uv1.empty()) {
             PackedVector2Array uv2s;
             uv2s.resize(static_cast<int64_t>(surf.uv1.size()));
-            for (size_t i = 0; i < surf.uv1.size(); ++i) {
-                uv2s.set(static_cast<int64_t>(i), surf.uv1[i]);
-            }
+            std::memcpy(uv2s.ptrw(), surf.uv1.data(), surf.uv1.size() * sizeof(Vector2));
             surface_arrays[ArrayMesh::ARRAY_TEX_UV2] = uv2s;
         }
 
         // 6. Indices (ARRAY_INDEX = 12)
         PackedInt32Array indices;
         indices.resize(static_cast<int64_t>(surf.indices.size()));
+        int32_t* idx_ptr = indices.ptrw();
         for (size_t i = 0; i < surf.indices.size(); ++i) {
-            indices.set(static_cast<int64_t>(i), static_cast<int32_t>(surf.indices[i]));
+            idx_ptr[i] = static_cast<int32_t>(surf.indices[i]);
         }
         surface_arrays[ArrayMesh::ARRAY_INDEX] = indices;
 
