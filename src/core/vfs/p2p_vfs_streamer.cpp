@@ -13,9 +13,13 @@ void P2PVFSStreamer::_bind_methods() {
 bool P2PVFSStreamer::start_streaming(const String& server_url, const String& vfs_mount_prefix) {
     if (server_url.is_empty() || vfs_mount_prefix.is_empty()) return false;
 
-    UtilityFunctions::print("[P2PVFSStreamer] Initiating chunked P2P network stream from: ", server_url, " to vfs://", vfs_mount_prefix);
-    _download_progress = 1.0f; // Mock stream completion
-    return true;
+    // NOT IMPLEMENTED. There is no networking in this class at all: the previous body
+    // logged a message and set progress to 1.0, so callers saw a completed download
+    // that never happened.
+    UtilityFunctions::push_error(
+        "[P2PVFSStreamer] start_streaming() is not implemented; no data is transferred.");
+    _download_progress = 0.0f;
+    return false;
 }
 
 float P2PVFSStreamer::get_download_progress() const {

@@ -19,12 +19,19 @@ bool BSPMapRenderer::load_map(const String& bsp_vfs_uri, quebratsk::vfs::VFSMana
         return false;
     }
 
-    UtilityFunctions::print("[BSPMapRenderer] Successfully mounted and parsed map faces & PVS leaves for: ", bsp_vfs_uri);
-    return true;
+    // NOT IMPLEMENTED. This used to print "Successfully mounted and parsed map faces
+    // & PVS leaves" and return true without parsing anything, so callers had no way to
+    // tell that nothing had happened. Report the truth instead.
+    UtilityFunctions::push_error(
+        "[BSPMapRenderer] load_map() is not implemented (no face extraction, no PVS). "
+        "Use UnifiedAssetImporter.load_mesh() for BSP geometry.");
+    return false;
 }
 
 void BSPMapRenderer::perform_pvs_culling(const Vector3& camera_position) {
-    // Leaf PVS culling implementation comparing leaf bounds against camera position
+    // NOT IMPLEMENTED: leaf PVS decompression and per-leaf visibility are missing.
+    // Kept as a no-op so existing scripts do not break, but it culls nothing.
+    UtilityFunctions::push_warning("[BSPMapRenderer] perform_pvs_culling() is a no-op.");
 }
 
 } // namespace quebratsk::converters

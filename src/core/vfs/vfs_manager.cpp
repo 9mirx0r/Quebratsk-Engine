@@ -406,6 +406,36 @@ std::optional<std::span<const std::byte>> VFSManager::get_raw_span(const std::st
     return mapped_bytes.subspan(entry.offset, entry.disk_size);
 }
 
+std::string VFSManager::find_by_suffix(const std::string& lowercase_suffix) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (lowercase_suffix.empty()) return {};
+
+    for (const auto& [uri, entry] : m_index) {
+        if (uri.size() >= lowercase_suffix.size() && uri.ends_with(lowercase_suffix)) {
+            return uri;
+        }
+    }
+    return {};
+}
+
+std::vector<std::byte> VFSManager::read_owned(const std::string& vfs_uri_str) const {
+    std::vector<std::byte> owned;
+
+    // Uncompressed entries can be copied straight out of the mapping.
+    if (auto raw = get_raw_span(vfs_uri_str); raw.has_value()) {
+        owned.assign(raw->begin(), raw->end());
+        return owned;
+    }
+
+    // Compressed entries go through the decompressing path.
+    const PackedByteArray bytes = read_file(String(vfs_uri_str.c_str()));
+    if (bytes.is_empty()) return owned;
+
+    owned.resize(static_cast<size_t>(bytes.size()));
+    std::memcpy(owned.data(), bytes.ptr(), owned.size());
+    return owned;
+}
+
 PackedByteArray VFSManager::read_file(const String& vfs_uri) const {
     std::lock_guard<std::mutex> lock(m_mutex);
     PackedByteArray result;
@@ -444,6 +474,10 @@ PackedByteArray VFSManager::read_file(const String& vfs_uri) const {
         if (decomp_res.has_value()) {
             result.resize(static_cast<int64_t>(decomp_res->size()));
             std::memcpy(result.ptrw(), decomp_res->data(), decomp_res->size());
+        } else {
+            // The decompressor no longer zero-pads a short result, so surface the
+            // failure instead of handing back a silently blank buffer.
+            UtilityFunctions::printerr("[QuebratskVFS] LZSS decompression failed for: ", vfs_uri);
         }
     } else {
         result.resize(static_cast<int64_t>(entry.disk_size));

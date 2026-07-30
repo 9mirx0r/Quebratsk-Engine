@@ -15,13 +15,15 @@ void TaskProgressTracker::_bind_methods() {
 }
 
 void TaskProgressTracker::set_progress(const String& task_name, float progress) {
-    _current_progress.store(std::clamp(progress, 0.0f, 1.0f));
+    // Publish label and value under the same lock. Storing the atomic outside it let a
+    // reader observe the new percentage paired with the previous task's name.
     std::lock_guard<std::mutex> lock(_mutex);
     _current_task_name = task_name.utf8().get_data();
+    _current_progress.store(std::clamp(progress, 0.0f, 1.0f), std::memory_order_relaxed);
 }
 
 float TaskProgressTracker::get_progress() const {
-    return _current_progress.load();
+    return _current_progress.load(std::memory_order_relaxed);
 }
 
 String TaskProgressTracker::get_status_text() const {
@@ -30,9 +32,9 @@ String TaskProgressTracker::get_status_text() const {
 }
 
 void TaskProgressTracker::reset() {
-    _current_progress.store(0.0f);
     std::lock_guard<std::mutex> lock(_mutex);
     _current_task_name.clear();
+    _current_progress.store(0.0f, std::memory_order_relaxed);
 }
 
 } // namespace quebratsk::api

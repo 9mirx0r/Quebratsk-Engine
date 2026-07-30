@@ -6,6 +6,7 @@
 #include "../parsers/source1/vmt_parser.h"
 #include "../parsers/rv_enfusion/p3d_mlod_parser.h"
 #include "../parsers/rv_enfusion/wrp_parser.h"
+#include "../converters/texture_loader.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
@@ -34,6 +35,7 @@ void UnifiedAssetImporter::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_mesh", "vfs_uri"), &UnifiedAssetImporter::load_mesh);
     ClassDB::bind_method(D_METHOD("load_material", "vfs_uri"), &UnifiedAssetImporter::load_material);
     ClassDB::bind_method(D_METHOD("load_terrain", "vfs_uri"), &UnifiedAssetImporter::load_terrain);
+    ClassDB::bind_method(D_METHOD("load_texture", "texture_ref"), &UnifiedAssetImporter::load_texture);
 }
 
 void UnifiedAssetImporter::set_vfs(vfs::VFSManager* vfs) {
@@ -41,28 +43,8 @@ void UnifiedAssetImporter::set_vfs(vfs::VFSManager* vfs) {
 }
 
 std::vector<std::byte> UnifiedAssetImporter::read_asset_bytes(const String& vfs_uri) const {
-    std::vector<std::byte> owned;
-    if (!m_vfs) {
-        return owned;
-    }
-
-    // Fast path: uncompressed entries can be copied straight out of the mapping.
-    // The span is only valid while the VFS index is untouched, so copy immediately
-    // rather than handing it to a caller that may outlive the mount.
-    const std::string uri_std = vfs_uri.utf8().get_data();
-    if (auto raw_span = m_vfs->get_raw_span(uri_std); raw_span.has_value()) {
-        owned.assign(raw_span->begin(), raw_span->end());
-        return owned;
-    }
-
-    // Slow path: compressed entries (PBO "Cprs") must go through read_file().
-    const PackedByteArray bytes = m_vfs->read_file(vfs_uri);
-    if (bytes.is_empty()) {
-        return owned;
-    }
-    owned.resize(static_cast<size_t>(bytes.size()));
-    std::memcpy(owned.data(), bytes.ptr(), owned.size());
-    return owned;
+    if (!m_vfs) return {};
+    return m_vfs->read_owned(vfs_uri.utf8().get_data());
 }
 
 ir::IRMeshData UnifiedAssetImporter::parse_mesh_ir(std::span<const std::byte> data,
@@ -124,11 +106,23 @@ Ref<StandardMaterial3D> UnifiedAssetImporter::load_material(const String& vfs_ur
     const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
     if (uri_lower.ends_with(".vmt")) {
         if (auto vmt_res = parsers::source1::VMTParser::parse(data); vmt_res.has_value()) {
-            return converters::MaterialConverter::convert(vmt_res.value());
+            // Pass the loader so $basetexture / $bumpmap actually reach the material.
+            converters::TextureLoader loader(m_vfs);
+            return converters::MaterialConverter::convert(vmt_res.value(), &loader);
         }
     }
 
     return {};
+}
+
+Ref<Texture2D> UnifiedAssetImporter::load_texture(const String& texture_ref) {
+    if (!m_vfs) {
+        UtilityFunctions::printerr("[QuebratskImporter] VFSManager not set!");
+        return {};
+    }
+
+    converters::TextureLoader loader(m_vfs);
+    return loader.load(texture_ref.utf8().get_data());
 }
 
 Ref<HeightMapShape3D> UnifiedAssetImporter::load_terrain(const String& vfs_uri) {

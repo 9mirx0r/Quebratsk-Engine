@@ -1,7 +1,6 @@
 #include "steam_library_detector.h"
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -84,7 +83,10 @@ Dictionary SteamLibraryDetector::detect_installed_games() {
     for (const auto& lib : libraries) {
         for (const auto& target : targets) {
             std::filesystem::path full_path = std::filesystem::path(lib) / target.folder_name;
-            if (std::filesystem::exists(full_path)) {
+            // error_code overload: the throwing one aborts under _HAS_EXCEPTIONS=0 on
+            // unreadable drives or malformed paths from libraryfolders.vdf.
+            std::error_code ec;
+            if (std::filesystem::exists(full_path, ec) && !ec) {
                 installed_games[String(target.name.c_str())] = String(full_path.string().c_str());
             }
         }

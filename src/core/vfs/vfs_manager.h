@@ -71,8 +71,20 @@ public:
     /// Get uncompressed file size in bytes (-1 if not found)
     int64_t get_file_size(const godot::String& vfs_uri) const;
 
-    /// Get raw zero-copy span for uncompressed entries
+    /// Get raw zero-copy span for uncompressed entries.
+    /// WARNING: the span is only valid until the owning container is unmounted. Prefer
+    /// read_owned() unless the caller provably outlives no mount change.
     [[nodiscard]] std::optional<std::span<const std::byte>> get_raw_span(const std::string& vfs_uri_str) const;
+
+    /// Copy an entry's bytes into an owned buffer, transparently decompressing.
+    /// Empty result means "missing or unreadable". This is the safe counterpart to
+    /// get_raw_span() and the single place that knows how to handle both cases.
+    [[nodiscard]] std::vector<std::byte> read_owned(const std::string& vfs_uri_str) const;
+
+    /// First indexed URI ending with `lowercase_suffix`, or an empty string.
+    /// Legacy material references are path fragments without a mount prefix
+    /// ("metal/metalwall001a"), so they can only be resolved by suffix search.
+    [[nodiscard]] std::string find_by_suffix(const std::string& lowercase_suffix) const;
 
 private:
     void index_wad3(size_t container_idx);

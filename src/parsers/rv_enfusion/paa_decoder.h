@@ -1,6 +1,7 @@
 #pragma once
 
 #include "structs/paa_structs.h"
+#include "../../core/ir/ir_texture_data.h"
 
 #include <expected>
 #include <span>
@@ -11,20 +12,18 @@ namespace quebratsk::parsers::rv_enfusion {
 enum class PAADecodeError {
     InvalidHeader,
     UnsupportedType,
+    UnsupportedFormat,
     CorruptedData,
-};
-
-struct DecodedPAAImage {
-    uint32_t width = 0;
-    uint32_t height = 0;
-    uint16_t format_magic = 0;
-    std::vector<uint8_t> rgba8_pixels;
 };
 
 class PAADecoder {
 public:
-    /// Decode PAA texture mipmap stream into uncompressed RGBA8 pixels
-    [[nodiscard]] static std::expected<DecodedPAAImage, PAADecodeError> decode(
+    /// Decode a PAA texture into RGBA8.
+    ///
+    /// NOT IMPLEMENTED: currently always returns UnsupportedFormat. It previously
+    /// returned a hardcoded 512x512 white image regardless of input, which was
+    /// indistinguishable from a successful decode.
+    [[nodiscard]] static std::expected<ir::IRTextureData, PAADecodeError> decode(
         std::span<const std::byte> paa_bytes
     );
 };

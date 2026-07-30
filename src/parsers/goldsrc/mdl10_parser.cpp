@@ -38,11 +38,15 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
             godot::Vector3 pos_raw(b.value[0], b.value[1], b.value[2]);
             ir_b.position = math::source_to_godot(pos_raw);
 
-            // Euler rotation angles (rad) to quaternion
-            godot::Quaternion rot_quat(
-                godot::Vector3(b.value[3], b.value[4], b.value[5])
-            );
-            ir_b.rotation = math::source_quat_to_godot(rot_quat);
+            // StudioMDL stores XYZ Euler angles in radians, applied X then Y then Z in
+            // the model's own Z-up frame. Godot's Quaternion(Vector3) constructor uses
+            // YXZ order, so feeding it these values silently produced wrong poses as
+            // soon as more than one axis was non-zero. Compose the rotation explicitly
+            // in the source frame, then change basis.
+            const godot::Quaternion qx(godot::Vector3(1, 0, 0), b.value[3]);
+            const godot::Quaternion qy(godot::Vector3(0, 1, 0), b.value[4]);
+            const godot::Quaternion qz(godot::Vector3(0, 0, 1), b.value[5]);
+            ir_b.rotation = math::source_quat_to_godot(qz * qy * qx);
 
             result.skeleton_data.bones.push_back(ir_b);
         }

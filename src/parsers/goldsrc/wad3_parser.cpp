@@ -3,7 +3,7 @@
 
 namespace quebratsk::parsers::goldsrc {
 
-std::expected<DecodedMiptex, WAD3ParseError> WAD3Parser::parse_miptex(
+std::expected<ir::IRTextureData, WAD3ParseError> WAD3Parser::parse_miptex(
     std::span<const std::byte> miptex_bytes
 ) {
     if (miptex_bytes.size() < sizeof(MiptexHeader)) {
@@ -11,12 +11,16 @@ std::expected<DecodedMiptex, WAD3ParseError> WAD3Parser::parse_miptex(
     }
 
     auto* mip_hdr = reinterpret_cast<const MiptexHeader*>(miptex_bytes.data());
-    DecodedMiptex result;
-    result.name = std::string(mip_hdr->name, strnlen(mip_hdr->name, 16));
+    ir::IRTextureData result;
+    result.name = std::string(mip_hdr->name, strnlen(mip_hdr->name, sizeof(mip_hdr->name)));
     result.width = mip_hdr->width;
     result.height = mip_hdr->height;
 
-    if (result.width == 0 || result.height == 0) {
+    // GoldSrc requires both dimensions to be multiples of 16; the mip-chain size
+    // arithmetic below (num_pixels/4, /16, /64) is only exact under that assumption.
+    if (result.width == 0 || result.height == 0 ||
+        result.width % 16 != 0 || result.height % 16 != 0 ||
+        result.width > 4096 || result.height > 4096) {
         return std::unexpected(WAD3ParseError::InvalidMiptex);
     }
 
@@ -39,6 +43,11 @@ std::expected<DecodedMiptex, WAD3ParseError> WAD3Parser::parse_miptex(
     const uint8_t* indices = reinterpret_cast<const uint8_t*>(miptex_bytes.data() + mip0_offset);
     const uint8_t* palette = reinterpret_cast<const uint8_t*>(miptex_bytes.data() + palette_offset);
 
+    // GoldSrc convention: textures whose name starts with '{' use palette index 255
+    // as a transparency key.
+    const bool is_masked = result.name.starts_with("{");
+    result.has_alpha = is_masked;
+
     result.rgba8_pixels.resize(num_pixels * 4);
 
     for (size_t i = 0; i < num_pixels; ++i) {
@@ -46,7 +55,7 @@ std::expected<DecodedMiptex, WAD3ParseError> WAD3Parser::parse_miptex(
         result.rgba8_pixels[i * 4 + 0] = palette[idx * 3 + 0]; // R
         result.rgba8_pixels[i * 4 + 1] = palette[idx * 3 + 1]; // G
         result.rgba8_pixels[i * 4 + 2] = palette[idx * 3 + 2]; // B
-        result.rgba8_pixels[i * 4 + 3] = (idx == 255 && result.name.starts_with("{")) ? 0 : 255; // Blue-key transparency for { textures
+        result.rgba8_pixels[i * 4 + 3] = (is_masked && idx == 255) ? 0 : 255;
     }
 
     return result;

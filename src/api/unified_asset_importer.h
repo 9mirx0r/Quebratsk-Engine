@@ -9,6 +9,7 @@
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/classes/ref.hpp>
+#include <godot_cpp/classes/texture2d.hpp>
 
 #include <cstddef>
 #include <span>
@@ -38,6 +39,10 @@ public:
 
     /// Load terrain heightmap from VFS URI (.wrp) as native HeightMapShape3D
     godot::Ref<godot::HeightMapShape3D> load_terrain(const godot::String& vfs_uri);
+
+    /// Resolve and decode a legacy texture reference ("metal/metalwall001a", a WAD3
+    /// lump name, or a full VFS URI) into a Godot texture.
+    godot::Ref<godot::Texture2D> load_texture(const godot::String& texture_ref);
 
     /// Copy an asset's decompressed bytes out of the VFS into an owned buffer.
     /// Must run on the thread that owns the VFSManager (the main thread).
