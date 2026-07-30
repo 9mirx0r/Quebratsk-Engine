@@ -10,6 +10,7 @@
 #include <expected>
 #include <span>
 #include <string>
+#include <vector>
 
 namespace quebratsk::parsers::source1 {
 
@@ -26,7 +27,14 @@ struct ParsedSourceMDLModel {
     ir::IRSkeletonData skeleton_data;
 };
 
-/// The three files a Source model is split across.
+/// A .mdl together with the external animation-block file it defers its long sequences
+/// to. `ani` may be empty, in which case blocked sequences are unreachable and skipped.
+struct SourceAnimatedModel {
+    std::span<const std::byte> mdl;
+    std::span<const std::byte> ani;
+};
+
+/// The files a Source model is split across.
 ///
 /// A .mdl on its own carries bones, body-part structure and material names but NO
 /// vertex data whatsoever. Positions, normals, UVs and weights live in the .vvd, and
@@ -37,6 +45,14 @@ struct SourceModelBundle {
     std::span<const std::byte> mdl;
     std::span<const std::byte> vvd;
     std::span<const std::byte> vtx;
+    std::span<const std::byte> ani;  // this model's own animation blocks, if any
+
+    /// Models named by the .mdl's includemodel table, already fetched by the caller.
+    /// GMod player models carry no animation of their own and borrow every sequence
+    /// from a shared base model listed there, so without these they can only be shown
+    /// in their bind pose. Each carries its own .ani: m_anm.mdl is 0.9 MB and defers
+    /// 7.1 MB of stances to m_anm.ani.
+    std::vector<SourceAnimatedModel> include_models;
 };
 
 class SourceMDLParser {
@@ -54,6 +70,16 @@ public:
     [[nodiscard]] static std::expected<ParsedSourceMDLModel, SourceMDLParseError> parse_bundle(
         const SourceModelBundle& bundle
     );
+
+    /// Paths this model borrows animation from, e.g. "models/player/cs_fix/anims.mdl".
+    /// Cheap header-only read so a caller can fetch them before the real parse.
+    [[nodiscard]] static std::vector<std::string> list_include_models(
+        std::span<const std::byte> mdl_bytes
+    );
+
+    /// Path of the companion animation-block file this model defers long sequences to,
+    /// e.g. "models/m_anm.ani". Empty when the model stores everything inline.
+    [[nodiscard]] static std::string anim_block_name(std::span<const std::byte> mdl_bytes);
 };
 
 } // namespace quebratsk::parsers::source1

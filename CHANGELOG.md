@@ -9,6 +9,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.6.0-alpha] - 2026-07-30
+
+Reads Valve's VPK archives, and finishes the animation work `v0.5.0-alpha` started: a
+Garry's Mod player model now stands in the same stance Half-Life 2 shows it in, sourced
+from the shared animation model it declares and the multi-megabyte `.ani` that model
+defers its sequences to.
+
+Verified end to end in Godot 4.7.1 against retail Half-Life 2, Garry's Mod and
+Counter-Strike 1.6 installs — see *Verification*.
+
+### Added
+
+- **Source VPK archives (v1 and v2)** — `src/parsers/source2/vpk2_parser.{h,cpp}`,
+  `structs/vpk2_structs.h`, wired into `VFSManager`.
+
+  This was the largest remaining content gap: Half-Life 2, Team Fortress 2, Counter-Strike
+  Source and Garry's Mod ship essentially everything inside VPKs, so without a reader the
+  engine could only see loose files that modern Source games no longer install.
+
+  The directory is a three-level tree of NUL-terminated runs — extension, then path, then
+  filename — and every entry is followed by a `0xFFFF` terminator that the parser now
+  verifies rather than assumes. Mounting a `_dir.vpk` pulls in its numbered side archives
+  (`<base>_003.vpk`) automatically; entries flagged `0x7FFF` are read inline from the
+  directory itself.
+
+- **External animation blocks (`.ani`)** — `SourceAnimBlock`, `SourceAnimSection`, and
+  `SourceMDLParser::anim_block_name()`.
+
+  `studiomdl` moves long sequences out of the `.mdl` entirely. Half-Life 2's shared male
+  animation model is 0.9 MB of `m_anm.mdl` against **7.1 MB of `m_anm.ani`**, so a parser
+  that only reads the `.mdl` finds almost nothing: every blocked descriptor was skipped
+  and the model fell back to a single `ragdoll` frame.
+
+  Resolving frame 0 takes two hops, and both are now implemented. A long animation is cut
+  into sections, so the descriptor's own `anim_block`/`anim_index` are decoys and section
+  0 must be consulted instead; whichever block that yields, a non-zero one means the bytes
+  live in the companion at `data_start + anim_index`. Neither mistake crashes — they just
+  silently yield zero poses.
+
+  **341 stances recovered per model**, up from 1.
+
+- **Pose selection** — `UnifiedAssetImporter.load_model(vfs_uri, pose_name = "")`.
+
+  Picks a sequence by exact label first and then as a substring, so `"idle_smg1"` gets the
+  standing SMG stance rather than `cidle_smg1`, its crouched namesake. The full catalogue
+  of labels is published on the returned node as the `quebratsk_poses` metadata, so a user
+  can see what a model can do without opening it in a separate viewer.
+
+- `IRSkeletonData::find_pose_exact()`, alongside the existing substring `find_pose()`.
+
+- **Source animation sequences are decoded, and models no longer import in a T-pose.**
+  `src/parsers/source1/anim_decoder.{h,cpp}`, `structs/anim_structs.h`,
+  `IRPose`, `SkeletonConverter::apply_pose()`.
+
+  A bind pose is a modelling artefact the game never displays. The real stances live in
+  the animation sequences, where rotations arrive either quantised (Quaternion48 packs
+  16/16/15 bits plus a sign; Quaternion64 packs 21/21/21) or as three run-length encoded
+  Euler tracks scaled by the bone's `rot_scale`. A track cannot be indexed by frame
+  number: each run is a `{valid, total}` header where `valid` frames are stored and the
+  remainder repeat the last sample.
+
+- **`includemodel` support.** A Garry's Mod player model carries only a `ragdoll` sequence
+  of its own and borrows every real stance from a shared model named in its
+  `mstudiomodelgroup_t` table. Those bone tables are ordered independently, so poses are
+  remapped **by bone name** — matching by index scrambles the skeleton.
+
+- `tests/source_mdl_test.cpp` — external animation blocks: name lookup, a blocked sequence
+  skipped when the companion is absent and recovered when it is present, the section-0
+  redirect taking precedence over the descriptor, an out-of-range block refused, and the
+  exact-versus-substring distinction.
+
+- `tests/anim_decoder_test.cpp` — 40 assertions over the quantised formats and RLE
+  sampling, including the unit-constraint clamp before `sqrt` when recovering `w`.
+
+- `tests/byte_reader_test.cpp` — 54 assertions over the reader's invariant, including
+  `size_t` overflow in both the offset and the count, unterminated strings, cursor
+  position after a *failed* read, and construction past the end of the buffer.
+
 ### Changed
 
 - **All binary parsers now read through a single bounds-checked primitive**,
@@ -28,22 +108,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   overflows for values taken from an untrusted file and then reports success.
 
   Migrated: `bsp30_parser`, `mdl10_parser`, `mdl_source_parser`, `vvd_parser`,
-  `vfs_manager`. The local `fits()` / `range_fits()` copies are gone.
+  `vfs_manager`. The local `fits()` / `range_fits()` copies are gone. Behaviour-preserving:
+  retail assets (`cs_assault`, `de_dust2`, `arcticorange`, HL2 `envballs`) produce
+  **byte-identical output**.
 
-  This is a behaviour-preserving refactor, verified at four levels:
+### Fixed
 
-  | Check | Result |
-  |---|---|
-  | `tests/byte_reader_test.cpp` (new, 54 assertions) | pass — includes adversarial overflow cases |
-  | `dxt_decoder_test` · `mdl10_parser_test` · `source_mdl_test` | pass, unchanged |
-  | Retail assets (`cs_assault`, `de_dust2`, `arcticorange`, HL2 `envballs`) | **byte-identical output** |
-  | Godot 4.7.1 end-to-end | 149/149 textured, 53 bones, skin bound, 121 DayZ entries — unchanged |
+- **Rebuilds silently did nothing.** `CMakeLists.txt` set `RUNTIME_OUTPUT_DIRECTORY` to
+  `demo/bin`, but Visual Studio is a multi-config generator and appends the configuration
+  name to it. The DLL landed in `demo/bin/Debug/` while `quebratsk.gdextension` points at
+  `demo/bin/`, so Godot kept loading whatever stale binary was left at the top level.
 
-### Added
+  Every C++ change made in a session could compile cleanly, link, report success, and
+  never reach the engine. Wrapping the path in a generator expression suppresses the
+  per-config subdirectory.
 
-- `tests/byte_reader_test.cpp` — 54 assertions over the reader's invariant, including
-  `size_t` overflow in both the offset and the count, unterminated strings, cursor
-  position after a *failed* read, and construction past the end of the buffer.
+- `VFSManager::index_vpk()` copied the mount prefix and byte span it needed **before**
+  mounting side archives, because placing a container can reallocate `m_containers` and
+  invalidate any reference held into it.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `tests/source_mdl_test.cpp` (+5 assertions) | pass |
+| Half-Life 2 + Garry's Mod VPKs mounted | 14 directories, ~100k files across 70 side archives |
+| `models/m_anm.mdl` + `models/m_anm.ani` resolved | 878,964 B + 7,122,528 B |
+| Poses per Workshop player model | **341** (was 1) |
+| `cs_assault` + 7 Workshop soldiers in Godot 4.7.1 | 149/149 surfaces textured, 68 bones, skin bound, each soldier in a distinct weapon stance |
 
 ---
 

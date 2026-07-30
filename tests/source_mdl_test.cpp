@@ -328,6 +328,120 @@ int main() {
         }
     }
 
+    // ================================================== external animation blocks ====
+    //
+    // studiomdl moves long sequences out of the .mdl entirely: the descriptor then names
+    // a block, and the tracks live in a companion .ani at block.data_start + anim_index.
+    // Long sequences add a second hop, because frame 0 must be looked up through
+    // section 0 rather than through the descriptor. Getting either wrong does not crash,
+    // it just silently yields zero poses — which is exactly how m_anm.mdl's 341 stances
+    // stayed invisible.
+    std::printf("External animation blocks (.ani):\n");
+    {
+        constexpr size_t kBones    = 664;
+        constexpr size_t kBoneName = 1024;
+        constexpr size_t kAnims    = 1100;
+        constexpr size_t kSeqs     = 1300;
+        constexpr size_t kSeqName  = 1600;
+        constexpr size_t kBlendIdx = 1640;   // int16 blend grid
+        constexpr size_t kBlocks   = 1700;
+        constexpr size_t kAniName  = 1800;
+        constexpr size_t kSections = 1900;
+
+        Builder a;
+        a.put_str(0, "IDST", 4);
+        a.put<int32_t>(4, 48);
+        a.put<int32_t>(156, 1);                       // num_bones
+        a.put<int32_t>(160, (int32_t)kBones);
+        a.put<int32_t>(kBones + 0, (int32_t)(kBoneName - kBones)); // name_index
+        a.put<int32_t>(kBones + 4, -1);                            // parent
+        a.put_str(kBoneName, "ValveBiped.Bip01", 24);
+
+        a.put<int32_t>(180, 1);                       // num_local_anim
+        a.put<int32_t>(184, (int32_t)kAnims);
+        a.put<int32_t>(188, 1);                       // num_local_seq
+        a.put<int32_t>(192, (int32_t)kSeqs);
+        a.put<int32_t>(348, (int32_t)kAniName);       // anim_block_name_index
+        a.put<int32_t>(352, 2);                       // num_anim_blocks
+        a.put<int32_t>(356, (int32_t)kBlocks);
+        a.put_str(kAniName, "models/test.ani", 16);
+
+        // Block 0 is reserved to mean "inline"; block 1 is the one under test.
+        a.put<int32_t>(kBlocks + 8, 512);             // block 1 data_start
+        a.put<int32_t>(kBlocks + 12, 4096);           // block 1 data_end
+
+        a.put<int32_t>(kAnims + 4, (int32_t)(kSeqName - kAnims)); // reuse the label
+        a.put<int32_t>(kAnims + 16, 30);              // num_frames
+        a.put<int32_t>(kAnims + 52, 1);               // anim_block
+        a.put<int32_t>(kAnims + 56, 64);              // anim_index, relative to the block
+
+        a.put<int32_t>(kSeqs + 4, (int32_t)(kSeqName - kSeqs));   // name_index
+        a.put<int32_t>(kSeqs + 60, (int32_t)(kBlendIdx - kSeqs)); // anim_index_index
+        a.put<int16_t>(kBlendIdx, 0);                             // -> anim descriptor 0
+        a.put_str(kSeqName, "idle_smg1", 16);
+        a.ensure(2048);
+
+        check_s("anim block name", SourceMDLParser::anim_block_name(a.span()),
+                "models/test.ani");
+
+        // The .ani: one bone track carrying a raw Quaternion48 at 512 + 64.
+        Builder ani;
+        ani.put<uint8_t>(576 + 0, 0);                 // bone
+        ani.put<uint8_t>(576 + 1, 0x02);              // kAnimRawRot
+        ani.put<int16_t>(576 + 2, 0);                 // next_offset: end of chain
+        ani.put<uint16_t>(576 + 4, 32768);            // Quaternion48 x
+        ani.put<uint16_t>(576 + 6, 32768);            // y
+        ani.put<uint16_t>(576 + 8, 32768);            // z, w-sign clear
+        ani.ensure(4096);
+
+        {
+            // Without the companion the sequence is unreachable and must be skipped
+            // rather than read out of whatever happens to sit at that offset.
+            auto r = SourceMDLParser::parse_bundle(SourceModelBundle{a.span(), {}, {}, {}, {}});
+            check_i("blocked sequence skipped without .ani",
+                    r.has_value() ? (long long)r->skeleton_data.poses.size() : -1, 0);
+        }
+        {
+            auto r = SourceMDLParser::parse_bundle(
+                SourceModelBundle{a.span(), {}, {}, ani.span(), {}});
+            check_i("blocked sequence recovered with .ani",
+                    r.has_value() ? (long long)r->skeleton_data.poses.size() : -1, 1);
+            if (r.has_value() && !r->skeleton_data.poses.empty()) {
+                check_s("pose name", r->skeleton_data.poses[0].name, "idle_smg1");
+                check_i("pose covers every bone",
+                        (long long)r->skeleton_data.poses[0].positions.size(), 1);
+                check_i("exact lookup beats substring",
+                        r->skeleton_data.find_pose_exact("idle_smg1"), 0);
+                check_i("exact lookup rejects a near miss",
+                        r->skeleton_data.find_pose_exact("idle_smg"), -1);
+            }
+        }
+        {
+            // Sectioned: the descriptor's own block/index are decoys, section 0 wins.
+            Builder s = a;
+            s.put<int32_t>(kAnims + 52, 0);                          // decoy anim_block
+            s.put<int32_t>(kAnims + 56, -30260);                     // decoy anim_index
+            s.put<int32_t>(kAnims + 80, (int32_t)(kSections - kAnims)); // section_index
+            s.put<int32_t>(kAnims + 84, 30);                         // section_frames
+            s.put<int32_t>(kSections + 0, 1);                        // section 0 block
+            s.put<int32_t>(kSections + 4, 64);                       // section 0 index
+
+            auto r = SourceMDLParser::parse_bundle(
+                SourceModelBundle{s.span(), {}, {}, ani.span(), {}});
+            check_i("section 0 redirect honoured",
+                    r.has_value() ? (long long)r->skeleton_data.poses.size() : -1, 1);
+        }
+        {
+            // A block whose range starts past the end of the .ani must be refused.
+            Builder bad = a;
+            bad.put<int32_t>(kBlocks + 8, 999999);
+            auto r = SourceMDLParser::parse_bundle(
+                SourceModelBundle{bad.span(), {}, {}, ani.span(), {}});
+            check_i("out-of-range block rejected",
+                    r.has_value() ? (long long)r->skeleton_data.poses.size() : -1, 0);
+        }
+    }
+
     std::printf("\n%s (%d failure%s)\n", failures == 0 ? "ALL PASS" : "FAILURES",
                 failures, failures == 1 ? "" : "s");
     return failures == 0 ? 0 : 1;

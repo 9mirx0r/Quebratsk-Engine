@@ -66,8 +66,15 @@ target_link_libraries(quebratsk_engine PRIVATE godot::cpp)
 # ended up shipping a template_debug binary as the release artifact.
 set(QB_CFG_SUFFIX "$<IF:$<CONFIG:Debug>,debug,release>")
 
+# Visual Studio is a multi-config generator, so it appends the configuration name to
+# *_OUTPUT_DIRECTORY: the DLL landed in demo/bin/Debug/ while the .gdextension points at
+# demo/bin/. Godot went on loading whatever stale binary was left at the top level, so
+# rebuilds appeared to change nothing at all. Wrapping the path in a generator expression
+# is the documented way to suppress that per-config subdirectory.
+set(QB_OUTPUT_DIR "$<1:${CMAKE_SOURCE_DIR}/demo/bin>")
+
 set_target_properties(quebratsk_engine PROPERTIES
     OUTPUT_NAME "libquebratsk.windows.${QB_CFG_SUFFIX}.x86_64"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/demo/bin"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/demo/bin"
+    LIBRARY_OUTPUT_DIRECTORY "${QB_OUTPUT_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY "${QB_OUTPUT_DIR}"
 )

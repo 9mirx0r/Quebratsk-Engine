@@ -11,6 +11,7 @@
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/memory.hpp>
+#include <godot_cpp/variant/packed_string_array.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <algorithm>
@@ -38,7 +39,8 @@ void UnifiedAssetImporter::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_material", "vfs_uri"), &UnifiedAssetImporter::load_material);
     ClassDB::bind_method(D_METHOD("load_terrain", "vfs_uri"), &UnifiedAssetImporter::load_terrain);
     ClassDB::bind_method(D_METHOD("load_texture", "texture_ref"), &UnifiedAssetImporter::load_texture);
-    ClassDB::bind_method(D_METHOD("load_model", "vfs_uri"), &UnifiedAssetImporter::load_model);
+    ClassDB::bind_method(D_METHOD("load_model", "vfs_uri", "pose_name"),
+                         &UnifiedAssetImporter::load_model, DEFVAL(String()));
 }
 
 void UnifiedAssetImporter::set_vfs(vfs::VFSManager* vfs) {
@@ -99,6 +101,63 @@ AssetBundleBytes UnifiedAssetImporter::read_asset_bundle(const String& vfs_uri) 
     // zero textures in the model and keeps them in "<name>T.mdl" next to it.
     bundle.textures = read_companion({"T.mdl", "t.mdl"});
 
+    // Resolve a path the model states relative to the engine root ("models/foo.mdl"):
+    // same archive first, then any mount that carries it.
+    auto read_engine_path = [&](const std::string& rel) {
+        std::string wanted = to_lower_ascii(rel);
+        std::replace(wanted.begin(), wanted.end(), '\\', '/');
+
+        const size_t root = uri.find('/', std::string("vfs://").size());
+        if (root != std::string::npos) {
+            const std::string candidate = uri.substr(0, root + 1) + wanted;
+            if (m_vfs->file_exists(String(candidate.c_str()))) {
+                if (auto bytes = m_vfs->read_owned(candidate); !bytes.empty()) return bytes;
+            }
+        }
+        if (std::string found = m_vfs->find_by_suffix("/" + wanted); !found.empty()) {
+            return m_vfs->read_owned(found);
+        }
+        return std::vector<std::byte>{};
+    };
+
+    // Animation blocks. studiomdl moves long sequences out of the .mdl entirely, so a
+    // model can name dozens of stances it does not contain a single frame of. The header
+    // gives the path; a sibling ".ani" is the fallback for models that leave it blank.
+    auto read_anim_blocks = [&](std::span<const std::byte> mdl_bytes,
+                                const std::string& mdl_stem) {
+        const std::string named = parsers::source1::SourceMDLParser::anim_block_name(mdl_bytes);
+        if (named.empty()) return std::vector<std::byte>{}; // everything is stored inline
+
+        if (auto bytes = read_engine_path(named); !bytes.empty()) return bytes;
+        if (!mdl_stem.empty()) {
+            const std::string sibling = mdl_stem + ".ani";
+            if (m_vfs->file_exists(String(sibling.c_str()))) {
+                return m_vfs->read_owned(sibling);
+            }
+        }
+        return std::vector<std::byte>{};
+    };
+
+    bundle.animations = read_anim_blocks(bundle.primary, stem);
+
+    // Source animation models. Their paths live inside the .mdl header, so this is a
+    // second pass: read the includemodel table, then fetch what it names. A GMod player
+    // model ships only a "ragdoll" sequence of its own and borrows every real stance —
+    // idle, walk, weapon-holding — from the shared model listed here.
+    for (const auto& rel : parsers::source1::SourceMDLParser::list_include_models(bundle.primary)) {
+        std::vector<std::byte> bytes = read_engine_path(rel);
+        if (bytes.empty()) {
+            UtilityFunctions::printerr("[QuebratskImporter] includemodel not found: ",
+                                       String(rel.c_str()));
+            continue;
+        }
+
+        IncludedModelBytes inc;
+        inc.ani = read_anim_blocks(bytes, {});
+        inc.mdl = std::move(bytes);
+        bundle.include_models.push_back(std::move(inc));
+    }
+
     return bundle;
 }
 
@@ -121,11 +180,18 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
             return out;
         }
 
-        const parsers::source1::SourceModelBundle src_bundle{
+        parsers::source1::SourceModelBundle src_bundle{
             data,
             std::span<const std::byte>(bundle.vertices),
             std::span<const std::byte>(bundle.indices),
+            std::span<const std::byte>(bundle.animations),
+            {},
         };
+        src_bundle.include_models.reserve(bundle.include_models.size());
+        for (const auto& inc : bundle.include_models) {
+            src_bundle.include_models.push_back({std::span<const std::byte>(inc.mdl),
+                                                std::span<const std::byte>(inc.ani)});
+        }
         if (auto src1_res = parsers::source1::SourceMDLParser::parse_bundle(src_bundle);
             src1_res.has_value()) {
             out.mesh = std::move(src1_res->mesh_data);
@@ -173,7 +239,7 @@ Ref<ArrayMesh> UnifiedAssetImporter::load_mesh(const String& vfs_uri) {
     return converters::MeshConverter::convert(parsed.mesh, &loader);
 }
 
-Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri) {
+Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& pose_name) {
     if (!m_vfs) {
         UtilityFunctions::printerr("[QuebratskImporter] VFSManager not set!");
         return nullptr;
@@ -229,9 +295,31 @@ Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri) {
     // a modelling artefact the game never shows; the sequences carry the poses players
     // actually see. Fall back to the first sequence when no idle-like one is named.
     if (!parsed.skeleton.poses.empty()) {
-        int32_t idx = parsed.skeleton.find_pose("idle");
-        if (idx < 0) idx = parsed.skeleton.find_pose("Idle");
-        if (idx < 0) idx = parsed.skeleton.find_pose("ragdoll");
+        // Publish the catalogue so a user can see what else this model can stand in
+        // without having to open it in a model viewer first.
+        PackedStringArray available;
+        for (const auto& p : parsed.skeleton.poses) {
+            available.push_back(String(p.name.c_str()));
+        }
+        skeleton->set_meta("quebratsk_poses", available);
+
+        int32_t idx = -1;
+        if (!pose_name.is_empty()) {
+            const std::string wanted = pose_name.utf8().get_data();
+            idx = parsed.skeleton.find_pose_exact(wanted);
+            if (idx < 0) idx = parsed.skeleton.find_pose(wanted);
+            if (idx < 0) {
+                UtilityFunctions::printerr("[QuebratskImporter] pose not found: ", pose_name,
+                                           " (", static_cast<int64_t>(available.size()),
+                                           " available, see the \"quebratsk_poses\" metadata)");
+            }
+        }
+        if (idx < 0) {
+            for (const char* fallback : {"idle", "Idle", "ragdoll"}) {
+                idx = parsed.skeleton.find_pose(fallback);
+                if (idx >= 0) break;
+            }
+        }
         if (idx < 0) idx = 0;
 
         const ir::IRPose& pose = parsed.skeleton.poses[static_cast<size_t>(idx)];

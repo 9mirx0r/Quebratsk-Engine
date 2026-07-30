@@ -62,6 +62,68 @@ struct SourceStudioHeader {
 
     int32_t num_bodyparts;
     int32_t bodypart_index;
+
+    // Everything from here to include_model_index exists only so that field lands at
+    // its real offset (340). GMod player models carry no animation of their own — they
+    // borrow it from a shared base model named here — so this is the field that decides
+    // whether a character can be posed at all.
+    int32_t num_attachments;
+    int32_t attachment_index;
+    int32_t num_local_nodes;
+    int32_t local_node_index;
+    int32_t local_node_name_index;
+    int32_t num_flex_desc;
+    int32_t flex_desc_index;
+    int32_t num_flex_controllers;
+    int32_t flex_controller_index;
+    int32_t num_flex_rules;
+    int32_t flex_rule_index;
+    int32_t num_ik_chains;
+    int32_t ik_chain_index;
+    int32_t num_mouths;
+    int32_t mouth_index;
+    int32_t num_local_pose_parameters;
+    int32_t local_pose_param_index;
+    int32_t surface_prop_index;
+    int32_t key_value_index;
+    int32_t key_value_size;
+    int32_t num_local_ik_autoplay_locks;
+    int32_t local_ik_autoplay_lock_index;
+    float mass;
+    int32_t contents;
+
+    int32_t num_include_models;
+    int32_t include_model_index;
+
+    // Long animations are not stored in the .mdl at all. studiomdl splits them into a
+    // companion .ani named here, and every animation descriptor whose anim_block is
+    // non-zero indexes into that file instead. m_anm.mdl is 0.9 MB against a 7.1 MB
+    // m_anm.ani, so without these fields almost every real stance is unreachable.
+    int32_t virtual_model;          // runtime pointer, unused on disk
+    int32_t anim_block_name_index;  // -> "models/m_anm.ani", from the file start
+    int32_t num_anim_blocks;
+    int32_t anim_block_index;
+};
+
+/// mstudiomodelgroup_t (8 bytes). Offsets are relative to this struct.
+struct SourceModelGroup {
+    int32_t label_index;
+    int32_t name_index;   // e.g. "models/player/cs_fix/anims.mdl"
+};
+
+/// mstudioanimblock_t (8 bytes). A byte range inside the companion .ani file.
+/// Index 0 is reserved to mean "not blocked", so its contents are never read.
+struct SourceAnimBlock {
+    int32_t data_start;
+    int32_t data_end;
+};
+
+/// mstudioanimsections_t (8 bytes). Long animations are further chopped into sections,
+/// each of which may live in a different block, so frame 0 must be looked up through
+/// section 0 rather than through the descriptor directly.
+struct SourceAnimSection {
+    int32_t anim_block;
+    int32_t anim_index;
 };
 
 /// Source 1 Bone structure (216 bytes)
@@ -156,5 +218,15 @@ static_assert(offsetof(SourceStudioHeader, num_textures) == 204, "num_textures o
 static_assert(offsetof(SourceStudioHeader, texture_index) == 208, "texture_index offset drift");
 static_assert(offsetof(SourceStudioHeader, num_bodyparts) == 232, "num_bodyparts offset drift");
 static_assert(offsetof(SourceStudioHeader, bodypart_index) == 236, "bodypart_index offset drift");
+static_assert(offsetof(SourceStudioHeader, num_local_seq) == 188, "num_local_seq offset drift");
+static_assert(offsetof(SourceStudioHeader, local_seq_index) == 192, "local_seq_index offset drift");
+static_assert(offsetof(SourceStudioHeader, num_include_models) == 336, "num_include_models offset drift");
+static_assert(offsetof(SourceStudioHeader, include_model_index) == 340, "include_model_index offset drift");
+static_assert(offsetof(SourceStudioHeader, anim_block_name_index) == 348, "anim_block_name_index offset drift");
+static_assert(offsetof(SourceStudioHeader, num_anim_blocks) == 352, "num_anim_blocks offset drift");
+static_assert(offsetof(SourceStudioHeader, anim_block_index) == 356, "anim_block_index offset drift");
+static_assert(sizeof(SourceModelGroup) == 8, "SourceModelGroup size mismatch");
+static_assert(sizeof(SourceAnimBlock) == 8, "SourceAnimBlock size mismatch");
+static_assert(sizeof(SourceAnimSection) == 8, "SourceAnimSection size mismatch");
 
 } // namespace quebratsk::parsers::source1

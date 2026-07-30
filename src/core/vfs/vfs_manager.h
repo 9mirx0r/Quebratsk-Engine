@@ -107,6 +107,14 @@ private:
     void index_gma(size_t container_idx);
     void index_pbo(size_t container_idx);
 
+    /// A VPK is a directory file plus a set of numbered side archives, so indexing one
+    /// mounts several real files. `dir_real_path` is needed to derive their names.
+    void index_vpk(size_t container_idx, const std::string& dir_real_path);
+
+    /// Map a container into m_containers, reusing a slot freed by unmount().
+    /// Returns the index it landed at.
+    size_t place_container(MountedContainer&& container);
+
     std::vector<MountedContainer> m_containers;
     std::unordered_map<std::string, VFSEntry> m_index;
     mutable std::mutex m_mutex;

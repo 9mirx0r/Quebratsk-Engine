@@ -33,11 +33,23 @@ struct ParsedAssetIR {
 /// all; positions live in a .vvd and the index data in a .dx90.vtx. Resolving those
 /// siblings needs the VFS, which is main-thread-owned, so the read happens up front and
 /// the parser receives plain buffers. That keeps parse_asset_ir() pure and off-thread.
+/// A .mdl fetched for its animation, together with the external block file it defers
+/// its long sequences to.
+struct IncludedModelBytes {
+    std::vector<std::byte> mdl;
+    std::vector<std::byte> ani;
+};
+
 struct AssetBundleBytes {
     std::vector<std::byte> primary;   // the asset named by the URI
     std::vector<std::byte> vertices;  // Source .vvd, empty when absent or not applicable
     std::vector<std::byte> indices;   // Source .dx90.vtx, likewise
     std::vector<std::byte> textures;  // GoldSrc "<name>T.mdl", likewise
+    std::vector<std::byte> animations; // Source .ani animation blocks, likewise
+
+    /// Source animation models named by the .mdl's includemodel table. Their paths are
+    /// only known after reading the header, so they are fetched in a second pass.
+    std::vector<IncludedModelBytes> include_models;
 
     [[nodiscard]] bool empty() const { return primary.empty(); }
 };
@@ -82,7 +94,13 @@ public:
     /// Returns a Skeleton3D with a skinned MeshInstance3D child when the asset has
     /// bones, otherwise a bare MeshInstance3D. The node is unparented and owned by the
     /// caller — add it to the tree or free it.
-    godot::Node3D* load_model(const godot::String& vfs_uri);
+    ///
+    /// `pose_name` selects one of the model's animation sequences to stand in, by exact
+    /// label first and then as a substring ("idle_smg1", "crouch"). Left empty, an
+    /// idle-like sequence is chosen automatically. Either way the full list of labels is
+    /// published on the returned node as the "quebratsk_poses" metadata.
+    godot::Node3D* load_model(const godot::String& vfs_uri,
+                              const godot::String& pose_name = godot::String());
 
     /// Parse raw asset bytes into the engine-agnostic IR.
     /// Pure data in, pure data out: allocates no Godot Object/Resource and touches
