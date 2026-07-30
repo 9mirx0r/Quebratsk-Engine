@@ -2,6 +2,7 @@
 
 #include "../../core/ir/ir_mesh_data.h"
 #include "../../core/ir/ir_skeleton_data.h"
+#include "structs/anim_structs.h"
 #include "structs/studio_structs.h"
 #include "structs/vtx_structs.h"
 #include "structs/vvd_structs.h"

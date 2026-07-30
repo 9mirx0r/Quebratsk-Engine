@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "ir_mesh_data.h"
@@ -20,10 +21,41 @@ struct IRBone {
     godot::Transform3D pose_to_bone; // Model to bone inverse matrix
 };
 
+/// A single skeletal pose: one parent-relative transform per bone.
+///
+/// Source and GoldSrc models ship in a bind pose (usually a T-pose), which is a
+/// modelling artefact rather than anything the game ever displays. The real stances —
+/// idle, crouched, holding a weapon — live in the format's animation sequences. A pose
+/// here is one frame lifted out of such a sequence.
+///
+/// `positions` and `rotations` are parallel to IRSkeletonData::bones.
+struct IRPose {
+    std::string name;   // source sequence label, e.g. "idle_all_01"
+    std::vector<godot::Vector3> positions;
+    std::vector<godot::Quaternion> rotations;
+
+    [[nodiscard]] bool matches(size_t bone_count) const {
+        return positions.size() == bone_count && rotations.size() == bone_count;
+    }
+};
+
 struct IRSkeletonData {
     SourceEngine source_engine = SourceEngine::GoldSrc;
     std::string name;
     std::vector<IRBone> bones;
+
+    /// Poses recovered from the asset's animation sequences, in file order.
+    std::vector<IRPose> poses;
+
+    /// Find a pose whose name contains `needle` (case-sensitive), or -1.
+    [[nodiscard]] int32_t find_pose(std::string_view needle) const {
+        for (size_t i = 0; i < poses.size(); ++i) {
+            if (poses[i].name.find(needle) != std::string::npos) {
+                return static_cast<int32_t>(i);
+            }
+        }
+        return -1;
+    }
 
     [[nodiscard]] int32_t find_bone(const std::string& bone_name) const {
         for (size_t i = 0; i < bones.size(); ++i) {
