@@ -68,9 +68,15 @@ AssetBundleBytes UnifiedAssetImporter::read_asset_bundle(const String& vfs_uri) 
     const std::string stem = uri.substr(0, uri.size() - 4);
     const std::string stem_lower = uri_lower.substr(0, uri_lower.size() - 4);
 
+    // Probing for a companion that does not exist is normal — a GoldSrc model has no
+    // .vvd, a Source model has no T.mdl — so check existence first rather than letting
+    // read_owned() log a "file not found" error for each miss.
     auto read_companion = [&](std::initializer_list<const char*> extensions) {
         for (const char* ext : extensions) {
-            if (auto bytes = m_vfs->read_owned(stem + ext); !bytes.empty()) return bytes;
+            const std::string direct = stem + ext;
+            if (m_vfs->file_exists(String(direct.c_str()))) {
+                if (auto bytes = m_vfs->read_owned(direct); !bytes.empty()) return bytes;
+            }
 
             // find_by_suffix matches on the indexed (lowercase) path.
             const size_t slash = stem_lower.find_last_of('/');
@@ -83,10 +89,15 @@ AssetBundleBytes UnifiedAssetImporter::read_asset_bundle(const String& vfs_uri) 
         return std::vector<std::byte>{};
     };
 
+    // Source companions.
     bundle.vertices = read_companion({".vvd"});
     // dx90 is the modern index set; the others are legacy fallbacks still found in
     // older addons.
     bundle.indices = read_companion({".dx90.vtx", ".vtx", ".dx80.vtx", ".sw.vtx"});
+
+    // GoldSrc texture companion. Much of the stock Counter-Strike 1.6 content declares
+    // zero textures in the model and keeps them in "<name>T.mdl" next to it.
+    bundle.textures = read_companion({"T.mdl", "t.mdl"});
 
     return bundle;
 }
@@ -102,7 +113,9 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
     if (lowercase_uri.ends_with(".mdl")) {
         // GoldSrc and Source share the "IDST" magic, so route on the version field.
         // GoldSrc is self-contained; Source needs its .vvd and .vtx companions.
-        if (auto gs_res = parsers::goldsrc::MDL10Parser::parse(data); gs_res.has_value()) {
+        if (auto gs_res = parsers::goldsrc::MDL10Parser::parse(
+                data, std::span<const std::byte>(bundle.textures));
+            gs_res.has_value()) {
             out.mesh = std::move(gs_res->mesh_data);
             out.skeleton = std::move(gs_res->skeleton_data);
             return out;
@@ -186,9 +199,17 @@ Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri) {
         return nullptr;
     }
 
+    // Model names are compile-time paths ("C:\SIERRA\Half-Life\models\x.mdl"), and
+    // Godot rejects '.', ':', '/', '\' and '@' in node names.
+    const String raw_name(parsed.mesh.name.c_str());
+    String node_name = raw_name.get_file().get_basename().validate_node_name();
+    if (node_name.is_empty()) {
+        node_name = "Model";
+    }
+
     MeshInstance3D* mesh_instance = memnew(MeshInstance3D);
     mesh_instance->set_mesh(mesh);
-    mesh_instance->set_name(String(parsed.mesh.name.c_str()));
+    mesh_instance->set_name(node_name);
 
     if (parsed.skeleton.bones.empty()) {
         return mesh_instance; // static geometry, nothing to bind
@@ -197,7 +218,7 @@ Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri) {
     // MeshInstance3D defaults its skeleton_path to "..", so parenting it to the
     // Skeleton3D is all the wiring the skin needs.
     Skeleton3D* skeleton = converters::SkeletonConverter::convert(parsed.skeleton);
-    skeleton->set_name(String((parsed.mesh.name + "_Skeleton").c_str()));
+    skeleton->set_name(node_name + "_Skeleton");
     skeleton->add_child(mesh_instance);
 
     if (Ref<Skin> skin = converters::SkeletonConverter::make_skin(parsed.skeleton); skin.is_valid()) {

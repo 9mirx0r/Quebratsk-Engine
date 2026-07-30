@@ -110,7 +110,8 @@ bool decode_embedded_texture(std::span<const std::byte> mdl, const StudioTexture
 } // namespace
 
 std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
-    std::span<const std::byte> mdl_bytes
+    std::span<const std::byte> mdl_bytes,
+    std::span<const std::byte> texture_mdl_bytes
 ) {
     if (mdl_bytes.size() < sizeof(StudioHeader)) {
         return std::unexpected(MDL10ParseError::InvalidHeader);
@@ -158,21 +159,37 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
     const StudioTexture* textures = nullptr;
     size_t num_textures = 0;
 
-    if (header->num_textures > 0 && header->texture_index > 0 &&
-        fits(static_cast<size_t>(header->texture_index),
-             static_cast<size_t>(header->num_textures), sizeof(StudioTexture), mdl_bytes.size())) {
+    // Textures live either in this file or in the companion "<name>T.mdl", which has
+    // the same header layout with its own texture table. Pick whichever declares them.
+    std::span<const std::byte> tex_source = mdl_bytes;
+    const StudioHeader* tex_header = header;
 
-        textures = reinterpret_cast<const StudioTexture*>(mdl_bytes.data() + header->texture_index);
-        num_textures = static_cast<size_t>(header->num_textures);
+    if (header->num_textures <= 0 && !texture_mdl_bytes.empty() &&
+        texture_mdl_bytes.size() >= sizeof(StudioHeader)) {
+        const auto* t_hdr = reinterpret_cast<const StudioHeader*>(texture_mdl_bytes.data());
+        if (std::memcmp(t_hdr->magic, kMdl10Magic.data(), 4) == 0 && t_hdr->num_textures > 0) {
+            tex_source = texture_mdl_bytes;
+            tex_header = t_hdr;
+        }
+    }
+
+    if (tex_header->num_textures > 0 && tex_header->texture_index > 0 &&
+        fits(static_cast<size_t>(tex_header->texture_index),
+             static_cast<size_t>(tex_header->num_textures), sizeof(StudioTexture), tex_source.size())) {
+
+        textures = reinterpret_cast<const StudioTexture*>(tex_source.data() + tex_header->texture_index);
+        num_textures = static_cast<size_t>(tex_header->num_textures);
 
         result.mesh_data.embedded_textures.resize(num_textures);
         for (size_t i = 0; i < num_textures; ++i) {
             ir::IRTextureData decoded;
-            if (decode_embedded_texture(mdl_bytes, textures[i], decoded)) {
+            if (decode_embedded_texture(tex_source, textures[i], decoded)) {
                 result.mesh_data.embedded_textures[i] = std::move(decoded);
             }
         }
     }
+
+    // The skin table always comes from the model file, never the texture companion.
 
     // Skin table: int16[num_skin_families][num_skin_ref]. A mesh's skin_ref indexes a
     // row of family 0 to reach the real texture.

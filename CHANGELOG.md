@@ -16,7 +16,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Closes the two gaps `v0.4.0-alpha` left open: skinned models now bind to a real
 `Skeleton3D`, and Source 1 models import with geometry.
 
+**First release verified by running it.** Everything below was checked against retail
+Counter-Strike 1.6 and Half-Life 2 assets inside Godot 4.7.1, not only by unit tests.
+That surfaced two defects nothing else would have caught — see *Fixed*.
+
 ### Added
+
+- **`VFSManager::mount_directory()`** — index a directory tree of loose files. The VFS
+  could only read container archives, which excluded the most common case by far:
+  extracted asset folders. Files are indexed by relative path and read on demand, so a
+  large tree costs no memory mappings or OS handles.
+- **GoldSrc BSP embedded textures.** Compiled GoldSrc maps normally store their textures
+  inside lump 2 rather than referencing an external WAD. The parser read names and
+  dimensions from there but never decoded the pixels, so a map imported almost entirely
+  untextured even with every WAD mounted. Embedded miptex data is now decoded through
+  the existing WAD3 decoder. On `de_dust2` this took textured surfaces from 21/36 to
+  34/36 — the remainder are sky brushes, which have no renderable texture.
+- **GoldSrc `<name>T.mdl` companion textures.** Much of the stock Counter-Strike 1.6
+  content declares zero textures in the model and keeps them in a separate file. Those
+  models previously imported with placeholder material names, no texture, and UVs
+  normalized against a fallback 64x64 instead of the real dimensions.
+- `demo/verify.tscn` + `verify.gd`, a scene that loads real assets through the importer
+  and reports what it got, for visual verification.
+
+### Verified against retail assets
+
+Measured in Godot 4.7.1, not asserted:
+
+| Asset | Result |
+|---|---|
+| `cs_assault.bsp` (CS 1.6) | 149 surfaces, **149 textured**, 8237 tris, correct metric scale |
+| `de_dust2.bsp` (CS 1.6) | 34/36 textured; the 2 remaining are sky brushes, which have none |
+| `player/urban.mdl` (CS 1.6) | **53 bones**, skinned, textured, correct rest pose |
+| `arcticorange.mdl` (CS 1.6) | 7 bones, 3 materials from its `T.mdl` companion |
+| `envballs.mdl/.vvd/.vtx` (HL2) | 950 vertices, 978 tris, 6 materials, 1:1 vertex mapping |
+| `characters_belts.pbo` (DayZ) | 121 entries indexed |
+
+Standing inside a loaded map shows solid walls rather than see-through ones, which
+confirms the winding fix from the first audit pass — that had been argued from the
+transformation's determinant but never actually seen.
 
 - **Skinning bound to `Skeleton3D`.** The IR carried bone indices and weights but
   nothing consumed them, so models imported as static geometry. Now complete:
@@ -57,6 +95,19 @@ Closes the two gaps `v0.4.0-alpha` left open: skinned models now bind to a real
 
 ### Fixed
 
+- **[CRITICAL] The extension could not load at all.** `quebratsk.gdextension` used `#`
+  for comments. Godot parses that file with `ConfigFile`, where comments start with `;`,
+  so the `#` lines were a parse error that dropped `compatibility_minimum` and made the
+  whole library fail to load: *"GDExtension configuration file must contain a
+  configuration/compatibility_minimum key"*. This was introduced in `v0.3.0-alpha` while
+  correcting that very field, which means **`v0.3.0-alpha` and `v0.4.0-alpha` shipped a
+  manifest that cannot load**. No test caught it; only running the extension in Godot did.
+- **[HIGH] Real Virtuality PBO archives indexed zero files.** The "Vers" entry is
+  followed by NUL-terminated key/value property strings terminated by an empty string,
+  not by a `data_size`-sized blob. Skipping by `data_size` (which is 0) left the cursor
+  on the first property key, so `product` was read as a filename and the index collapsed
+  immediately. Every DayZ and Arma PBO begins with one of these blocks, so none of them
+  worked. A DayZ `characters_belts.pbo` now indexes 121 entries (29 `.p3d`, 44 `.paa`).
 - **[CRITICAL] `SourceStudioHeader` was missing three fields**, so `num_bodyparts` and
   `bodypart_index` were reading `num_skin_ref` and `num_skin_families`. Any body-part
   traversal would have walked garbage offsets. This was reported as M3 in the original

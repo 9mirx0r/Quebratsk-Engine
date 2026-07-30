@@ -24,7 +24,7 @@ enum class CompressionType : uint32_t {
     Deflate = 2,
 };
 
-/// Indexed entry inside a container file
+/// Indexed entry: either a slice of a mounted container, or a loose file on disk.
 struct VFSEntry {
     std::string virtual_path;     // Normalized VFS URI path (lowercase)
     size_t container_index = 0;   // Index into m_containers
@@ -32,6 +32,13 @@ struct VFSEntry {
     size_t disk_size = 0;         // Stored size on disk
     size_t uncompressed_size = 0; // Final size
     CompressionType compression = CompressionType::None;
+
+    /// Non-empty when this entry is a standalone file mounted via mount_directory()
+    /// rather than a slice of a container. Such entries are read on demand instead of
+    /// being memory-mapped, so mounting a large tree costs no OS handles.
+    std::string loose_path;
+
+    [[nodiscard]] bool is_loose() const { return !loose_path.empty(); }
 };
 
 /// Mounted container archive
@@ -55,6 +62,15 @@ public:
     /// Mount a container archive (.wad, .gma, .pbo) at a VFS path prefix
     /// Example: mount_container("cs16", "c:/games/cs16/cstrike.wad")
     bool mount_container(const godot::String& vfs_prefix, const godot::String& real_path);
+
+    /// Mount a directory tree of loose files at a VFS path prefix.
+    ///
+    /// Extracted asset folders are the common case for modders, and archives were the
+    /// only thing this VFS could read. Files are indexed by relative path and read on
+    /// demand, so no memory mapping or OS handle is held per file.
+    ///
+    /// Returns the number of files indexed; 0 means the directory was missing or empty.
+    int64_t mount_directory(const godot::String& vfs_prefix, const godot::String& real_dir);
 
     /// Unmount a previously mounted container
     void unmount(const godot::String& vfs_prefix);
