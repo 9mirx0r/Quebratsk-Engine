@@ -1,8 +1,10 @@
 #include "mdl_source_parser.h"
+#include "anim_decoder.h"
 #include "vvd_parser.h"
 #include "../../core/io/byte_reader.h"
 #include "../../core/math/axis_remap.h"
 
+#include <algorithm>
 #include <cstring>
 #include <unordered_map>
 #include <vector>
@@ -65,6 +67,159 @@ void fill_skeleton(const ByteReader& mdl, const SourceStudioHeader* header,
     }
 }
 
+/// Lift frame 0 of every animation sequence out of the model.
+///
+/// The chain is: sequence -> blend grid -> animation descriptor -> a linked list of
+/// per-bone tracks. Rotations arrive either raw and quantised (Quaternion48/64) or as
+/// three run-length encoded Euler tracks scaled by the bone's rot_scale and added to its
+/// rest angles; positions work the same way. Bones absent from the chain keep their rest
+/// transform, which is what the format intends.
+void extract_poses(const ByteReader& mdl, const SourceStudioHeader* header,
+                   std::span<const SourceStudioBone> bones,
+                   ir::IRSkeletonData& out) {
+    if (bones.empty()) return;
+    if (header->num_local_seq <= 0 || header->local_seq_index <= 0) return;
+    if (header->num_local_anim <= 0 || header->local_anim_index <= 0) return;
+
+    const auto seqs = mdl.array_at<SourceSeqDesc>(static_cast<size_t>(header->local_seq_index),
+                                                  static_cast<size_t>(header->num_local_seq));
+    const auto anims = mdl.array_at<SourceAnimDesc>(static_cast<size_t>(header->local_anim_index),
+                                                    static_cast<size_t>(header->num_local_anim));
+    if (seqs.empty() || anims.empty()) return;
+
+    for (size_t s = 0; s < seqs.size(); ++s) {
+        const SourceSeqDesc& seq = seqs[s];
+        const size_t seq_ofs = static_cast<size_t>(header->local_seq_index) +
+                               s * sizeof(SourceSeqDesc);
+
+        // The blend grid is an int16 array; the first entry is the base animation.
+        const auto blend = at_relative<int16_t>(mdl, seq_ofs, seq.anim_index_index, 1);
+        if (!blend) continue;
+        const int16_t anim_id = *blend;
+        if (anim_id < 0 || static_cast<size_t>(anim_id) >= anims.size()) continue;
+
+        const SourceAnimDesc& adesc = anims[static_cast<size_t>(anim_id)];
+        // animblock != 0 means the data lives in a separate .ani file we do not load.
+        if (adesc.anim_block != 0 || adesc.anim_index <= 0 || adesc.num_frames <= 0) continue;
+
+        const size_t adesc_ofs = static_cast<size_t>(header->local_anim_index) +
+                                 static_cast<size_t>(anim_id) * sizeof(SourceAnimDesc);
+
+        ir::IRPose pose;
+        if (auto n = mdl.cstr_at(seq_ofs + static_cast<size_t>(seq.name_index));
+            n.has_value() && !n->empty()) {
+            pose.name = std::move(*n);
+        } else {
+            pose.name = "sequence_" + std::to_string(s);
+        }
+
+        // Accumulate in the SOURCE frame; the axis remap is applied once at the end so
+        // IRPose lands in the same space as IRBone.
+        std::vector<godot::Vector3> src_pos;
+        std::vector<godot::Quaternion> src_rot;
+        src_pos.reserve(bones.size());
+        src_rot.reserve(bones.size());
+        for (const auto& b : bones) {
+            src_pos.push_back(godot::Vector3(b.pos[0], b.pos[1], b.pos[2]));
+            src_rot.push_back(godot::Quaternion(b.rot[0], b.rot[1], b.rot[2], b.rot[3]));
+        }
+
+        size_t cursor = adesc_ofs + static_cast<size_t>(adesc.anim_index);
+        int guard = 0;
+        bool any = false;
+
+        while (guard++ < 1024) {
+            const auto ba_span = mdl.array_at<SourceBoneAnim>(cursor, 1);
+            if (ba_span.empty()) break;
+            const SourceBoneAnim ba = ba_span[0];
+            if (ba.bone >= bones.size()) break;
+
+            const SourceStudioBone& bone = bones[ba.bone];
+            size_t payload = cursor + sizeof(SourceBoneAnim);
+
+            // --- rotation, which always precedes position in the payload ---
+            if (ba.flags & kAnimRawRot) {
+                if (const auto q = mdl.array_at<SourceQuat48>(payload, 1); !q.empty()) {
+                    const auto d = AnimDecoder::decode_quat48(q[0]);
+                    src_rot[ba.bone] = godot::Quaternion(d[0], d[1], d[2], d[3]);
+                    any = true;
+                }
+                payload += sizeof(SourceQuat48);
+            } else if (ba.flags & kAnimRawRot2) {
+                if (const auto q = mdl.array_at<SourceQuat64>(payload, 1); !q.empty()) {
+                    const auto d = AnimDecoder::decode_quat64(q[0]);
+                    src_rot[ba.bone] = godot::Quaternion(d[0], d[1], d[2], d[3]);
+                    any = true;
+                }
+                payload += sizeof(SourceQuat64);
+            } else if (ba.flags & kAnimAnimRot) {
+                const auto vp = mdl.array_at<SourceAnimValuePtr>(payload, 1);
+                if (!vp.empty()) {
+                    float angle[3];
+                    for (int axis = 0; axis < 3; ++axis) {
+                        angle[axis] = bone.radrot[axis];
+                        if (vp[0].offset[axis] == 0) continue;
+                        const size_t track_ofs = payload + static_cast<size_t>(vp[0].offset[axis]);
+                        // A generous window; sample_track stops at the run it needs.
+                        const auto track = mdl.array_at<SourceAnimValue>(
+                            track_ofs, std::min<size_t>(256, (mdl.size() - std::min(track_ofs, mdl.size())) / 2));
+                        if (auto v = AnimDecoder::sample_track(track, 0); v.has_value()) {
+                            angle[axis] += static_cast<float>(*v) * bone.rot_scale[axis];
+                        }
+                    }
+                    // StudioMDL Euler order is X then Y then Z, same as the bind pose.
+                    const godot::Quaternion qx(godot::Vector3(1, 0, 0), angle[0]);
+                    const godot::Quaternion qy(godot::Vector3(0, 1, 0), angle[1]);
+                    const godot::Quaternion qz(godot::Vector3(0, 0, 1), angle[2]);
+                    src_rot[ba.bone] = qz * qy * qx;
+                    any = true;
+                }
+                payload += sizeof(SourceAnimValuePtr);
+            }
+
+            // --- position ---
+            if (ba.flags & kAnimRawPos) {
+                if (const auto v = mdl.array_at<SourceVec48>(payload, 1); !v.empty()) {
+                    const auto d = AnimDecoder::decode_vec48(v[0]);
+                    src_pos[ba.bone] = godot::Vector3(d[0], d[1], d[2]);
+                    any = true;
+                }
+            } else if (ba.flags & kAnimAnimPos) {
+                const auto vp = mdl.array_at<SourceAnimValuePtr>(payload, 1);
+                if (!vp.empty()) {
+                    float p[3];
+                    for (int axis = 0; axis < 3; ++axis) {
+                        p[axis] = bone.pos[axis];
+                        if (vp[0].offset[axis] == 0) continue;
+                        const size_t track_ofs = payload + static_cast<size_t>(vp[0].offset[axis]);
+                        const auto track = mdl.array_at<SourceAnimValue>(
+                            track_ofs, std::min<size_t>(256, (mdl.size() - std::min(track_ofs, mdl.size())) / 2));
+                        if (auto v = AnimDecoder::sample_track(track, 0); v.has_value()) {
+                            p[axis] += static_cast<float>(*v) * bone.pos_scale[axis];
+                        }
+                    }
+                    src_pos[ba.bone] = godot::Vector3(p[0], p[1], p[2]);
+                    any = true;
+                }
+            }
+
+            if (ba.next_offset == 0) break;
+            if (ba.next_offset < 0) break;
+            cursor += static_cast<size_t>(ba.next_offset);
+        }
+
+        if (any) {
+            pose.positions.reserve(bones.size());
+            pose.rotations.reserve(bones.size());
+            for (size_t b = 0; b < bones.size(); ++b) {
+                pose.positions.push_back(math::source_to_godot(src_pos[b]));
+                pose.rotations.push_back(math::source_quat_to_godot(src_rot[b]));
+            }
+            out.poses.push_back(std::move(pose));
+        }
+    }
+}
+
 } // namespace
 
 std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse(
@@ -102,6 +257,16 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
     result.skeleton_data.name = result.mesh_data.name;
 
     fill_skeleton(mdl, header, result.skeleton_data);
+
+    // Lift a real stance out of the animation sequences. Without this the model stands
+    // in its bind pose, which is a modelling artefact the game never shows.
+    if (header->num_bones > 0 && header->bone_index > 0) {
+        const auto bone_span = mdl.array_at<SourceStudioBone>(
+            static_cast<size_t>(header->bone_index), static_cast<size_t>(header->num_bones));
+        if (!bone_span.empty()) {
+            extract_poses(mdl, header, bone_span, result.skeleton_data);
+        }
+    }
 
     // Without the companions there is nothing more to recover: a .mdl has no vertices.
     if (bundle.vvd.empty() || bundle.vtx.empty()) {

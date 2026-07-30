@@ -225,6 +225,23 @@ Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri) {
         mesh_instance->set_skin(skin);
     }
 
+    // Prefer a real stance over the bind pose. Source models ship in a T-pose, which is
+    // a modelling artefact the game never shows; the sequences carry the poses players
+    // actually see. Fall back to the first sequence when no idle-like one is named.
+    if (!parsed.skeleton.poses.empty()) {
+        int32_t idx = parsed.skeleton.find_pose("idle");
+        if (idx < 0) idx = parsed.skeleton.find_pose("Idle");
+        if (idx < 0) idx = parsed.skeleton.find_pose("ragdoll");
+        if (idx < 0) idx = 0;
+
+        const ir::IRPose& pose = parsed.skeleton.poses[static_cast<size_t>(idx)];
+        if (converters::SkeletonConverter::apply_pose(skeleton, pose)) {
+            UtilityFunctions::print("[QuebratskImporter] Pose '", String(pose.name.c_str()),
+                                    "' applied (", static_cast<int64_t>(parsed.skeleton.poses.size()),
+                                    " available)");
+        }
+    }
+
     return skeleton;
 }
 

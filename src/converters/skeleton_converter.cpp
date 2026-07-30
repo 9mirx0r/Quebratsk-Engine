@@ -35,6 +35,20 @@ Skeleton3D* SkeletonConverter::convert(const ir::IRSkeletonData& ir_skeleton) {
     return skel;
 }
 
+bool SkeletonConverter::apply_pose(Skeleton3D* skeleton, const ir::IRPose& pose) {
+    if (!skeleton) return false;
+
+    const size_t bone_count = static_cast<size_t>(skeleton->get_bone_count());
+    if (!pose.matches(bone_count)) return false;
+
+    for (size_t i = 0; i < bone_count; ++i) {
+        const int32_t b = static_cast<int32_t>(i);
+        skeleton->set_bone_pose_position(b, pose.positions[i]);
+        skeleton->set_bone_pose_rotation(b, pose.rotations[i]);
+    }
+    return true;
+}
+
 Ref<Skin> SkeletonConverter::make_skin(const ir::IRSkeletonData& ir_skeleton) {
     if (ir_skeleton.bones.empty()) {
         return {};
