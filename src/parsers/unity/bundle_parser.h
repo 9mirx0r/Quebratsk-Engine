@@ -2,7 +2,6 @@
 
 #include "structs/bundle_structs.h"
 
-#include <expected>
 #include <span>
 #include <string>
 #include <vector>
@@ -25,7 +24,7 @@ struct BundleNode {
 class UnityBundleParser {
 public:
     /// Index a Unity AssetBundle (.bundle) container (used in Escape from Tarkov)
-    [[nodiscard]] static std::expected<std::vector<BundleNode>, BundleParseError> parse(
+    [[nodiscard]] static std::vector<BundleNode> parse(
         std::span<const std::byte> bundle_bytes
     );
 };

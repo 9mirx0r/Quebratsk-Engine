@@ -32,20 +32,6 @@ void QuebratskSettings::register_settings() {
     }
     ps->set_initial_value("quebratsk/performance/enable_shader_precaching", true);
     
-    // Set property hints so they show up as sliders/toggles in Godot UI
-    Dictionary timeout_prop;
-    timeout_prop["name"] = "quebratsk/performance/vram_eviction_timeout_msec";
-    timeout_prop["type"] = Variant::INT;
-    timeout_prop["hint"] = PROPERTY_HINT_RANGE;
-    timeout_prop["hint_string"] = "10000,300000,1000";
-    ps->add_custom_property_info(timeout_prop);
-    
-    Dictionary threads_prop;
-    threads_prop["name"] = "quebratsk/performance/max_background_threads";
-    threads_prop["type"] = Variant::INT;
-    threads_prop["hint"] = PROPERTY_HINT_RANGE;
-    threads_prop["hint_string"] = "1,16,1";
-    ps->add_custom_property_info(threads_prop);
 }
 
 } // namespace quebratsk::config

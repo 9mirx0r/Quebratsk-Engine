@@ -2,7 +2,7 @@
 
 #include "unified_asset_importer.h"
 
-#include <godot_cpp/classes/callable.hpp>
+#include <godot_cpp/variant/callable.hpp>
 #include <godot_cpp/classes/node.hpp>
 
 #include <future>

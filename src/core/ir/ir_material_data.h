@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 
+#include "ir_mesh_data.h"
 #include <godot_cpp/variant/color.hpp>
 
 namespace quebratsk::ir {

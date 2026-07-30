@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "ir_mesh_data.h"
 #include <godot_cpp/variant/quaternion.hpp>
 #include <godot_cpp/variant/vector3.hpp>
 

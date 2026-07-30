@@ -39,7 +39,7 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
             ir_b.position = math::source_to_godot(pos_raw);
 
             // Euler rotation angles (rad) to quaternion
-            godot::Quaternion rot_quat = godot::Quaternion::from_euler(
+            godot::Quaternion rot_quat(
                 godot::Vector3(b.value[3], b.value[4], b.value[5])
             );
             ir_b.rotation = math::source_quat_to_godot(rot_quat);

@@ -19,7 +19,7 @@ void ShaderPrecacher::precache_all_materials(const std::vector<std::string>& vfs
             
             // This is a Godot 4 specific trick to force compilation
             // Usually, requesting the shader's valid state or attaching it triggers it.
-            rs->material_get_shader(mat_rid);
+            rs->material_set_shader(mat_rid, mat->get_shader()->get_rid());
         }
     }
 }

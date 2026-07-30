@@ -4,7 +4,7 @@
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/classes/node.hpp>
-#include "../core/vfs/vfs_manager.h"
+#include "vfs_manager.h"
 
 namespace quebratsk::vfs {
 

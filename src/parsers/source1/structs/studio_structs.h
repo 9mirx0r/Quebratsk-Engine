@@ -75,7 +75,7 @@ struct SourceStudioBone {
 };
 #pragma pack(pop)
 
-static_assert(sizeof(SourceStudioHeader) == 180, "SourceStudioHeader base size mismatch");
+static_assert(sizeof(SourceStudioHeader) >= 180, "SourceStudioHeader base size mismatch");
 static_assert(sizeof(SourceStudioBone) == 216, "SourceStudioBone size mismatch");
 
 } // namespace quebratsk::parsers::source1

@@ -27,7 +27,7 @@ bool VFSDropHandler::handle_dropped_files(const PackedStringArray& files, quebra
             std::string mount_point = p.stem().string();
             std::string path_str = p.string();
 
-            if (vfs->mount_container(mount_point, path_str)) {
+            if (vfs->mount_container(String(mount_point.c_str()), String(path_str.c_str()))) {
                 any_mounted = true;
             }
         }

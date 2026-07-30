@@ -62,6 +62,9 @@ public:
     /// Check if a VFS path exists
     bool file_exists(const godot::String& vfs_uri) const;
 
+    /// List all indexed files matching prefix
+    godot::PackedStringArray list_files(const godot::String& prefix = "") const;
+
     /// Read file content as PackedByteArray (decompresses automatically if needed)
     godot::PackedByteArray read_file(const godot::String& vfs_uri) const;
 

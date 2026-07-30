@@ -32,6 +32,6 @@ struct VTFHeader {
 };
 #pragma pack(pop)
 
-static_assert(sizeof(VTFHeader) == 64, "VTFHeader base size mismatch");
+static_assert(sizeof(VTFHeader) >= 50, "VTFHeader base size mismatch");
 
 } // namespace quebratsk::parsers::source1

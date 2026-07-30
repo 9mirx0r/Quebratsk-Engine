@@ -24,7 +24,7 @@ String ObsidianDocExporter::generate_vault_markdown_doc(VFSManager* vfs, Node* r
 
     ss << "## Active Scene Hierarchy\n";
     if (root_node) {
-        ss << "- Root Node: `" << root_node->get_name().utf8().get_data() << "`\n";
+        ss << "- Root Node: `" << String(root_node->get_name()).utf8().get_data() << "`\n";
         ss << "- Child Count: " << root_node->get_child_count() << "\n";
     } else {
         ss << "_No root node provided._\n";

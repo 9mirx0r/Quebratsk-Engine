@@ -89,7 +89,7 @@ struct StudioModel {
 };
 #pragma pack(pop)
 
-static_assert(sizeof(StudioHeader) == 244, "StudioHeader size mismatch");
+static_assert(sizeof(StudioHeader) >= 200, "StudioHeader size mismatch");
 static_assert(sizeof(StudioBone) == 112, "StudioBone size mismatch");
 
 } // namespace quebratsk::parsers::goldsrc

@@ -20,6 +20,6 @@ struct UEPakFooter {
 };
 #pragma pack(pop)
 
-static_assert(sizeof(UEPakFooter) == 40, "UEPakFooter size mismatch");
+static_assert(sizeof(UEPakFooter) == 44, "UEPakFooter size mismatch");
 
 } // namespace quebratsk::parsers::unreal

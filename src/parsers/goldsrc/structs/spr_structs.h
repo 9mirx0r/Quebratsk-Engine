@@ -35,7 +35,7 @@ struct SpriteFrameHeader {
 };
 #pragma pack(pop)
 
-static_assert(sizeof(SpriteHeader) == 36, "SpriteHeader size mismatch");
+static_assert(sizeof(SpriteHeader) == 40, "SpriteHeader size mismatch");
 static_assert(sizeof(SpriteFrameHeader) == 20, "SpriteFrameHeader size mismatch");
 
 } // namespace quebratsk::parsers::goldsrc

@@ -2,7 +2,6 @@
 
 #include "structs/ue_pak_structs.h"
 
-#include <expected>
 #include <span>
 #include <string>
 #include <vector>
@@ -26,7 +25,7 @@ struct UEPakEntry {
 class UEPakParser {
 public:
     /// Index an Unreal Engine 4/5 .pak archive container
-    [[nodiscard]] static std::expected<std::vector<UEPakEntry>, UEPakParseError> parse(
+    [[nodiscard]] static std::vector<UEPakEntry> parse(
         std::span<const std::byte> pak_bytes
     );
 };

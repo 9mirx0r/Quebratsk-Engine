@@ -8,9 +8,9 @@ using namespace godot;
 void ImportPresets::_bind_methods() {
     ClassDB::bind_static_method("ImportPresets", D_METHOD("apply_preset", "preset_index"), &ImportPresets::apply_preset);
     
-    BIND_ENUM_CONSTANT(PresetType::MAX_PERFORMANCE);
-    BIND_ENUM_CONSTANT(PresetType::RETRO_FIDELITY);
-    BIND_ENUM_CONSTANT(PresetType::MAX_QUALITY);
+    ClassDB::bind_integer_constant("ImportPresets", "", "MAX_PERFORMANCE", static_cast<int>(PresetType::MAX_PERFORMANCE));
+    ClassDB::bind_integer_constant("ImportPresets", "", "RETRO_FIDELITY", static_cast<int>(PresetType::RETRO_FIDELITY));
+    ClassDB::bind_integer_constant("ImportPresets", "", "MAX_QUALITY", static_cast<int>(PresetType::MAX_QUALITY));
 }
 
 void ImportPresets::apply_preset(int preset_index) {

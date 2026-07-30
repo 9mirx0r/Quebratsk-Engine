@@ -14,6 +14,10 @@
 #include "core/logging/quebratsk_logger.h"
 #include "converters/fuzzy_material_fixer.h"
 #include "converters/winding_visualizer.h"
+#include "converters/batching_manager.h"
+#include "converters/bsp_map_renderer.h"
+#include "parsers/unreal/uasset_mesh_extractor.h"
+#include "parsers/unity/bundle_mesh_extractor.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -42,6 +46,10 @@ void initialize_quebratsk_module(ModuleInitializationLevel p_level) {
     ClassDB::register_class<quebratsk::logging::QuebratskLogger>();
     ClassDB::register_class<quebratsk::converters::FuzzyMaterialFixer>();
     ClassDB::register_class<quebratsk::converters::WindingVisualizer>();
+    ClassDB::register_class<quebratsk::converters::BatchingManager>();
+    ClassDB::register_class<quebratsk::converters::BSPMapRenderer>();
+    ClassDB::register_class<quebratsk::parsers::unreal::UAssetMeshExtractor>();
+    ClassDB::register_class<quebratsk::parsers::unity::BundleMeshExtractor>();
 
     // Initialize project settings so they appear in the Godot Editor UI
     quebratsk::config::QuebratskSettings::register_settings();

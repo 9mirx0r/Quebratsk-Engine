@@ -1,4 +1,5 @@
 #include "task_progress_tracker.h"
+#include <algorithm>
 
 namespace quebratsk::api {
 

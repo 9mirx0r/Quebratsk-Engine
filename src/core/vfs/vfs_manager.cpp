@@ -18,6 +18,7 @@ void VFSManager::_bind_methods() {
     ClassDB::bind_method(D_METHOD("mount_container", "vfs_prefix", "real_path"), &VFSManager::mount_container);
     ClassDB::bind_method(D_METHOD("unmount", "vfs_prefix"), &VFSManager::unmount);
     ClassDB::bind_method(D_METHOD("file_exists", "vfs_uri"), &VFSManager::file_exists);
+    ClassDB::bind_method(D_METHOD("list_files", "prefix"), &VFSManager::list_files, DEFVAL(""));
     ClassDB::bind_method(D_METHOD("read_file", "vfs_uri"), &VFSManager::read_file);
     ClassDB::bind_method(D_METHOD("get_file_size", "vfs_uri"), &VFSManager::get_file_size);
 }
@@ -263,6 +264,19 @@ bool VFSManager::file_exists(const String& vfs_uri) const {
     std::lock_guard<std::mutex> lock(m_mutex);
     std::string uri_std = to_lower(vfs_uri.utf8().get_data());
     return m_index.contains(uri_std);
+}
+
+PackedStringArray VFSManager::list_files(const String& prefix) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    PackedStringArray result;
+    std::string prefix_std = to_lower(prefix.utf8().get_data());
+
+    for (const auto& [uri, entry] : m_index) {
+        if (prefix_std.empty() || uri.starts_with(prefix_std)) {
+            result.append(String(uri.c_str()));
+        }
+    }
+    return result;
 }
 
 int64_t VFSManager::get_file_size(const String& vfs_uri) const {
