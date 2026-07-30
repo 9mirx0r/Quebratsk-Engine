@@ -7,7 +7,11 @@
 
 namespace quebratsk::parsers::source1 {
 
+/// NOTE: GoldSrc StudioMDL v10 uses this same magic. Only the version field
+/// distinguishes the two formats, so any dispatcher must check it.
 inline constexpr std::array<char, 4> kSourceMdlMagic = {'I', 'D', 'S', 'T'};
+inline constexpr int32_t kSourceMdlMinVersion = 44;
+inline constexpr int32_t kSourceMdlMaxVersion = 49;
 
 #pragma pack(push, 1)
 /// Header of Source 1 StudioMDL v44-49 file (408+ bytes)

@@ -16,6 +16,13 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse(
         return std::unexpected(SourceMDLParseError::InvalidHeader);
     }
 
+    // GoldSrc StudioMDL uses the SAME "IDST" magic, so the magic alone cannot tell the
+    // two apart. Without this check a GoldSrc model was accepted here, returned an empty
+    // mesh, and the caller never fell through to MDL10Parser.
+    if (header->version < kSourceMdlMinVersion || header->version > kSourceMdlMaxVersion) {
+        return std::unexpected(SourceMDLParseError::VersionMismatch);
+    }
+
     ParsedSourceMDLModel result;
     result.mesh_data.source_engine = ir::SourceEngine::Source1;
     result.mesh_data.name = std::string(header->name, strnlen(header->name, 64));
