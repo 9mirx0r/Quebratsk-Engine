@@ -36,6 +36,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A restored session now says "Picking up where you left off." The greeting used to be
   written and then immediately overwritten by the search-result count.
 
+### Added
+
+- **Ready-made categories**, so content can be browsed without knowing what to search for.
+  Both GoldSrc and Source lay assets out by convention, and the folder says far more about
+  what a thing *is* than its extension does — `.mdl` only means "model". Categories match
+  on folder as well as type:
+
+  | Category | Matches | Garry's Mod + Half-Life 2 |
+  |---|---|---|
+  | Characters & people | `models/player`, `/humans/`, `/npc`, `/zombie`, `/combine_`, `/police` | 333 |
+  | Weapons | `/weapons/`, `/w_`, `/v_`, `/shells/` | 234 |
+  | Vehicles | `vehicle`, `/cars/`, `/car_`, `/airboat`, `/buggy`, `/jeep` | 56 |
+  | Props & scenery | `/props`, `/furniture`, `/gibs/` | 2,130 |
+  | All models · Maps & terrain · Textures & materials · Sounds | by type | 4,264 · 82 · 23,937 · 9,803 |
+
+- **Each result names the game it came from**, in a second column: `police.mdl / Garry's
+  Mod`. Both Garry's Mod and Half-Life 2 ship a `police.mdl`, and with several games added
+  the filename alone does not say which one is about to be imported. The same origin shows
+  in the picked-item line: `Model · 26.8 KB · Garry's Mod / models/player`.
+
+- **The search box waits for a pause before refiltering.** Two mounted games is ~42,000
+  entries and up to 400 rebuilt rows, about 120 ms — per keystroke, that made typing feel
+  like it was fighting back.
+
 ---
 
 ## [0.7.0-alpha] - 2026-07-30

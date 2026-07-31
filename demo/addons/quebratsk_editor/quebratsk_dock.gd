@@ -44,12 +44,26 @@ const KINDS := {
 ## picked.
 const COMPANION_EXTENSIONS := ["vvd", "vtx", "ani", "phy"]
 
-const FILTERS := [
-	{"label": "Everything", "ext": []},
-	{"label": "Characters & props", "ext": ["mdl", "p3d"]},
-	{"label": "Maps & terrain", "ext": ["bsp", "wrp"]},
-	{"label": "Textures & materials", "ext": ["vtf", "vmt", "paa", "tga", "png"]},
-	{"label": "Sounds", "ext": ["wav", "mp3", "ogg"]},
+## Ready-made categories, so a user can browse without knowing what to search for.
+##
+## `ext` narrows by file type; `folders` narrows by where the file sits. Both GoldSrc and
+## Source lay content out by convention — models/weapons/, models/player/,
+## models/props_vehicles/ — so the folder is a far better guide to what a thing IS than
+## its extension, which only says "model". An empty list means "do not narrow on this".
+const CATEGORIES := [
+	{"label": "Everything", "ext": [], "folders": []},
+	{"label": "Characters & people", "ext": ["mdl", "p3d"],
+		"folders": ["models/player", "/humans/", "/npc", "/zombie", "/combine_", "/police"]},
+	{"label": "Weapons", "ext": ["mdl", "p3d"],
+		"folders": ["/weapons/", "/w_", "/v_", "/shells/"]},
+	{"label": "Vehicles", "ext": ["mdl", "p3d"],
+		"folders": ["vehicle", "/cars/", "/car_", "/airboat", "/buggy", "/jeep"]},
+	{"label": "Props & scenery", "ext": ["mdl", "p3d"],
+		"folders": ["/props", "/furniture", "/gibs/"]},
+	{"label": "All models", "ext": ["mdl", "p3d"], "folders": []},
+	{"label": "Maps & terrain", "ext": ["bsp", "wrp"], "folders": []},
+	{"label": "Textures & materials", "ext": ["vtf", "vmt", "paa", "tga", "png"], "folders": []},
+	{"label": "Sounds", "ext": ["wav", "mp3", "ogg"], "folders": []},
 ]
 
 var _plugin: EditorPlugin
@@ -71,6 +85,7 @@ var _status: Label
 var _selected_uri := ""
 var _detected_games: Dictionary = {}
 var _file_dialog: EditorFileDialog
+var _search_debounce: Timer
 
 ## Display name -> { "path": String, "mounts": [ {prefix, path, is_directory} ] }
 ##
@@ -85,7 +100,7 @@ func set_editor_plugin(plugin: EditorPlugin) -> void:
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(290, 0)
+	custom_minimum_size = Vector2(310, 0)
 	add_theme_constant_override("separation", 0)
 
 	_vfs = VFSManager.new()
@@ -180,12 +195,22 @@ func _build_ui() -> void:
 	_search.placeholder_text = "Type a name, like police or dust"
 	_search.right_icon = _icon("Search")
 	_search.clear_button_enabled = true
-	_search.text_changed.connect(func(_t: String) -> void: _refresh_results())
+	_search.text_changed.connect(_on_search_typed)
 	search_box.add_child(_search)
 
+	# Filtering two mounted games means walking ~42,000 entries and rebuilding up to 400
+	# rows, about 120 ms. Doing that on every keystroke makes typing feel like it is
+	# fighting back, so the rebuild waits until the user pauses.
+	_search_debounce = Timer.new()
+	_search_debounce.wait_time = 0.18
+	_search_debounce.one_shot = true
+	_search_debounce.timeout.connect(_refresh_results)
+	add_child(_search_debounce)
+
 	_filter = OptionButton.new()
-	for f in FILTERS:
+	for f in CATEGORIES:
 		_filter.add_item(str((f as Dictionary)["label"]))
+	_filter.tooltip_text = "Browse by what a thing is, without having to search for it"
 	_filter.item_selected.connect(func(_i: int) -> void: _refresh_results())
 	search_box.add_child(_filter)
 
@@ -198,7 +223,14 @@ func _build_ui() -> void:
 
 	_results = Tree.new()
 	_results.hide_root = true
-	_results.columns = 1
+	# Second column names the game each hit came from. With more than one game mounted,
+	# "police.mdl" alone does not tell you whether you are about to import the Half-Life 2
+	# one or the Garry's Mod one.
+	_results.columns = 2
+	_results.set_column_expand(1, false)
+	# Wide enough for "/ Garry's Mod" without ellipsis; longer names ellipsise instead,
+	# and the tooltip carries the full title either way.
+	_results.set_column_custom_minimum_width(1, 112)
 	_results.custom_minimum_size = Vector2(0, 170)
 	_results.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_results.item_selected.connect(_on_result_selected)
@@ -544,13 +576,33 @@ func _kind_of(uri: String) -> Dictionary:
 	return {"name": ext.to_upper() + " file", "icon": "File", "placeable": false}
 
 
+func _on_search_typed(_text: String) -> void:
+	_search_debounce.start()
+
+
+## Which game a hit belongs to, worked out from the mount prefix in its URI.
+func _game_of(uri: String) -> String:
+	var rest := uri.trim_prefix("vfs://")
+	var slash := rest.find("/")
+	if slash < 0:
+		return ""
+	var prefix := rest.substr(0, slash)
+	for key in _sources.keys():
+		for entry in (_sources[key] as Dictionary).get("mounts", []):
+			if str((entry as Dictionary).get("prefix", "")) == prefix:
+				return str(key)
+	return ""
+
+
 func _refresh_results() -> void:
 	_results.clear()
 	_clear_selection()
 
 	var root := _results.create_item()
 	var needle := _search.text.strip_edges().to_lower()
-	var wanted: Array = (FILTERS[_filter.selected] as Dictionary)["ext"]
+	var category: Dictionary = CATEGORIES[_filter.selected]
+	var wanted: Array = category["ext"]
+	var folders: Array = category["folders"]
 
 	var all: PackedStringArray = _vfs.list_files()
 	if all.is_empty():
@@ -568,7 +620,18 @@ func _refresh_results() -> void:
 			continue
 		if not wanted.is_empty() and not wanted.has(ext):
 			continue
-		if not needle.is_empty() and not uri.to_lower().contains(needle):
+
+		var lower := uri.to_lower()
+		if not folders.is_empty():
+			var in_folder := false
+			for f in folders:
+				if lower.contains(str(f)):
+					in_folder = true
+					break
+			if not in_folder:
+				continue
+
+		if not needle.is_empty() and not lower.contains(needle):
 			continue
 		matched += 1
 		if shown >= MAX_RESULTS:
@@ -577,10 +640,13 @@ func _refresh_results() -> void:
 		var item := _results.create_item(root)
 		var kind := _kind_of(uri)
 		item.set_icon(0, _icon(str(kind["icon"])))
-		# The name is what a person scans for; the folder is context, so it is dimmed and
-		# secondary rather than the whole row being one long unreadable path.
+		# The name is what a person scans for; the full path is context and lives in the
+		# tooltip, rather than the whole row being one long unreadable path.
 		item.set_text(0, uri.get_file())
+		item.set_text(1, "/ " + _game_of(uri))
+		item.set_custom_color(1, Color(0.58, 0.62, 0.70))
 		item.set_tooltip_text(0, uri)
+		item.set_tooltip_text(1, "From %s" % _game_of(uri))
 		item.set_metadata(0, uri)
 		shown += 1
 
@@ -621,8 +687,8 @@ func _on_result_selected() -> void:
 	var slash := where.find("/")
 	if slash >= 0:
 		where = where.substr(slash + 1)
-	_picked_kind.text = "%s · %s · %s" % [kind["name"],
-		String.humanize_size(_vfs.get_file_size(uri)), where]
+	_picked_kind.text = "%s · %s · %s / %s" % [kind["name"],
+		String.humanize_size(_vfs.get_file_size(uri)), _game_of(uri), where]
 
 	_pose_row.visible = false
 	if uri.get_extension().to_lower() == "mdl":

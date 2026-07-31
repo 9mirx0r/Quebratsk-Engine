@@ -9,6 +9,7 @@ extends Node
 
 const DockScript := preload("res://addons/quebratsk_editor/quebratsk_dock.gd")
 const GMOD := "C:/Program Files (x86)/Steam/steamapps/common/GarrysMod/garrysmod"
+const HL2 := "C:/Program Files (x86)/Steam/steamapps/common/half-life 2/hl2"
 
 var _dock: VBoxContainer
 
@@ -40,8 +41,11 @@ func _check_detect() -> void:
 
 
 func _check_add() -> void:
-	print("\n2. Adding Garry's Mod")
+	print("\n2. Adding two games")
 	_dock._add_game_folder(GMOD, "Garry's Mod")
+	print("   says: %s" % _dock._status.text)
+	# A second game is what makes the origin column matter: both ship a police.mdl.
+	_dock._add_game_folder(HL2, "Half-Life 2")
 	print("   says: %s" % _dock._status.text)
 
 	# The point of the redesign: one row per game, not one per archive file.
@@ -55,26 +59,42 @@ func _check_add() -> void:
 		% [rows, _dock._vfs.get_mounts_info().size()])
 
 
+## Select a category by its label, so reordering CATEGORIES cannot silently make this
+## test assert something other than what it says.
+func _pick_category(label: String) -> void:
+	for i in _dock._filter.item_count:
+		if _dock._filter.get_item_text(i) == label:
+			_dock._filter.select(i)
+			_dock._refresh_results()
+			return
+	push_error("no such category: %s" % label)
+
+
 func _check_search() -> void:
-	print("\n3. Searching")
-	_dock._search.text = "player"
-	_dock._filter.select(1) # Characters & props
-	_dock._refresh_results()
-	print("   'player' in Characters & props -> %s" % _dock._status.text)
-
-	var first: TreeItem = _dock._results.get_root().get_first_child()
-	var listed := 0
-	while first != null and listed < 3:
-		print("     %s" % first.get_text(0))
-		first = first.get_next()
-		listed += 1
-
+	print("\n3. Ready-made categories, no search term")
 	_dock._search.text = ""
-	_dock._filter.select(0)
-	var t0 := Time.get_ticks_msec()
-	_dock._refresh_results()
-	print("   unfiltered refresh %d ms -> %s"
-		% [Time.get_ticks_msec() - t0, _dock._status.text])
+	for c in _dock.CATEGORIES:
+		var label := str((c as Dictionary)["label"])
+		var t0 := Time.get_ticks_msec()
+		_pick_category(label)
+		var first: TreeItem = _dock._results.get_root().get_first_child()
+		var sample := ""
+		if first != null and first.is_selectable(0):
+			sample = "%s %s" % [first.get_text(0), first.get_text(1)]
+		print("   %-22s %-46s (%d ms)  e.g. %s"
+			% [label, _dock._status.text, Time.get_ticks_msec() - t0, sample])
+
+	print("\n   searching inside a category")
+	_dock._search.text = "player"
+	_pick_category("Characters & people")
+	print("   'player' in Characters & people -> %s" % _dock._status.text)
+	var it: TreeItem = _dock._results.get_root().get_first_child()
+	var listed := 0
+	while it != null and listed < 3:
+		print("     %s   %s" % [it.get_text(0), it.get_text(1)])
+		it = it.get_next()
+		listed += 1
+	_dock._search.text = ""
 
 
 func _check_pick() -> void:
@@ -82,8 +102,7 @@ func _check_pick() -> void:
 	# Companion files (.vvd/.vtx/.ani/.phy) are pieces of a model, not things a user
 	# picks. Searching "police" in Everything must not list them.
 	_dock._search.text = "police"
-	_dock._filter.select(0)
-	_dock._refresh_results()
+	_pick_category("Everything")
 	var scan: TreeItem = _dock._results.get_root().get_first_child()
 	var companions := 0
 	var total := 0
@@ -96,8 +115,7 @@ func _check_pick() -> void:
 	print("   'police' in Everything -> %d rows, %d of them companion files" % [total, companions])
 
 	_dock._search.text = "police"
-	_dock._filter.select(1)
-	_dock._refresh_results()
+	_pick_category("Characters & people")
 
 	var item: TreeItem = _dock._results.get_root().get_first_child()
 	if item == null:
@@ -116,8 +134,7 @@ func _check_pick() -> void:
 
 	# A texture is findable but not something you drop into a scene on its own.
 	_dock._search.text = ""
-	_dock._filter.select(3) # Textures & materials
-	_dock._refresh_results()
+	_pick_category("Textures & materials")
 	var tex: TreeItem = _dock._results.get_root().get_first_child()
 	if tex != null and tex.is_selectable(0):
 		_dock._results.set_selected(tex, 0)
