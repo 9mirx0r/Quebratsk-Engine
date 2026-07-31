@@ -212,9 +212,21 @@ Finishing what is already half-built, in roughly this order:
 
 | | Why it is next |
 |---|---|
-| Real Virtuality models, `.p3d` MLOD then ODOL | The archive and terrain half already works, so Arma and DayZ are one format away from complete |
-| Real Virtuality textures, `.paa` | DXT decoding is already in the engine, so this is mostly container work |
+| Real Virtuality textures, `.paa` | DXT decoding is already in the engine, so this is mostly container work. A DayZ install carries 11,405 of them |
+| Real Virtuality models, `.p3d` ODOL | Not MLOD. See below |
 | Source 2, `.vmdl_c` and `.vtex_c` (CS2, Half-Life: Alyx) | The VPK v2 reader is already shared with Source 1 |
+
+**On `.p3d`:** this list used to promise MLOD first and ODOL later, on the assumption that
+the editable format was the easier way in. Surveying a retail DayZ install says otherwise.
+Of 2,952 `.p3d` files across 60 of its archives, a sample of 1,200 was **ODOL v54 without a
+single MLOD among them**. MLOD is what the modding tools emit; Bohemia binarises everything
+it ships, so nobody who owns the game has one. Supporting MLOD first would mean writing a
+parser for files its users do not have, and it could not be verified against a retail
+install, which this project treats as the bar for calling something supported.
+
+So ODOL is the real target, and it is a considerably larger job than the old wording
+implied: versioned struct layouts spanning v28 to v73, per-LOD compressed vertex and face
+tables, and a skeleton format on top. It is not "one format away from complete".
 
 ### Two engines worth going after next
 
