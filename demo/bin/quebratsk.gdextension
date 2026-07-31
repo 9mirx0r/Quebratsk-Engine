@@ -9,10 +9,29 @@
 entry_symbol = "quebratsk_library_init"
 compatibility_minimum = "4.3"
 
+; Godot 4.2 replaced the debug/release feature tags with editor/template_debug/
+; template_release. An editor reports "windows.editor.x86_64", which the legacy
+; "windows.debug.x86_64" key does not match — so on Godot 4.3 the library was never
+; loaded and every class came back "not found". Godot 4.7 resolves it through a
+; compatibility fallback, which is why this only ever failed off this developer's
+; machine, and why CI on 4.3 is what caught it.
+;
+; The legacy keys are kept below so a 4.0/4.1 project still resolves.
 [libraries]
+windows.editor.x86_64 = "res://bin/libquebratsk.windows.debug.x86_64.dll"
+windows.template_debug.x86_64 = "res://bin/libquebratsk.windows.debug.x86_64.dll"
+windows.template_release.x86_64 = "res://bin/libquebratsk.windows.release.x86_64.dll"
 windows.debug.x86_64 = "res://bin/libquebratsk.windows.debug.x86_64.dll"
 windows.release.x86_64 = "res://bin/libquebratsk.windows.release.x86_64.dll"
+
+linux.editor.x86_64 = "res://bin/libquebratsk.linux.debug.x86_64.so"
+linux.template_debug.x86_64 = "res://bin/libquebratsk.linux.debug.x86_64.so"
+linux.template_release.x86_64 = "res://bin/libquebratsk.linux.release.x86_64.so"
 linux.debug.x86_64 = "res://bin/libquebratsk.linux.debug.x86_64.so"
 linux.release.x86_64 = "res://bin/libquebratsk.linux.release.x86_64.so"
+
+macos.editor = "res://bin/libquebratsk.macos.debug.framework"
+macos.template_debug = "res://bin/libquebratsk.macos.debug.framework"
+macos.template_release = "res://bin/libquebratsk.macos.release.framework"
 macos.debug = "res://bin/libquebratsk.macos.debug.framework"
 macos.release = "res://bin/libquebratsk.macos.release.framework"
