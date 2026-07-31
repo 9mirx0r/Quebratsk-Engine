@@ -136,6 +136,27 @@ func _check_pick() -> void:
 		   _dock._pose_picker.get_item_text(0) if _dock._pose_picker.item_count > 0 else ""])
 	print("   Add button enabled: %s" % (not _dock._add_button.disabled))
 
+	# False positives are the risk here: reporting a missing .vvd for a model that
+	# imported fine would send users hunting for a file they already have.
+	var ok_node: Node3D = _dock._importer.load_model(_dock._selected_uri, "")
+	var missing: PackedStringArray = _dock._importer.get_last_missing_companions()
+	print("   after a SUCCESSFUL model load, missing companions: %s"
+		% ("none" if missing.is_empty() else ", ".join(missing)))
+	if ok_node != null:
+		ok_node.queue_free()
+
+	# A GoldSrc model needs no .vvd at all, so it must not be reported either.
+	_dock._search.text = "gsg9"
+	_pick_category("All models")
+	var gs: TreeItem = _dock._results.get_root().get_first_child()
+	if gs != null and gs.is_selectable(0):
+		var n2: Node3D = _dock._importer.load_model(str(gs.get_metadata(0)), "")
+		print("   GoldSrc-era model %s -> missing: %s"
+			% [str(gs.get_metadata(0)).get_file(),
+			   "none" if _dock._importer.get_last_missing_companions().is_empty() else "REPORTED"])
+		if n2 != null:
+			n2.queue_free()
+
 	# The preview is debounced, so drive it directly rather than waiting on a timer that
 	# does not tick meaningfully in a headless run.
 	var t0 := Time.get_ticks_msec()

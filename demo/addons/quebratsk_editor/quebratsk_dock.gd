@@ -1507,6 +1507,12 @@ func _explain_failure() -> String:
 		UnifiedAssetImporter.ERR_ASSET_UNREADABLE:
 			return tr("That file could not be read. Was the game moved or uninstalled?")
 		UnifiedAssetImporter.ERR_PARSE_FAILED:
+			# Name the file rather than describing the category of problem. "Missing
+			# police.vvd" is something a user can search for; "companion files" is not.
+			var missing: PackedStringArray = _importer.get_last_missing_companions()
+			if not missing.is_empty():
+				return tr("Missing %s. That file lives in another of the game's archives — add it and try again.") \
+					% ", ".join(missing)
 			if _selected_uri.get_extension().to_lower() == "mdl":
 				return tr("This model keeps its shape in companion files that are not here. Add the rest of the game's archives and try again.")
 			return tr("This file was recognised but nothing could be read out of it.")
