@@ -43,6 +43,8 @@ void UnifiedAssetImporter::_bind_methods() {
                          &UnifiedAssetImporter::load_model, DEFVAL(String()));
     ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
     ClassDB::bind_method(D_METHOD("get_last_error_code"), &UnifiedAssetImporter::get_last_error_code);
+    ClassDB::bind_method(D_METHOD("get_last_missing_companions"),
+                         &UnifiedAssetImporter::get_last_missing_companions);
 
     // Without these the codes are bare integers in GDScript and every caller re-invents
     // its own magic numbers.
@@ -109,6 +111,30 @@ AssetBundleBytes UnifiedAssetImporter::read_asset_bundle(const String& vfs_uri,
         // dx90 is the modern index set; the others are legacy fallbacks still found in
         // older addons.
         bundle.indices = read_companion({".dx90.vtx", ".vtx", ".dx80.vtx", ".sw.vtx"});
+
+        // Record what was wanted and not found, so a failed import can name the file
+        // instead of saying "nothing could be decoded". A Source .mdl carries no vertex
+        // data at all, and the usual cause of a failure here is that the user mounted the
+        // archive holding the .mdl but not the one holding its geometry — which is an
+        // actionable problem the moment they are told which file is absent.
+        m_last_missing.clear();
+
+        // GoldSrc v10 shares the "IDST" magic and needs neither companion, so the version
+        // field is what distinguishes a model that genuinely wants them.
+        bool is_source_mdl = false;
+        if (bundle.primary.size() >= 8 &&
+            std::memcmp(bundle.primary.data(), "IDST", 4) == 0) {
+            int32_t version = 0;
+            std::memcpy(&version, bundle.primary.data() + 4, sizeof(version));
+            is_source_mdl = version >= parsers::source1::kSourceMdlMinVersion &&
+                            version <= parsers::source1::kSourceMdlMaxVersion;
+        }
+
+        if (is_source_mdl) {
+            const std::string base = String(stem.c_str()).get_file().utf8().get_data();
+            if (bundle.vertices.empty()) m_last_missing.push_back(String((base + ".vvd").c_str()));
+            if (bundle.indices.empty()) m_last_missing.push_back(String((base + ".dx90.vtx").c_str()));
+        }
     }
 
     // GoldSrc texture companion. Much of the stock Counter-Strike 1.6 content declares

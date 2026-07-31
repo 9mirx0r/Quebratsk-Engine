@@ -133,6 +133,16 @@ public:
 
     int get_last_error_code() const { return m_last_error_code; }
 
+    /// Companion files the last load looked for and did not find, by filename.
+    ///
+    /// A Source .mdl carries no vertex data at all: it lives in a .vvd and a .vtx beside
+    /// it. When those are in an archive the user has not mounted, the import fails with
+    /// ERR_PARSE_FAILED and no way to tell what is wrong. Naming the file turns that dead
+    /// end into something the caller can act on, or offer to fix.
+    ///
+    /// Empty when the last load needed no companions or found them all.
+    godot::PackedStringArray get_last_missing_companions() const { return m_last_missing; }
+
     /// Parse raw asset bytes into the engine-agnostic IR.
     /// Pure data in, pure data out: allocates no Godot Object/Resource and touches
     /// no server, so it is safe to call from any thread. AsyncAssetImporter relies
@@ -145,6 +155,7 @@ public:
 private:
     vfs::VFSManager* m_vfs = nullptr;
     mutable int m_last_error_code = 0;
+    mutable godot::PackedStringArray m_last_missing;
 };
 
 } // namespace quebratsk::api

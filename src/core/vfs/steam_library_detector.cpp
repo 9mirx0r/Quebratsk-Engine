@@ -31,6 +31,64 @@ std::string SteamLibraryDetector::_get_steam_install_path() {
     return "C:/Program Files (x86)/Steam"; // Default fallback
 }
 
+/// Read a REG_SZ value, or return "" when it is absent.
+///
+/// RegGetValueA guarantees NUL termination and filters by type; RegQueryValueExA does
+/// neither, and a value that exactly fills the buffer reads off the end of it.
+std::string SteamLibraryDetector::_read_registry_string(void* root, const char* subkey,
+                                                        const char* value) {
+#if defined(_WIN32)
+    char buffer[MAX_PATH + 1] = {};
+    DWORD size = MAX_PATH;
+    if (RegGetValueA(static_cast<HKEY>(root), subkey, value, RRF_RT_REG_SZ, nullptr,
+                     buffer, &size) == ERROR_SUCCESS) {
+        buffer[MAX_PATH] = '\0';
+        return std::string(buffer);
+    }
+#else
+    (void)root; (void)subkey; (void)value;
+#endif
+    return {};
+}
+
+/// Library roots that are not Steam.
+///
+/// Steam is where most of these games are, but not where all of them are: GOG sells the
+/// Half-Life and Arma catalogues, Epic has given several away, and plenty of people still
+/// have a copy installed by hand from a disc. Detecting only Steam meant telling those
+/// users "no installed games found" while the game sat on their drive.
+std::vector<std::string> SteamLibraryDetector::_get_other_launcher_folders() {
+    std::vector<std::string> roots;
+
+#if defined(_WIN32)
+    // GOG Galaxy and the Epic launcher both record their install root in the registry.
+    for (const auto& [key, name] : {
+             std::pair{"SOFTWARE\\WOW6432Node\\GOG.com\\GalaxyClient\\paths", "client"},
+             std::pair{"SOFTWARE\\GOG.com\\GalaxyClient\\paths", "client"},
+         }) {
+        std::string path = _read_registry_string(HKEY_LOCAL_MACHINE, key, name);
+        if (!path.empty()) {
+            roots.push_back(std::filesystem::path(path).parent_path().string() + "/Games");
+        }
+    }
+
+    std::string epic = _read_registry_string(
+        HKEY_LOCAL_MACHINE, "SOFTWARE\\WOW6432Node\\Epic Games\\EpicGamesLauncher",
+        "AppDataPath");
+    if (!epic.empty()) {
+        roots.push_back("C:/Program Files/Epic Games");
+    }
+
+    // Conventional manual-install locations. Cheap to probe and they cover the copies
+    // that no launcher knows about.
+    roots.push_back("C:/GOG Games");
+    roots.push_back("C:/Games");
+    roots.push_back("C:/Program Files (x86)/Steam/steamapps/common");
+#endif
+
+    return roots;
+}
+
 std::vector<std::string> SteamLibraryDetector::_get_library_folders(const std::string& steam_path) {
     std::vector<std::string> folders;
     folders.push_back(steam_path + "/steamapps/common");
@@ -87,6 +145,12 @@ Dictionary SteamLibraryDetector::detect_installed_games() {
         {"DayZ", "DayZ"}
     };
 
+    // Steam libraries first, then everything else, so a Steam copy wins the name when a
+    // game is installed twice. Duplicate keys would otherwise resolve by scan order.
+    for (const auto& root : _get_other_launcher_folders()) {
+        libraries.push_back(root);
+    }
+
     for (const auto& lib : libraries) {
         for (const auto& target : targets) {
             std::filesystem::path full_path = std::filesystem::path(lib) / target.folder_name;
@@ -94,7 +158,11 @@ Dictionary SteamLibraryDetector::detect_installed_games() {
             // unreadable drives or malformed paths from libraryfolders.vdf.
             std::error_code ec;
             if (std::filesystem::exists(full_path, ec) && !ec) {
-                installed_games[String(target.name.c_str())] = String(full_path.string().c_str());
+                // First hit wins: libraries are ordered Steam-first above.
+                const String key(target.name.c_str());
+                if (!installed_games.has(key)) {
+                    installed_games[key] = String(full_path.string().c_str());
+                }
             }
         }
     }

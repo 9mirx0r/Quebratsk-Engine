@@ -36,6 +36,7 @@ keys,en,es
 "Added %s items to the scene.","Added %s items to the scene.","Se agregaron %s elementos a la escena."
 "Added %s of %s. The rest could not be read.","Added %s of %s. The rest could not be read.","Se agregaron %s de %s. El resto no se pudo leer."
 "Nothing in that selection could be imported.","Nothing in that selection could be imported.","No se pudo importar nada de esa selección."
+"Missing %s. That file lives in another of the game's archives — add it and try again.","Missing %s. That file lives in another of the game's archives — add it and try again.","Falta %s. Ese archivo está en otro comprimido del juego — agregalo y probá de nuevo."
 "Save","Save","Guardar"
 "Write it to res://imported/ so you can reuse it","Write it to res://imported/ so you can reuse it","Guardalo en res://imported/ para reutilizarlo"
 "Saved to %s","Saved to %s","Guardado en %s"
