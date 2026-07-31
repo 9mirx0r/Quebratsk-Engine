@@ -74,7 +74,14 @@ Dictionary SteamLibraryDetector::detect_installed_games() {
     std::vector<TargetGame> targets = {
         {"Half-Life", "Half-Life"},
         {"Counter-Strike 1.6", "Half-Life/cstrike"},
+        {"Half-Life 2", "Half-Life 2"},
+        {"Half-Life 2: Episode One", "Half-Life 2/episodic"},
+        {"Half-Life 2: Episode Two", "Half-Life 2/ep2"},
         {"Garry's Mod", "GarrysMod"},
+        {"Portal", "Portal"},
+        {"Portal 2", "Portal 2"},
+        {"Team Fortress 2", "Team Fortress 2"},
+        {"Left 4 Dead 2", "Left 4 Dead 2"},
         {"Counter-Strike 2", "Counter-Strike Global Offensive"},
         {"Arma 3", "Arma 3"},
         {"DayZ", "DayZ"}

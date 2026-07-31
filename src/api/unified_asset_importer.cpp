@@ -41,6 +41,8 @@ void UnifiedAssetImporter::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_texture", "texture_ref"), &UnifiedAssetImporter::load_texture);
     ClassDB::bind_method(D_METHOD("load_model", "vfs_uri", "pose_name"),
                          &UnifiedAssetImporter::load_model, DEFVAL(String()));
+    ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
+    ClassDB::bind_method(D_METHOD("get_last_error_code"), &UnifiedAssetImporter::get_last_error_code);
 }
 
 void UnifiedAssetImporter::set_vfs(vfs::VFSManager* vfs) {
@@ -216,12 +218,14 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
 
 Ref<ArrayMesh> UnifiedAssetImporter::load_mesh(const String& vfs_uri) {
     if (!m_vfs) {
+        m_last_error_code = 1; // File/VFS Not Set
         UtilityFunctions::printerr("[QuebratskImporter] VFSManager not set!");
         return {};
     }
 
     const AssetBundleBytes bundle = read_asset_bundle(vfs_uri);
     if (bundle.empty()) {
+        m_last_error_code = 2; // Asset Unreadable
         UtilityFunctions::printerr("[QuebratskImporter] Empty or unreadable asset: ", vfs_uri);
         return {};
     }
@@ -230,13 +234,40 @@ Ref<ArrayMesh> UnifiedAssetImporter::load_mesh(const String& vfs_uri) {
     ParsedAssetIR parsed = parse_asset_ir(bundle, uri_lower);
 
     if (parsed.mesh.surfaces.empty()) {
+        m_last_error_code = 3; // Parse Failed / No Surfaces
         UtilityFunctions::printerr("[QuebratskImporter] No mesh surfaces decoded from: ", vfs_uri);
         return {};
     }
 
-    // Resolve each surface's texture against the mounted archives.
+    m_last_error_code = 0; // OK
     converters::TextureLoader loader(m_vfs);
     return converters::MeshConverter::convert(parsed.mesh, &loader);
+}
+
+PackedStringArray UnifiedAssetImporter::list_poses(const String& vfs_uri) {
+    PackedStringArray pose_names;
+    if (!m_vfs) {
+        m_last_error_code = 1;
+        return pose_names;
+    }
+
+    const AssetBundleBytes bundle = read_asset_bundle(vfs_uri);
+    if (bundle.empty()) {
+        m_last_error_code = 2;
+        return pose_names;
+    }
+
+    std::string lower_uri = to_lower_ascii(vfs_uri.utf8().get_data());
+    ParsedAssetIR ir = parse_asset_ir(bundle, lower_uri);
+
+    for (const auto& pose : ir.skeleton.poses) {
+        if (!pose.name.empty()) {
+            pose_names.append(String(pose.name.c_str()));
+        }
+    }
+
+    m_last_error_code = 0;
+    return pose_names;
 }
 
 Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& pose_name) {

@@ -102,6 +102,12 @@ public:
     godot::Node3D* load_model(const godot::String& vfs_uri,
                               const godot::String& pose_name = godot::String());
 
+    /// Fast header-only scanner returning sequence pose names from a model without building full meshes
+    godot::PackedStringArray list_poses(const godot::String& vfs_uri);
+
+    /// Get last error code (0 = OK, 1 = File Not Found, 2 = Missing Companion, 3 = Parse Failed)
+    int get_last_error_code() const { return m_last_error_code; }
+
     /// Parse raw asset bytes into the engine-agnostic IR.
     /// Pure data in, pure data out: allocates no Godot Object/Resource and touches
     /// no server, so it is safe to call from any thread. AsyncAssetImporter relies
@@ -113,6 +119,7 @@ public:
 
 private:
     vfs::VFSManager* m_vfs = nullptr;
+    mutable int m_last_error_code = 0;
 };
 
 } // namespace quebratsk::api
