@@ -32,6 +32,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wants. Tracks whose value never changes collapse to a single key, which is most bones in
   any one sequence.
 
+- **Sounds are things you can keep.** They were found, listed and playable, and that was
+  the end of it: the dock marked them unplaceable, so neither *Add to scene* nor *Save* did
+  anything with one.
+
+  Picking a sound now enables both. *Add to scene* drops an `AudioStreamPlayer3D` at the
+  origin, positioned rather than flat, because a footstep or a door belongs somewhere.
+  *Save* writes the audio file itself into `res://imported/` rather than a scene wrapping
+  it: the bytes cross untouched and Godot imports them with its own importer, which is
+  lossless and leaves you with a file the rest of your project can use.
+
+  Playback also reaches past WAV. `.mp3` and `.ogg` are handed to Godot's own loaders,
+  which take the file's bytes directly. Verified against 9,465 WAV and 338 MP3 files across
+  Half-Life 2 and Garry's Mod; neither game ships an `.ogg`, so that path is written but
+  has not been run against real data.
+
 ### Fixed
 
 - **Save ignored the pose you picked.** *Add to scene* adopts the previewed node, so it

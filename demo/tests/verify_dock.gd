@@ -270,23 +270,53 @@ func _check_pick() -> void:
 				saved.queue_free()
 			_dock._animate_toggle.button_pressed = false
 
-	# A sound is listed but was inert until now: parse the WAV out of the archive and
-	# report what came back, since a bad header yields silence rather than an error.
+	# Sounds were listed and playable but could not be placed or kept. Check one of each
+	# format the dock claims: a bad header yields silence rather than an error, so "it
+	# returned a stream" is the least that has to be shown.
 	_dock._search.text = ""
 	_pick_category("Sounds")
+	# Which formats these games actually ship decides which paths this run can prove.
+	for ext in _dock.SOUND_EXTENSIONS:
+		var found: Dictionary = _dock._vfs.find_files("", PackedStringArray([ext]),
+			PackedStringArray(), 1)
+		print("   %-4s in the mounted games: %d" % [ext, int(found["total"])])
+	var seen := {}
 	var snd: TreeItem = _dock._results.get_root().get_first_child()
 	while snd != null:
 		var uri := str(snd.get_metadata(0))
-		if uri.ends_with(".wav"):
-			var stream: AudioStreamWAV = _dock._load_wav(uri)
+		var ext := uri.get_extension().to_lower()
+		if _dock.SOUND_EXTENSIONS.has(ext) and not seen.has(ext):
+			seen[ext] = true
+			var stream: AudioStream = _dock._load_sound(uri)
 			if stream == null:
-				print("   sound: %s -> unsupported" % uri.get_file())
+				print("   sound %-4s %s -> unsupported" % [ext, uri.get_file()])
 			else:
-				print("   sound: %s -> %d Hz, %s, %.1f KiB"
-					% [uri.get_file(), stream.mix_rate,
-					   "stereo" if stream.stereo else "mono", stream.data.size() / 1024.0])
-			break
+				print("   sound %-4s %s -> %s, %.2f s"
+					% [ext, uri.get_file(), stream.get_class(), stream.get_length()])
+				var player: Node3D = _dock._build_sound_player(uri)
+				print("            add to scene -> %s named '%s'"
+					% ["nothing" if player == null else player.get_class(),
+					   "" if player == null else player.name])
+				if player != null:
+					player.queue_free()
 		snd = snd.get_next()
+
+	# Saving a sound writes the audio file itself rather than a scene wrapping it.
+	_dock._search.text = ""
+	_pick_category("Sounds")
+	var to_save: TreeItem = _dock._results.get_root().get_first_child()
+	if to_save != null and to_save.is_selectable(0):
+		DirAccess.make_dir_recursive_absolute(_dock.SAVE_DIR)
+		var written: String = _dock._save_sound(str(to_save.get_metadata(0)))
+		if written.is_empty():
+			print("   saving a sound wrote nothing  ** FAILED **")
+		else:
+			var check := FileAccess.open(written, FileAccess.READ)
+			print("   saved %s (%d bytes on disk)"
+				% [written, 0 if check == null else check.get_length()])
+			if check != null:
+				check.close()
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(written))
 
 	# A texture is findable but not something you drop into a scene on its own.
 	_dock._search.text = ""
