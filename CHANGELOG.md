@@ -47,6 +47,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Half-Life 2 and Garry's Mod; neither game ships an `.ogg`, so that path is written but
   has not been run against real data.
 
+- **A reader for the Real Virtuality `.paa` texture container**, in
+  `src/parsers/rv_enfusion/paa_parser.cpp`: the format word, the tagged-record chain, an
+  optional palette and the mipmap table, decoding DXT1, DXT5 and the packed ARGB and
+  grey-plus-alpha layouts. The DXT payload goes to the block decoder this project already
+  had.
+
+  **Not yet listed as supported, and not wired into the texture loader.** It has been read
+  only against files this project built from its own reading of the format, which shows the
+  reader agrees with the test and nothing more. A retail install settles it; a DayZ one
+  carries 11,405 `.paa` files, and that check is the next thing to run.
+
+  What the test does settle is refusal. A file that is not a PAA, an empty buffer, a mipmap
+  claiming sixteen megabytes inside a forty-byte file, and every one of the 46 truncations
+  of a valid file are all rejected rather than read past the end of the buffer. That sweep
+  caught a real defect while it was being written: the mipmap chain ended quietly when it
+  ran out of bytes, so a half-written file decoded whatever had reached the first mipmap
+  and reported success. The terminator is required now.
+
+  Mipmaps flagged compressed are refused with an error saying exactly that, rather than
+  handed to a block decoder that would render them as noise. Which files those are, and how
+  many, is a question for the retail check.
+
 ### Performance
 
 - **Adding a game got five times faster, and reopening the editor four.** Indexing a folder
