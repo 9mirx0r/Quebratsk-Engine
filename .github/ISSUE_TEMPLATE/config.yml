@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Quebratsk Engine Beginner's Guide
+    url: https://github.com/9mirx0r/Quebratsk-Engine/blob/main/docs/TUTORIAL.md
+    about: Read the beginner's guide before asking setup or usage questions.
+  - name: GDScript API Contract & Reference
+    url: https://github.com/9mirx0r/Quebratsk-Engine/blob/main/docs/API.md
+    about: Technical documentation of VFSManager, UnifiedAssetImporter, and engine methods.

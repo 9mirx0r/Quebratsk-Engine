@@ -1,0 +1,76 @@
+name: Bug Report
+description: Report an issue or asset import failure in Quebratsk Engine
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please ensure you have checked the [Supported Formats Matrix](https://github.com/9mirx0r/Quebratsk-Engine#supported-formats) before submitting. Note that Unreal Engine (`.uasset`), Unity (`.bundle`), Source 2 (`.vmdl_c`), and Real Virtuality models (`.p3d`) are **not currently supported**.
+
+  - type: input
+    id: godot_version
+    attributes:
+      label: Godot Engine Version
+      description: What version of Godot 4 are you using? (e.g., Godot 4.3-stable, Godot 4.7.1-stable)
+      placeholder: e.g. Godot 4.3-stable (Windows x86_64)
+    validations:
+      required: true
+
+  - type: input
+    id: plugin_version
+    attributes:
+      label: Quebratsk Engine Version
+      description: What release version or git commit of Quebratsk Engine are you running?
+      placeholder: e.g. v0.7.0-alpha, or the commit SHA if building from main
+    validations:
+      required: true
+
+  - type: input
+    id: game_title_file
+    attributes:
+      label: Game Title & Exact Failing File Path
+      description: What retail game and exact asset file failed to mount or import?
+      placeholder: e.g. Half-Life 2 (hl2/models/police.mdl), Counter-Strike 1.6 (cstrike/maps/de_dust2.bsp), DayZ (dayz/db.pbo)
+    validations:
+      required: true
+
+  - type: textarea
+    id: output_log
+    attributes:
+      label: Output Panel & Console Error Log
+      description: Please copy and paste the complete, un-truncated error log from Godot's Output panel or terminal console.
+      placeholder: |
+        [QuebratskVFS] ERROR: ...
+        [QuebratskImporter] ERROR: ...
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: Steps to Reproduce
+      description: Explain step-by-step how to reproduce the error or crash.
+      placeholder: |
+        1. Mount game folder using `VFSManager.mount_container()` or the editor dock.
+        2. Call `importer.load_model("vfs://hl2/models/police.mdl")`.
+        3. See error in Output panel.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected vs Actual Behavior
+      description: What did you expect to happen, and what actually happened instead?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context / System Specifications
+      description: OS version, GPU hardware, or any other relevant information.
+    validations:
+      required: false
