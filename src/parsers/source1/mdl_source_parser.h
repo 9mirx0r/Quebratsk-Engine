@@ -55,6 +55,18 @@ struct SourceModelBundle {
     std::vector<SourceAnimatedModel> include_models;
 };
 
+/// How much of each animation sequence to recover.
+///
+/// A caller that only wants to *name* the sequences — filling a dropdown, say — still has
+/// to know which of them decode, because a descriptor pointing at unreachable data is not
+/// a pose the model can stand in. It does not need the resulting transforms. NamesOnly
+/// applies the same acceptance rule and stops at the first bone that proves the sequence
+/// is readable, instead of decoding every bone of all 359 of them.
+enum class PoseDetail {
+    Full,
+    NamesOnly,
+};
+
 class SourceMDLParser {
 public:
     /// Skeleton-only parse from a lone .mdl. Kept for callers that have no companions;
@@ -68,7 +80,8 @@ public:
     /// Pure data in, pure data out — no Godot Object or Resource is created, so this is
     /// safe to run off the main thread.
     [[nodiscard]] static std::expected<ParsedSourceMDLModel, SourceMDLParseError> parse_bundle(
-        const SourceModelBundle& bundle
+        const SourceModelBundle& bundle,
+        PoseDetail poses = PoseDetail::Full
     );
 
     /// Paths this model borrows animation from, e.g. "models/player/cs_fix/anims.mdl".

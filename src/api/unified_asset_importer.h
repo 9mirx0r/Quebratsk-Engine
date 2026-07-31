@@ -147,8 +147,13 @@ public:
     /// Pure data in, pure data out: allocates no Godot Object/Resource and touches
     /// no server, so it is safe to call from any thread. AsyncAssetImporter relies
     /// on this guarantee — do not introduce Ref<> or memnew() into this path.
+    ///
+    /// With `pose_names_only`, the returned poses carry their names but no transforms.
+    /// Only list_poses() wants that; anything that has to *stand* the model in a pose
+    /// must leave it false.
     [[nodiscard]] static ParsedAssetIR parse_asset_ir(const AssetBundleBytes& bundle,
-                                                      const std::string& lowercase_uri);
+                                                      const std::string& lowercase_uri,
+                                                      bool pose_names_only = false);
 
     [[nodiscard]] vfs::VFSManager* get_vfs() const { return m_vfs; }
 

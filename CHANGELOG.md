@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [2.0.1] - 2026-07-31
+
+Everything since `0.7.0-alpha`. Version 2.0.0 was tagged and published without its own
+entry here, so this section covers that release as well as the work that followed it —
+rather than reconstructing a split after the fact and getting it subtly wrong.
 
 ### Added
 
@@ -31,53 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   This is also the first consumer of `MapPreviewViewport`, a registered class that until now
   nothing used.
-
-### Fixed
-
-- The README and the beginner's guide told users to press **Add game content**. The button
-  has been called **Add a game** since the dock was restructured.
-
-### Removed
-
-- **Seven registered classes and ten parser stubs that did not do what their names said.**
-  A registered class is a promise to whoever calls it, and these were promises the project
-  could not keep:
-
-  | Class | What it actually did |
-  |---|---|
-  | `UAssetMeshExtractor`, `BundleMeshExtractor` | Returned a mesh carrying a name and a material and **zero vertices**. Unreal and Unity "support" was that |
-  | `VulkanRTBuilder` | Reported `is_built: true` for an acceleration structure Godot 4.3 has no API to build |
-  | `P2PVFSStreamer` | Contained no networking whatsoever |
-  | `BSPMapRenderer` | Not implemented; `UnifiedAssetImporter.load_mesh()` already did the job |
-  | `VFSFileTree` | Returned one hardcoded row |
-  | `DependencyGraphBuilder` | Returned an always-empty dependency list |
-  | `ImportPresets` | Wrote three settings nothing read |
-
-  The parser stubs — `uasset_parser`, `bundle_parser`, `vmdl_parser`, `xob_parser`,
-  `paa_decoder`, `audio_decoder` and four others, 16 to 32 lines each — were never reached
-  by the importer at all. They existed to make a format table look longer.
-
-  Registered classes: 23 → 15.
-
-### Fixed
-
-- **`P3DMLODParser` returned success for a model it had not read.** It checked the magic
-  and handed back a `ParsedP3DModel` named `"BohemiaModel"` with zero surfaces and zero
-  bones, so every caller saw a valid parse of an empty model and had no way to tell that
-  nothing had been decoded. It also accepted ODOL, a different container entirely. It
-  reports an error now, and the dock says Arma and DayZ models cannot be imported yet
-  rather than letting the user press Add and get a failure they cannot act on.
-
-  `docs/API.md` had listed this as "⚠️ MLOD only", which was wrong — the row was written
-  from the parser's shape rather than from running it. Corrected, and the file now records
-  P3D as the cautionary example.
-
-- **`AsyncAssetImporter` spawned an unbounded thread per call.** Importing a folder of 200
-  models from a loop created 200 threads at once, each holding a decoded copy of its
-  asset. It honours `quebratsk/performance/max_background_threads` now — which until this
-  release was a Project Setting nothing read.
-
-### Added
 
 - **`QuebratskSettings.max_background_threads`**, defaulting to cores − 1 clamped to 1–8,
   read at the point of use so a change takes effect without a restart. It is the only
@@ -105,6 +62,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `currentColor` so the editor tints them per theme; a coloured icon breaks in light mode.
   Not yet wired either — the dock still resolves icons through Godot's built-in
   `EditorIcons`.
+
+- **Ready-made categories**, so content can be browsed without knowing what to search for.
+  Both GoldSrc and Source lay assets out by convention, and the folder says far more about
+  what a thing *is* than its extension does — `.mdl` only means "model". Categories match
+  on folder as well as type:
+
+  | Category | Matches | Garry's Mod + Half-Life 2 |
+  |---|---|---|
+  | Characters & people | `models/player`, `/humans/`, `/npc`, `/zombie`, `/combine_`, `/police` | 333 |
+  | Weapons | `/weapons/`, `/w_`, `/v_`, `/shells/` | 234 |
+  | Vehicles | `vehicle`, `/cars/`, `/car_`, `/airboat`, `/buggy`, `/jeep` | 56 |
+  | Props & scenery | `/props`, `/furniture`, `/gibs/` | 2,130 |
+  | All models · Maps & terrain · Textures & materials · Sounds | by type | 4,264 · 82 · 23,937 · 9,803 |
+
+- **Each result names the game it came from**, in a second column: `police.mdl / Garry's
+  Mod`. Both Garry's Mod and Half-Life 2 ship a `police.mdl`, and with several games added
+  the filename alone does not say which one is about to be imported. The same origin shows
+  in the picked-item line: `Model · 26.8 KB · Garry's Mod / models/player`.
+
+- **The search box waits for a pause before refiltering.** Two mounted games is ~42,000
+  pickable entries and up to 400 rebuilt rows, which was about 120 ms per keystroke and made
+  typing feel like it was fighting back. The refresh is far cheaper now (see *Performance*),
+  but rebuilding the whole list on every letter is still work nobody asked for.
 
 ### Changed
 
@@ -157,29 +137,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   comment at the top of the file — five different command lines, none verified by
   anything.
 
-### Added
+### Removed
 
-- **Ready-made categories**, so content can be browsed without knowing what to search for.
-  Both GoldSrc and Source lay assets out by convention, and the folder says far more about
-  what a thing *is* than its extension does — `.mdl` only means "model". Categories match
-  on folder as well as type:
+- **Seven registered classes and ten parser stubs that did not do what their names said.**
+  A registered class is a promise to whoever calls it, and these were promises the project
+  could not keep:
 
-  | Category | Matches | Garry's Mod + Half-Life 2 |
-  |---|---|---|
-  | Characters & people | `models/player`, `/humans/`, `/npc`, `/zombie`, `/combine_`, `/police` | 333 |
-  | Weapons | `/weapons/`, `/w_`, `/v_`, `/shells/` | 234 |
-  | Vehicles | `vehicle`, `/cars/`, `/car_`, `/airboat`, `/buggy`, `/jeep` | 56 |
-  | Props & scenery | `/props`, `/furniture`, `/gibs/` | 2,130 |
-  | All models · Maps & terrain · Textures & materials · Sounds | by type | 4,264 · 82 · 23,937 · 9,803 |
+  | Class | What it actually did |
+  |---|---|
+  | `UAssetMeshExtractor`, `BundleMeshExtractor` | Returned a mesh carrying a name and a material and **zero vertices**. Unreal and Unity "support" was that |
+  | `VulkanRTBuilder` | Reported `is_built: true` for an acceleration structure Godot 4.3 has no API to build |
+  | `P2PVFSStreamer` | Contained no networking whatsoever |
+  | `BSPMapRenderer` | Not implemented; `UnifiedAssetImporter.load_mesh()` already did the job |
+  | `VFSFileTree` | Returned one hardcoded row |
+  | `DependencyGraphBuilder` | Returned an always-empty dependency list |
+  | `ImportPresets` | Wrote three settings nothing read |
 
-- **Each result names the game it came from**, in a second column: `police.mdl / Garry's
-  Mod`. Both Garry's Mod and Half-Life 2 ship a `police.mdl`, and with several games added
-  the filename alone does not say which one is about to be imported. The same origin shows
-  in the picked-item line: `Model · 26.8 KB · Garry's Mod / models/player`.
+  The parser stubs — `uasset_parser`, `bundle_parser`, `vmdl_parser`, `xob_parser`,
+  `paa_decoder`, `audio_decoder` and four others, 16 to 32 lines each — were never reached
+  by the importer at all. They existed to make a format table look longer.
 
-- **The search box waits for a pause before refiltering.** Two mounted games is ~42,000
-  entries and up to 400 rebuilt rows, about 120 ms — per keystroke, that made typing feel
-  like it was fighting back.
+  Registered classes: 23 → 15.
+
+### Fixed
+
+- The README and the beginner's guide told users to press **Add game content**. The button
+  has been called **Add a game** since the dock was restructured.
+
+- **`P3DMLODParser` returned success for a model it had not read.** It checked the magic
+  and handed back a `ParsedP3DModel` named `"BohemiaModel"` with zero surfaces and zero
+  bones, so every caller saw a valid parse of an empty model and had no way to tell that
+  nothing had been decoded. It also accepted ODOL, a different container entirely. It
+  reports an error now, and the dock says Arma and DayZ models cannot be imported yet
+  rather than letting the user press Add and get a failure they cannot act on.
+
+  `docs/API.md` had listed this as "⚠️ MLOD only", which was wrong — the row was written
+  from the parser's shape rather than from running it. Corrected, and the file now records
+  P3D as the cautionary example.
+
+- **`AsyncAssetImporter` spawned an unbounded thread per call.** Importing a folder of 200
+  models from a loop created 200 threads at once, each holding a decoded copy of its
+  asset. It honours `quebratsk/performance/max_background_threads` now — which until this
+  release was a Project Setting nothing read.
+
+### Performance
+
+- **`VFSManager.find_files()`** searches the index in the engine and returns only the page
+  that will be drawn, plus the full match count. The dock used to call `list_files()` — all
+  60,584 URIs of a Half-Life 2 plus Garry's Mod install copied into GDScript, several
+  megabytes allocated to build 400 rows — and then sift them with `get_extension()` and
+  `to_lower()` per entry, per keystroke.
+
+  Producing the same 102 results: **8.8 ms against 55.5 ms**. A whole list refresh, engine
+  scan plus 400 `Tree` rows, went from ~50 ms to 11–25 ms depending on the category.
+  `demo/tests/verify_dock.gd` times both ways in the same run, so the comparison stays
+  honest as the code changes.
+
+  The exclusion list is a parameter rather than the caller's job, because filtering after
+  the limit both truncates the page and inflates the total: the caller only ever sees the
+  part it was given. Doing it in GDScript is what made the dock read "showing the first 297
+  of 60,481" when the truth was 400 of 41,969.
+
+- **`list_poses()` no longer decodes the poses it is only naming.** It ran the full parse:
+  for each of a player model's 359 sequences it seeded two 68-element bone arrays, decoded
+  every track and converted the result into Godot's axes, and then the caller read the name
+  and threw the rest away.
+
+  It still has to establish which sequences are *readable* — a descriptor pointing at data
+  the model does not ship is not a pose it can stand in, and dropping that check would put
+  dead entries in the dock's dropdown. So the same walk runs, stopping at the first bone
+  that proves the sequence decodes. Identical list, a fraction of the work: 65 ms → 26 ms
+  in a debug build, and the cost of naming poses fell from half a full import to a fifth of
+  one.
+
+  In a release build the remaining ~7 ms is almost entirely one read: the 7.1 MB
+  `m_anm.ani` that every Garry's Mod player model borrows its stances from. That one is not
+  wasted work, it is a file that has to be read — but it is read again for the import that
+  follows, and again on each pose change, which is where the next gain is.
+
+- **Which game a result came from is a hash lookup.** `_game_of()` walked every source and
+  its nested mount array on each call, once per row while drawing 400 of them. The map is
+  rebuilt when the mounts change, which is the only thing that invalidates it.
+
+- **"Have you added a game yet" no longer scans the index.** The empty-state check asked the
+  VFS, so every keystroke walked all 60,584 entries to learn something the dock already
+  knew about its own mounts.
 
 ---
 

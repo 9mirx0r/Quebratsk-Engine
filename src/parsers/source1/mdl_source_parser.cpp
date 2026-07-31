@@ -78,10 +78,16 @@ void fill_skeleton(const ByteReader& mdl, const SourceStudioHeader* header,
 /// encoded Euler tracks scaled by the bone's rot_scale and added to its rest angles;
 /// positions work the same way. Bones absent from the chain keep their rest transform,
 /// which is what the format intends.
+///
+/// Passing null for both outputs asks only whether the chain decodes at all, which is the
+/// question PoseDetail::NamesOnly needs answered. The decode still runs — the answer
+/// depends on it — but only until the first bone that succeeds, and nothing is stored. The
+/// probe therefore accepts and rejects exactly what the full walk does, which a separate
+/// cheaper test could not promise.
 bool walk_bone_tracks(const ByteReader& data, size_t start,
                       std::span<const SourceStudioBone> bones,
-                      std::vector<godot::Vector3>& src_pos,
-                      std::vector<godot::Quaternion>& src_rot) {
+                      std::vector<godot::Vector3>* src_pos,
+                      std::vector<godot::Quaternion>* src_rot) {
     size_t cursor = start;
     int guard = 0;
     bool any = false;
@@ -99,14 +105,14 @@ bool walk_bone_tracks(const ByteReader& data, size_t start,
         if (ba.flags & kAnimRawRot) {
             if (const auto q = data.array_at<SourceQuat48>(payload, 1); !q.empty()) {
                 const auto d = AnimDecoder::decode_quat48(q[0]);
-                src_rot[ba.bone] = godot::Quaternion(d[0], d[1], d[2], d[3]);
+                if (src_rot) (*src_rot)[ba.bone] = godot::Quaternion(d[0], d[1], d[2], d[3]);
                 any = true;
             }
             payload += sizeof(SourceQuat48);
         } else if (ba.flags & kAnimRawRot2) {
             if (const auto q = data.array_at<SourceQuat64>(payload, 1); !q.empty()) {
                 const auto d = AnimDecoder::decode_quat64(q[0]);
-                src_rot[ba.bone] = godot::Quaternion(d[0], d[1], d[2], d[3]);
+                if (src_rot) (*src_rot)[ba.bone] = godot::Quaternion(d[0], d[1], d[2], d[3]);
                 any = true;
             }
             payload += sizeof(SourceQuat64);
@@ -130,7 +136,7 @@ bool walk_bone_tracks(const ByteReader& data, size_t start,
                 const godot::Quaternion qx(godot::Vector3(1, 0, 0), angle[0]);
                 const godot::Quaternion qy(godot::Vector3(0, 1, 0), angle[1]);
                 const godot::Quaternion qz(godot::Vector3(0, 0, 1), angle[2]);
-                src_rot[ba.bone] = qz * qy * qx;
+                if (src_rot) (*src_rot)[ba.bone] = qz * qy * qx;
                 any = true;
             }
             payload += sizeof(SourceAnimValuePtr);
@@ -140,7 +146,7 @@ bool walk_bone_tracks(const ByteReader& data, size_t start,
         if (ba.flags & kAnimRawPos) {
             if (const auto v = data.array_at<SourceVec48>(payload, 1); !v.empty()) {
                 const auto d = AnimDecoder::decode_vec48(v[0]);
-                src_pos[ba.bone] = godot::Vector3(d[0], d[1], d[2]);
+                if (src_pos) (*src_pos)[ba.bone] = godot::Vector3(d[0], d[1], d[2]);
                 any = true;
             }
         } else if (ba.flags & kAnimAnimPos) {
@@ -158,10 +164,13 @@ bool walk_bone_tracks(const ByteReader& data, size_t start,
                         p[axis] += static_cast<float>(*v) * bone.pos_scale[axis];
                     }
                 }
-                src_pos[ba.bone] = godot::Vector3(p[0], p[1], p[2]);
+                if (src_pos) (*src_pos)[ba.bone] = godot::Vector3(p[0], p[1], p[2]);
                 any = true;
             }
         }
+
+        // Probing only needs one bone to prove the sequence is readable.
+        if (any && !src_pos && !src_rot) return true;
 
         if (ba.next_offset <= 0) break;
         cursor += static_cast<size_t>(ba.next_offset);
@@ -222,7 +231,8 @@ std::optional<TrackLocation> locate_tracks(const ByteReader& mdl, size_t adesc_o
 void extract_poses(const ByteReader& mdl, const ByteReader& ani,
                    const SourceStudioHeader* header,
                    std::span<const SourceStudioBone> bones,
-                   ir::IRSkeletonData& out) {
+                   ir::IRSkeletonData& out,
+                   PoseDetail detail) {
     if (bones.empty()) return;
     if (header->num_local_seq <= 0 || header->local_seq_index <= 0) return;
     if (header->num_local_anim <= 0 || header->local_anim_index <= 0) return;
@@ -267,6 +277,17 @@ void extract_poses(const ByteReader& mdl, const ByteReader& ani,
             pose.name = "sequence_" + std::to_string(s);
         }
 
+        const ByteReader& track_data = loc->external ? ani : mdl;
+
+        if (detail == PoseDetail::NamesOnly) {
+            // Seeding the rest transforms and converting them back out is the bulk of the
+            // per-sequence cost, and a caller after names alone throws all of it away.
+            if (walk_bone_tracks(track_data, loc->offset, bones, nullptr, nullptr)) {
+                out.poses.push_back(std::move(pose));
+            }
+            continue;
+        }
+
         // Accumulate in the SOURCE frame; the axis remap is applied once at the end so
         // IRPose lands in the same space as IRBone.
         std::vector<godot::Vector3> src_pos;
@@ -278,8 +299,7 @@ void extract_poses(const ByteReader& mdl, const ByteReader& ani,
             src_rot.push_back(godot::Quaternion(b.rot[0], b.rot[1], b.rot[2], b.rot[3]));
         }
 
-        const bool any = walk_bone_tracks(loc->external ? ani : mdl, loc->offset,
-                                          bones, src_pos, src_rot);
+        const bool any = walk_bone_tracks(track_data, loc->offset, bones, &src_pos, &src_rot);
         if (any) {
             pose.positions.reserve(bones.size());
             pose.rotations.reserve(bones.size());
@@ -349,7 +369,8 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse(
 }
 
 std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_bundle(
-    const SourceModelBundle& bundle
+    const SourceModelBundle& bundle,
+    PoseDetail poses
 ) {
     const ByteReader mdl(bundle.mdl);
 
@@ -384,7 +405,8 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
         const auto bone_span = mdl.array_at<SourceStudioBone>(
             static_cast<size_t>(header->bone_index), static_cast<size_t>(header->num_bones));
         if (!bone_span.empty()) {
-            extract_poses(mdl, ByteReader(bundle.ani), header, bone_span, result.skeleton_data);
+            extract_poses(mdl, ByteReader(bundle.ani), header, bone_span,
+                          result.skeleton_data, poses);
         }
     }
 
@@ -408,11 +430,16 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
             static_cast<size_t>(inc_hdr[0].num_bones));
         if (inc_bones.empty()) continue;
 
-        extract_poses(inc_mdl, ByteReader(inc.ani), inc_hdr.data(), inc_bones, inc_skel);
+        extract_poses(inc_mdl, ByteReader(inc.ani), inc_hdr.data(), inc_bones, inc_skel, poses);
 
         for (const auto& src_pose : inc_skel.poses) {
             ir::IRPose mapped;
             mapped.name = src_pose.name;
+            if (poses == PoseDetail::NamesOnly) {
+                // Nothing to remap: the borrowed pose carries no transforms either.
+                result.skeleton_data.poses.push_back(std::move(mapped));
+                continue;
+            }
             mapped.positions.reserve(result.skeleton_data.bones.size());
             mapped.rotations.reserve(result.skeleton_data.bones.size());
 
