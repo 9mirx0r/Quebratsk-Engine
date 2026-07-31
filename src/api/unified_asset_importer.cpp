@@ -43,6 +43,14 @@ void UnifiedAssetImporter::_bind_methods() {
                          &UnifiedAssetImporter::load_model, DEFVAL(String()));
     ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
     ClassDB::bind_method(D_METHOD("get_last_error_code"), &UnifiedAssetImporter::get_last_error_code);
+
+    // Without these the codes are bare integers in GDScript and every caller re-invents
+    // its own magic numbers.
+    ClassDB::bind_integer_constant("UnifiedAssetImporter", "", "ERR_OK", ERR_OK);
+    ClassDB::bind_integer_constant("UnifiedAssetImporter", "", "ERR_VFS_NOT_SET", ERR_VFS_NOT_SET);
+    ClassDB::bind_integer_constant("UnifiedAssetImporter", "", "ERR_ASSET_UNREADABLE",
+                                   ERR_ASSET_UNREADABLE);
+    ClassDB::bind_integer_constant("UnifiedAssetImporter", "", "ERR_PARSE_FAILED", ERR_PARSE_FAILED);
 }
 
 void UnifiedAssetImporter::set_vfs(vfs::VFSManager* vfs) {
@@ -54,7 +62,8 @@ std::vector<std::byte> UnifiedAssetImporter::read_asset_bytes(const String& vfs_
     return m_vfs->read_owned(vfs_uri.utf8().get_data());
 }
 
-AssetBundleBytes UnifiedAssetImporter::read_asset_bundle(const String& vfs_uri) const {
+AssetBundleBytes UnifiedAssetImporter::read_asset_bundle(const String& vfs_uri,
+                                                         bool with_geometry) const {
     AssetBundleBytes bundle;
     if (!m_vfs) return bundle;
 
@@ -93,11 +102,14 @@ AssetBundleBytes UnifiedAssetImporter::read_asset_bundle(const String& vfs_uri) 
         return std::vector<std::byte>{};
     };
 
-    // Source companions.
-    bundle.vertices = read_companion({".vvd"});
-    // dx90 is the modern index set; the others are legacy fallbacks still found in
-    // older addons.
-    bundle.indices = read_companion({".dx90.vtx", ".vtx", ".dx80.vtx", ".sw.vtx"});
+    // Source companions. Skipped wholesale for pose-only callers: these two are almost
+    // all of a model's bytes and neither contributes a single sequence.
+    if (with_geometry) {
+        bundle.vertices = read_companion({".vvd"});
+        // dx90 is the modern index set; the others are legacy fallbacks still found in
+        // older addons.
+        bundle.indices = read_companion({".dx90.vtx", ".vtx", ".dx80.vtx", ".sw.vtx"});
+    }
 
     // GoldSrc texture companion. Much of the stock Counter-Strike 1.6 content declares
     // zero textures in the model and keeps them in "<name>T.mdl" next to it.
@@ -247,18 +259,18 @@ Ref<ArrayMesh> UnifiedAssetImporter::load_mesh(const String& vfs_uri) {
 PackedStringArray UnifiedAssetImporter::list_poses(const String& vfs_uri) {
     PackedStringArray pose_names;
     if (!m_vfs) {
-        m_last_error_code = 1;
+        m_last_error_code = ERR_VFS_NOT_SET;
         return pose_names;
     }
 
-    const AssetBundleBytes bundle = read_asset_bundle(vfs_uri);
+    const AssetBundleBytes bundle = read_asset_bundle(vfs_uri, /*with_geometry=*/false);
     if (bundle.empty()) {
-        m_last_error_code = 2;
+        m_last_error_code = ERR_ASSET_UNREADABLE;
         return pose_names;
     }
 
-    std::string lower_uri = to_lower_ascii(vfs_uri.utf8().get_data());
-    ParsedAssetIR ir = parse_asset_ir(bundle, lower_uri);
+    const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
+    const ParsedAssetIR ir = parse_asset_ir(bundle, uri_lower);
 
     for (const auto& pose : ir.skeleton.poses) {
         if (!pose.name.empty()) {
@@ -266,18 +278,20 @@ PackedStringArray UnifiedAssetImporter::list_poses(const String& vfs_uri) {
         }
     }
 
-    m_last_error_code = 0;
+    m_last_error_code = ERR_OK;
     return pose_names;
 }
 
 Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& pose_name) {
     if (!m_vfs) {
+        m_last_error_code = ERR_VFS_NOT_SET;
         UtilityFunctions::printerr("[QuebratskImporter] VFSManager not set!");
         return nullptr;
     }
 
     const AssetBundleBytes bundle = read_asset_bundle(vfs_uri);
     if (bundle.empty()) {
+        m_last_error_code = ERR_ASSET_UNREADABLE;
         UtilityFunctions::printerr("[QuebratskImporter] Empty or unreadable asset: ", vfs_uri);
         return nullptr;
     }
@@ -285,14 +299,28 @@ Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& po
     const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
     ParsedAssetIR parsed = parse_asset_ir(bundle, uri_lower);
 
+    return build_model_node(parsed, pose_name);
+}
+
+Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
+                                               const String& pose_name) {
+    if (!m_vfs) {
+        m_last_error_code = ERR_VFS_NOT_SET;
+        UtilityFunctions::printerr("[QuebratskImporter] VFSManager not set!");
+        return nullptr;
+    }
+
     if (parsed.mesh.surfaces.empty()) {
-        UtilityFunctions::printerr("[QuebratskImporter] No mesh surfaces decoded from: ", vfs_uri);
+        m_last_error_code = ERR_PARSE_FAILED;
+        UtilityFunctions::printerr("[QuebratskImporter] No mesh surfaces decoded from: ",
+                                   String(parsed.mesh.name.c_str()));
         return nullptr;
     }
 
     converters::TextureLoader loader(m_vfs);
     Ref<ArrayMesh> mesh = converters::MeshConverter::convert(parsed.mesh, &loader);
     if (mesh.is_null()) {
+        m_last_error_code = ERR_PARSE_FAILED;
         return nullptr;
     }
 
@@ -309,6 +337,7 @@ Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& po
     mesh_instance->set_name(node_name);
 
     if (parsed.skeleton.bones.empty()) {
+        m_last_error_code = ERR_OK;
         return mesh_instance; // static geometry, nothing to bind
     }
 
@@ -361,6 +390,7 @@ Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& po
         }
     }
 
+    m_last_error_code = ERR_OK;
     return skeleton;
 }
 

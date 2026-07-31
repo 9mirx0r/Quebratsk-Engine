@@ -10,12 +10,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **`AsyncAssetImporter.load_model_async()`**: Non-blocking asynchronous model loader decoding geometry, skeletons, materials, and poses on worker threads before handing the constructed `Node3D` to the main thread callback.
-- **`UnifiedAssetImporter.list_poses()`**: Header-only pose metadata scanner returning sequence names from models without full mesh decoding.
-- **`VFSManager.get_mounts_info()`**: Returns an array of Dictionaries containing `{prefix, real_path, engine, file_count}` for UI mount tables.
-- **`VFSManager.scan_game_directory()`**: Scans game directories and returns archive and asset counts.
-- **`SteamLibraryDetector` Source Games Expansion**: Expanded auto-detection targets to include Half-Life 2, Episode 1, Episode 2, Portal, Portal 2, Team Fortress 2, and Left 4 Dead 2.
-- **`UnifiedAssetImporter.get_last_error_code()`**: Added machine-readable error codes for UI exception catching.
+
+The six APIs `docs/API.md` §6 asked for, so the editor addon can be built against a stable
+surface. All are exercised by `demo/verify_api.gd` against a real Steam install.
+
+- **`AsyncAssetImporter.load_model_async()`** — decodes on a worker thread and constructs
+  the `Node3D` in a main-thread continuation. The VFS read stays on the main thread
+  because the VFS is main-thread-owned; what moves off it is the decode, ~100 ms of the
+  ~170 ms a Garry's Mod player model costs.
+- **`UnifiedAssetImporter.list_poses()`** — every sequence label a model carries. Skips the
+  `.vvd` and `.vtx` entirely via `read_asset_bundle(uri, with_geometry: false)`, since
+  poses live in the `.mdl` and its `.ani`.
+- **`UnifiedAssetImporter.build_model_node()`** — the main-thread half of `load_model()`,
+  taking an already-parsed IR. Split out so the async path has something to construct
+  from.
+- **`VFSManager.get_mounts_info()`** — one row per mounted prefix:
+  `{prefix, real_path, engine, file_count, archive_count}`.
+- **`VFSManager.scan_game_directory()`** — `{total_archives, archives, loose_models,
+  loose_maps, loose_textures}` for a setup wizard.
+- **`UnifiedAssetImporter.get_last_error_code()`** with named constants bound into
+  GDScript: `ERR_OK`, `ERR_VFS_NOT_SET`, `ERR_ASSET_UNREADABLE`, `ERR_PARSE_FAILED`.
+- **`SteamLibraryDetector`** now also finds Half-Life 2, Episode One, Episode Two, Portal,
+  Portal 2, Team Fortress 2 and Left 4 Dead 2.
+- `demo/verify_api.gd` — a harness that exercises all six against retail assets and prints
+  what each actually returns, rather than asserting they were written.
+
+### Fixed
+
+Defects in the first cut of the six APIs above, all caught by running them:
+
+- **`load_model_async()` always delivered `null`.** The continuation called
+  `load_model(parsed_ir.mesh.name, …)`, but `mesh.name` is the model's *internal* header
+  name (`"player/lowpoly/usarmy_2000.mdl"`), not a `vfs://` URI, so the lookup always
+  missed. It also discarded the IR the worker had just produced and re-parsed on the main
+  thread — so the call was never actually asynchronous either.
+- **`get_last_error_code()` reported `ERR_OK` after a failed `load_model()`.** Only
+  `load_mesh()` and `list_poses()` set the code; the most important entry point left
+  whatever the previous call had stored. A UI checking it would have been told a failed
+  import succeeded. Every `load_*` path now sets it, on success as well as failure.
+- **`list_poses()` read and decoded the full mesh** despite being documented as
+  header-only — it went through the standard bundle read, pulling in the `.vvd` and
+  `.vtx`. Now ~70 ms instead of ~100 ms against ~170 ms for a full import.
+- **`get_mounts_info()` reported 7 mounts for 3.** A VPK's numbered side archives are
+  separate internal containers under the same prefix, and each was listed as its own mount
+  with a `file_count` of 0 or 1. Rows are now grouped by prefix, with `archive_count`
+  carrying the number of real files. Counting is also a single pass over the index rather
+  than one pass per mount — it was O(mounts × index).
+- **`scan_game_directory()` could call `terminate()`.** It iterated with a range-`for`,
+  whose `operator++` throws on an I/O error; godot-cpp is built with exceptions disabled,
+  so an unreadable path partway through a scan would have taken the editor down. Now uses
+  `increment(ec)` and reports partial results. It also counted VPK side archives as
+  separately mountable, and its `total_models` keys implied it saw inside archives — they
+  are now named `loose_*`, because a modern Source game keeps everything in VPKs and the
+  honest answer for `GarrysMod/` is 1 loose model.
+- **The release DLL was a copy of the debug build** — byte-identical, 7.4 MB instead of
+  768 KB. This is the same defect fixed in `v0.3.0-alpha`, regressed. Rebuilt from
+  `build-release/`.
+- **`quebratsk-engine-v0.2.0-alpha-windows.zip` was overwritten** in the repository
+  (1,523,555 → 11,149,851 bytes). Restored from `29b1369`; verified byte-identical to the
+  asset still published on the v0.2.0-alpha release, which was never touched.
 
 ---
 
