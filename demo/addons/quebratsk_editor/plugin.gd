@@ -34,15 +34,23 @@ func _reveal_once() -> void:
 	if bool(cfg.get_value("ui", "introduced", false)):
 		return
 
-	await get_tree().process_frame
+	# Deferred rather than `await get_tree().process_frame`. On a genuine first install
+	# Godot is still scanning the project and reloads scripts, which cancels any suspended
+	# coroutine — "Canceling suspended execution of _reveal_once due to a script reload".
+	# That is precisely the run this function exists for, so it never fired. A deferred
+	# call is queued rather than suspended and survives the reload.
+	_select_dock_tab.call_deferred()
+
+	cfg.set_value("ui", "introduced", true)
+	cfg.save(DockScene.MOUNTS_FILE)
+
+
+func _select_dock_tab() -> void:
 	if not is_instance_valid(_dock):
 		return
 	var tabs := _dock.get_parent() as TabContainer
 	if tabs != null:
 		tabs.current_tab = _dock.get_index()
-
-	cfg.set_value("ui", "introduced", true)
-	cfg.save(DockScene.MOUNTS_FILE)
 
 
 func _exit_tree() -> void:
