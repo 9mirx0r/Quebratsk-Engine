@@ -50,13 +50,27 @@ const KINDS := {
 ## picked.
 const COMPANION_EXTENSIONS := ["vvd", "vtx", "ani", "phy"]
 
+## What mount_container() can open, for the drag-and-drop filter.
+const _MOUNTABLE := ["vpk", "wad", "gma", "pbo"]
+
+## How many recently imported assets to remember.
+const MAX_RECENTS := 12
+
 ## Ready-made categories, so a user can browse without knowing what to search for.
 ##
 ## `ext` narrows by file type; `folders` narrows by where the file sits. Both GoldSrc and
 ## Source lay content out by convention — models/weapons/, models/player/,
 ## models/props_vehicles/ — so the folder is a far better guide to what a thing IS than
 ## its extension, which only says "model". An empty list means "do not narrow on this".
+## Two pseudo-categories sit in front of the real ones. They ignore `ext` and `folders`
+## and draw from the user's own lists instead, because in 25,990 files per game the hard
+## problem is not finding something once, it is finding it again.
+const CATEGORY_FAVOURITES := "Favourites"
+const CATEGORY_RECENT := "Recently imported"
+
 const CATEGORIES := [
+	{"label": CATEGORY_FAVOURITES, "ext": [], "folders": []},
+	{"label": CATEGORY_RECENT, "ext": [], "folders": []},
 	{"label": "Everything", "ext": [], "folders": []},
 	{"label": "Characters & people", "ext": ["mdl", "p3d"],
 		"folders": ["models/player", "/humans/", "/npc", "/zombie", "/combine_", "/police"]},
@@ -110,6 +124,12 @@ var _orbit_distance := 3.0
 ## two VPKs plus a loose-file tree. Grouping is what turns three cryptic rows —
 ## fallbacks_dir, garrysmod_dir, garry's_mod — into one that says "Garry's Mod".
 var _sources: Dictionary = {}
+
+## vfs:// URI -> true. A set, so membership is a hash lookup while drawing 400 rows.
+var _favourites: Dictionary = {}
+## Most recent first, capped at MAX_RECENTS.
+var _recents: Array = []
+var _star_button: Button
 
 
 func set_editor_plugin(plugin: EditorPlugin) -> void:
@@ -295,6 +315,9 @@ func _build_ui() -> void:
 	# Wide enough for "/ Garry's Mod" without ellipsis; longer names ellipsise instead,
 	# and the tooltip carries the full title either way.
 	_results.set_column_custom_minimum_width(1, 112)
+	# Ctrl-click and shift-click to take several. Building a street wants twenty props, and
+	# doing that one round-trip at a time is the difference between usable and tedious.
+	_results.select_mode = Tree.SELECT_MULTI
 	_results.custom_minimum_size = Vector2(0, 170)
 	_results.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_results.item_selected.connect(_on_result_selected)
@@ -364,6 +387,14 @@ func _build_ui() -> void:
 	_pose_row.add_child(_pose_picker)
 
 	var button_row := _row()
+
+	_star_button = Button.new()
+	_star_button.text = "☆"
+	_star_button.tooltip_text = tr("Pin this so it stays easy to find")
+	_star_button.disabled = true
+	_star_button.pressed.connect(_on_star_pressed)
+	button_row.add_child(_star_button)
+
 	_add_button = Button.new()
 	_add_button.text = tr("Add to scene")
 	_add_button.icon = _icon("action_add")
@@ -797,6 +828,8 @@ func _save_sources() -> void:
 	# Load first: the file also carries the one-time "introduced" flag plugin.gd sets.
 	cfg.load(MOUNTS_FILE)
 	cfg.set_value("mounts", "sources", _sources)
+	cfg.set_value("library", "favourites", _favourites.keys())
+	cfg.set_value("library", "recents", _recents)
 	cfg.save(MOUNTS_FILE)
 
 
@@ -805,6 +838,13 @@ func _restore_sources() -> String:
 	var cfg := ConfigFile.new()
 	if cfg.load(MOUNTS_FILE) != OK:
 		return ""
+
+	# Stored as a list and rebuilt into a set: ConfigFile round-trips arrays cleanly, and
+	# the set is what makes the per-row lookup while drawing 400 results a hash hit.
+	for uri in cfg.get_value("library", "favourites", []):
+		_favourites[str(uri)] = true
+	for uri in cfg.get_value("library", "recents", []):
+		_recents.append(str(uri))
 
 	var saved = cfg.get_value("mounts", "sources", {})
 	if typeof(saved) != TYPE_DICTIONARY:
@@ -858,6 +898,45 @@ func _on_search_typed(_text: String) -> void:
 	_search_debounce.start()
 
 
+# ------------------------------------------------------------------ drag & drop ----
+
+## Accept archives dragged from the file manager onto the panel.
+##
+## Godot hands external files as {"type": "files", "files": [...]}. VFSDropHandler already
+## knew how to mount those and had no caller; this is it.
+func _can_drop_data(_at: Vector2, data: Variant) -> bool:
+	if typeof(data) != TYPE_DICTIONARY:
+		return false
+	var payload: Dictionary = data
+	if str(payload.get("type", "")) != "files":
+		return false
+	for f in payload.get("files", []):
+		if _MOUNTABLE.has(str(f).get_extension().to_lower()):
+			return true
+	return false
+
+
+func _drop_data(_at: Vector2, data: Variant) -> void:
+	var files: Array = (data as Dictionary).get("files", [])
+	var added := 0
+	for f in files:
+		var path := str(f)
+		if not _MOUNTABLE.has(path.get_extension().to_lower()):
+			continue
+		# A _dir.vpk pulls in its own side archives, so dropping a whole folder's worth
+		# would mount each numbered part as its own source.
+		if path.get_extension().to_lower() == "vpk" \
+				and not path.get_file().to_lower().ends_with("_dir.vpk"):
+			continue
+		var before := _sources.size()
+		_add_archive(path)
+		if _sources.size() > before:
+			added += 1
+
+	if added == 0 and not files.is_empty():
+		_say(tr("Nothing there Quebratsk can read."), true)
+
+
 ## Which game a hit belongs to, worked out from the mount prefix in its URI.
 func _game_of(uri: String) -> String:
 	var rest := uri.trim_prefix("vfs://")
@@ -890,6 +969,34 @@ func _refresh_results() -> void:
 		hint.set_custom_color(0, Color(0.55, 0.58, 0.64))
 		return
 
+	# The two curated categories replace the scan entirely: they are already the list.
+	var label := str(category["label"])
+	if label == CATEGORY_FAVOURITES or label == CATEGORY_RECENT:
+		var picks: Array = _recents if label == CATEGORY_RECENT else _favourites.keys()
+		var listed := 0
+		for entry in picks:
+			var uri := str(entry)
+			# A game can be unmounted after something was starred.
+			if not _vfs.file_exists(uri):
+				continue
+			if not needle.is_empty() and not uri.to_lower().contains(needle):
+				continue
+			_add_result_row(root, uri)
+			listed += 1
+		if listed == 0:
+			var empty := _results.create_item(root)
+			empty.set_selectable(0, false)
+			empty.set_custom_color(0, Color(0.55, 0.58, 0.64))
+			if label == CATEGORY_FAVOURITES:
+				empty.set_text(0, tr("Star something to keep it here"))
+				_say(tr("Pick an asset and press the star to pin it."))
+			else:
+				empty.set_text(0, tr("Nothing imported yet"))
+				_say(tr("What you import will show up here."))
+		else:
+			_say(tr("%s items.") % _grouped(listed))
+		return
+
 	var shown := 0
 	var matched := 0
 	for uri in all:
@@ -915,17 +1022,7 @@ func _refresh_results() -> void:
 		if shown >= MAX_RESULTS:
 			continue
 
-		var item := _results.create_item(root)
-		var kind := _kind_of(uri)
-		item.set_icon(0, _icon(str(kind["icon"])))
-		# The name is what a person scans for; the full path is context and lives in the
-		# tooltip, rather than the whole row being one long unreadable path.
-		item.set_text(0, uri.get_file())
-		item.set_text(1, "/ " + _game_of(uri))
-		item.set_custom_color(1, Color(0.58, 0.62, 0.70))
-		item.set_tooltip_text(0, uri)
-		item.set_tooltip_text(1, tr("From %s") % _game_of(uri))
-		item.set_metadata(0, uri)
+		_add_result_row(root, uri)
 		shown += 1
 
 	if matched == 0:
@@ -946,6 +1043,68 @@ func _refresh_results() -> void:
 			_say(tr("%s items.") % _grouped(matched))
 
 
+func _on_star_pressed() -> void:
+	if _selected_uri.is_empty():
+		return
+	if _favourites.has(_selected_uri):
+		_favourites.erase(_selected_uri)
+		_say(tr("Unpinned %s.") % _selected_uri.get_file())
+	else:
+		_favourites[_selected_uri] = true
+		_say(tr("Pinned %s.") % _selected_uri.get_file())
+	_save_sources()
+	_sync_star()
+	_refresh_results_keeping_selection()
+
+
+func _sync_star() -> void:
+	var pinned := _favourites.has(_selected_uri)
+	_star_button.disabled = _selected_uri.is_empty()
+	_star_button.text = "★" if pinned else "☆"
+
+
+## Remember what was imported, most recent first and without duplicates.
+func _remember_recent(uri: String) -> void:
+	_recents.erase(uri)
+	_recents.push_front(uri)
+	while _recents.size() > MAX_RECENTS:
+		_recents.pop_back()
+	_save_sources()
+
+
+## Redraw the list and put the cursor back where it was. Toggling a star changes a row's
+## text, and rebuilding the tree would otherwise drop the selection under the user.
+func _refresh_results_keeping_selection() -> void:
+	var keep := _selected_uri
+	_refresh_results()
+	if keep.is_empty():
+		return
+	var row: TreeItem = _results.get_root().get_first_child()
+	while row != null:
+		if str(row.get_metadata(0)) == keep:
+			_results.set_selected(row, 0)
+			_on_result_selected()
+			return
+		row = row.get_next()
+
+
+## One result row. Shared by the scan and by the curated categories so a favourite looks
+## exactly like the same file found by searching.
+func _add_result_row(root: TreeItem, uri: String) -> void:
+	var item := _results.create_item(root)
+	var kind := _kind_of(uri)
+	item.set_icon(0, _icon(str(kind["icon"])))
+	# The name is what a person scans for; the full path is context and lives in the
+	# tooltip, rather than the whole row being one long unreadable path.
+	var starred := "★ " if _favourites.has(uri) else ""
+	item.set_text(0, starred + uri.get_file())
+	item.set_text(1, "/ " + _game_of(uri))
+	item.set_custom_color(1, Color(0.58, 0.62, 0.70))
+	item.set_tooltip_text(0, uri)
+	item.set_tooltip_text(1, tr("From %s") % _game_of(uri))
+	item.set_metadata(0, uri)
+
+
 func _clear_selection() -> void:
 	_selected_uri = ""
 	_add_button.disabled = true
@@ -954,6 +1113,8 @@ func _clear_selection() -> void:
 	_picked_kind.text = tr("Pick something from the list above.")
 	if _preview_frame != null:
 		_clear_preview()
+	if _star_button != null:
+		_sync_star()
 
 
 func _on_result_selected() -> void:
@@ -981,6 +1142,7 @@ func _on_result_selected() -> void:
 
 	_clear_preview()
 	_preview_debounce.start()
+	_sync_star()
 
 	if bool(kind["placeable"]):
 		_add_button.disabled = false
@@ -1021,6 +1183,20 @@ func _on_pose_chosen(_index: int) -> void:
 
 # ----------------------------------------------------------------------- import ----
 
+## Every placeable URI the user has selected, in tree order.
+func _selected_uris() -> Array:
+	var out := []
+	var row: TreeItem = _results.get_next_selected(null)
+	while row != null:
+		var uri := str(row.get_metadata(0))
+		if not uri.is_empty() and bool(_kind_of(uri)["placeable"]):
+			out.append(uri)
+		row = _results.get_next_selected(row)
+	if out.is_empty() and not _selected_uri.is_empty():
+		out.append(_selected_uri)
+	return out
+
+
 func _on_add_pressed() -> void:
 	if _selected_uri.is_empty() or _add_button.disabled or _plugin == null:
 		return
@@ -1028,6 +1204,13 @@ func _on_add_pressed() -> void:
 	var scene_root := _plugin.get_editor_interface().get_edited_scene_root()
 	if scene_root == null:
 		_say(tr("Open a scene first — then press Add to scene again."), true)
+		return
+
+	# More than one selected: import them all in one undoable action rather than making
+	# the user repeat the whole pick-and-press cycle per prop.
+	var batch := _selected_uris()
+	if batch.size() > 1:
+		_add_batch(batch, scene_root)
 		return
 
 	var ext := _selected_uri.get_extension().to_lower()
@@ -1066,9 +1249,67 @@ func _on_add_pressed() -> void:
 	# saved and reopened.
 	_claim_ownership(node, scene_root)
 
+	_remember_recent(_selected_uri)
 	_plugin.get_editor_interface().get_selection().clear()
 	_plugin.get_editor_interface().get_selection().add_node(node)
 	_say(tr("Added %s. It is selected in the scene now.") % node.name)
+
+
+## Import a whole selection as one undoable step.
+##
+## The previewed node is not reused here: it holds only one of the picks, and adopting it
+## for that one while importing the rest would make a single Ctrl+Z leave the scene half
+## populated. One action, all nodes, one undo.
+func _add_batch(uris: Array, scene_root: Node) -> void:
+	var undo := _plugin.get_undo_redo()
+	undo.create_action(tr("Add %s items") % _grouped(uris.size()))
+
+	var added := 0
+	var failed := 0
+	var built: Array[Node3D] = []
+	for entry in uris:
+		var uri := str(entry)
+		var node := _build_for_scene(uri)
+		if node == null:
+			failed += 1
+			continue
+		# Spaced out along X so a batch does not arrive as one pile at the origin.
+		node.position = Vector3(added * 2.0, 0, 0)
+		undo.add_do_method(scene_root, "add_child", node, true)
+		undo.add_do_reference(node)
+		undo.add_undo_method(scene_root, "remove_child", node)
+		built.append(node)
+		_remember_recent(uri)
+		added += 1
+
+	if added == 0:
+		undo.commit_action()
+		_say(tr("Nothing in that selection could be imported."), true)
+		return
+
+	undo.commit_action()
+	for node in built:
+		_claim_ownership(node, scene_root)
+
+	if failed == 0:
+		_say(tr("Added %s items to the scene.") % _grouped(added))
+	else:
+		_say(tr("Added %s of %s. The rest could not be read.")
+			% [_grouped(added), _grouped(added + failed)])
+
+
+## Import one URI into a scene-ready node, without touching the preview.
+func _build_for_scene(uri: String) -> Node3D:
+	var ext := uri.get_extension().to_lower()
+	if ext == "bsp" or ext == "wrp":
+		var mesh: ArrayMesh = _importer.load_mesh(uri)
+		if mesh == null:
+			return null
+		var mi := MeshInstance3D.new()
+		mi.mesh = mesh
+		mi.name = uri.get_file().get_basename()
+		return mi
+	return _importer.load_model(uri, "")
 
 
 func _claim_ownership(node: Node, scene_root: Node) -> void:
