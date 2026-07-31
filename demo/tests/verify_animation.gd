@@ -46,7 +46,7 @@ func _ready() -> void:
 
 func _pick_model() -> String:
 	var hit: Dictionary = _vfs.find_files("models/player/", PackedStringArray(["mdl"]),
-		PackedStringArray(), 0)
+		PackedStringArray(), PackedStringArray(), 0)
 	for entry in hit["files"]:
 		var uri := str(entry)
 		# A model whose geometry is not mounted cannot be checked for motion.

@@ -110,6 +110,10 @@ public:
     /// `exclude` is subtracted from the result, and must be applied here rather than by
     ///     the caller: filtering after the limit both truncates the page and inflates the
     ///     total, because the caller only ever sees the part it was given.
+    /// `prefixes` restricts the search to those mounts; empty searches all of them. Same
+    ///     reasoning as `exclude`: with several games mounted, a caller that wanted one
+    ///     game's models and filtered a page afterwards would be handed a page drawn from
+    ///     every game and be left with whatever survived.
     /// `limit` caps the returned array, but never the count.
     ///
     /// Returns { "files": PackedStringArray, "total": int }, where `total` is how many
@@ -117,6 +121,7 @@ public:
     godot::Dictionary find_files(const godot::String& needle,
                                  const godot::PackedStringArray& extensions,
                                  const godot::PackedStringArray& exclude,
+                                 const godot::PackedStringArray& prefixes,
                                  int64_t limit) const;
 
     /// Read file content as PackedByteArray (decompresses automatically if needed)

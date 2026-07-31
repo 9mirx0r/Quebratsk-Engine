@@ -24,9 +24,11 @@ void VFSManager::_bind_methods() {
     ClassDB::bind_method(D_METHOD("unmount", "vfs_prefix"), &VFSManager::unmount);
     ClassDB::bind_method(D_METHOD("file_exists", "vfs_uri"), &VFSManager::file_exists);
     ClassDB::bind_method(D_METHOD("list_files", "prefix"), &VFSManager::list_files, DEFVAL(""));
-    ClassDB::bind_method(D_METHOD("find_files", "needle", "extensions", "exclude", "limit"),
+    ClassDB::bind_method(D_METHOD("find_files", "needle", "extensions", "exclude",
+                                  "prefixes", "limit"),
                          &VFSManager::find_files,
-                         DEFVAL(PackedStringArray()), DEFVAL(PackedStringArray()), DEFVAL(0));
+                         DEFVAL(PackedStringArray()), DEFVAL(PackedStringArray()),
+                         DEFVAL(PackedStringArray()), DEFVAL(0));
     ClassDB::bind_method(D_METHOD("read_file", "vfs_uri"), &VFSManager::read_file);
     ClassDB::bind_method(D_METHOD("get_file_size", "vfs_uri"), &VFSManager::get_file_size);
     ClassDB::bind_method(D_METHOD("get_mounts_info"), &VFSManager::get_mounts_info);
@@ -594,6 +596,7 @@ PackedStringArray VFSManager::list_files(const String& prefix) const {
 Dictionary VFSManager::find_files(const String& needle,
                                   const PackedStringArray& extensions,
                                   const PackedStringArray& exclude,
+                                  const PackedStringArray& prefixes,
                                   int64_t limit) const {
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -612,6 +615,15 @@ Dictionary VFSManager::find_files(const String& needle,
     const std::vector<std::string> wanted_ext = lowered(extensions);
     const std::vector<std::string> unwanted_ext = lowered(exclude);
 
+    // "vfs://name/" rather than the bare prefix, so a mount called "hl2" cannot also match
+    // one called "hl2_sound".
+    std::vector<std::string> wanted_mounts;
+    wanted_mounts.reserve(static_cast<size_t>(prefixes.size()));
+    for (int i = 0; i < prefixes.size(); ++i) {
+        wanted_mounts.push_back("vfs://" + normalize_prefix(to_lower(prefixes[i].utf8().get_data()))
+                                + "/");
+    }
+
     // Collecting matches before choosing a page is what makes the page mean anything: the
     // index is a hash map, so iteration order is whatever the bucket layout gives, and it
     // changes when the map is resized. "The first 400 of 41,969" needs there to be a first.
@@ -628,6 +640,14 @@ Dictionary VFSManager::find_files(const String& needle,
     matches.reserve(m_index.size());
 
     for (const auto& [uri, entry] : m_index) {
+        if (!wanted_mounts.empty()) {
+            bool from_wanted = false;
+            for (const auto& mount : wanted_mounts) {
+                if (uri.starts_with(mount)) { from_wanted = true; break; }
+            }
+            if (!from_wanted) continue;
+        }
+
         std::string_view ext;
         if (const size_t dot = uri.find_last_of('.'); dot != std::string::npos) {
             ext = std::string_view(uri.data() + dot + 1, uri.size() - dot - 1);

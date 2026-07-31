@@ -103,7 +103,8 @@ void             unmount(vfs_prefix: String)
 bool             file_exists(vfs_uri: String)
 PackedStringArray list_files(prefix: String = "")
 Dictionary       find_files(needle: String, extensions := PackedStringArray(),
-                            exclude := PackedStringArray(), limit := 0)
+                            exclude := PackedStringArray(),
+                            prefixes := PackedStringArray(), limit := 0)
 PackedByteArray  read_file(vfs_uri: String)
 int              get_file_size(vfs_uri: String)   # -1 when not found
 Array            get_mounts_info()
@@ -187,6 +188,11 @@ first and the other one's matches would never be seen.
 The order matters more than it looks. The index is a hash map, so before this the page was
 whichever entries the bucket layout happened to yield, it changed whenever the map was
 resized, and "showing the first 400 of 41,969" named a first that did not exist.
+
+`prefixes` restricts the search to those mounts, by the name they were mounted under, and
+empty searches all of them. Same reasoning as `exclude`: with several games mounted, asking
+for models and then keeping the ones from the game you meant would hand you a page drawn
+from every game and leave you with whatever survived.
 
 `needle` matches anywhere in the URI, case-insensitively; an empty one matches everything.
 `extensions` are lowercase and without the dot. `exclude` is subtracted first, which is the

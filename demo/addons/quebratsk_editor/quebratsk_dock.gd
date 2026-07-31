@@ -98,6 +98,7 @@ var _importer: UnifiedAssetImporter
 var _games: Tree
 var _search: LineEdit
 var _filter: OptionButton
+var _game_filter: OptionButton
 var _results: Tree
 var _picked_name: Label
 var _picked_kind: Label
@@ -313,6 +314,15 @@ func _build_ui() -> void:
 	_filter.tooltip_text = tr("Browse by what a thing is, without having to search for it")
 	_filter.item_selected.connect(func(_i: int) -> void: _refresh_results())
 	search_box.add_child(_filter)
+
+	# Which game to look in. With three or four games mounted, searching "police" across all
+	# of them and scrolling for the one you meant is the whole problem: the origin column
+	# tells you where a hit came from, but only after you have found it.
+	_game_filter = OptionButton.new()
+	_game_filter.tooltip_text = tr("Look in one game instead of all of them")
+	_game_filter.item_selected.connect(func(_i: int) -> void: _refresh_results())
+	search_box.add_child(_game_filter)
+	_refresh_game_filter()
 
 	var results_margin := MarginContainer.new()
 	results_margin.add_theme_constant_override("margin_left", 4)
@@ -969,6 +979,7 @@ func _unique_prefix(base: String) -> String:
 
 func _refresh_games() -> void:
 	_rebuild_prefix_map()
+	_refresh_game_filter()
 	_games.clear()
 	var root := _games.create_item()
 
@@ -1181,6 +1192,45 @@ func _rebuild_prefix_map() -> void:
 			_prefix_to_game[str((entry as Dictionary).get("prefix", ""))] = str(key)
 
 
+## Rebuild the game dropdown from what is mounted, keeping the current choice if that game
+## is still there. Called from _refresh_games(), which is where _sources changes.
+func _refresh_game_filter() -> void:
+	if _game_filter == null:
+		return
+	var previous := ""
+	if _game_filter.selected > 0 and _game_filter.selected < _game_filter.item_count:
+		previous = str(_game_filter.get_item_metadata(_game_filter.selected))
+
+	_game_filter.clear()
+	_game_filter.add_item(tr("All games"))
+	_game_filter.set_item_metadata(0, "")
+
+	var names := _sources.keys()
+	names.sort()
+	for key in names:
+		_game_filter.add_item(str(key))
+		_game_filter.set_item_metadata(_game_filter.item_count - 1, str(key))
+		if str(key) == previous:
+			_game_filter.select(_game_filter.item_count - 1)
+
+	# One game is no choice at all, and a dropdown with a single real entry is clutter.
+	_game_filter.visible = _sources.size() > 1
+
+
+## The mount prefixes the game dropdown is pointing at, or empty for all of them.
+func _chosen_prefixes() -> PackedStringArray:
+	if _game_filter == null or _game_filter.selected <= 0:
+		return PackedStringArray()
+	var game := str(_game_filter.get_item_metadata(_game_filter.selected))
+	if game.is_empty() or not _sources.has(game):
+		return PackedStringArray()
+
+	var out := PackedStringArray()
+	for entry in (_sources[game] as Dictionary).get("mounts", []):
+		out.append(str((entry as Dictionary).get("prefix", "")))
+	return out
+
+
 ## Which game a URI belongs to, from the mount prefix.
 ##
 ## This used to walk _sources and its nested mount arrays on every call, once per result
@@ -1250,7 +1300,8 @@ func _refresh_results() -> void:
 	# With a folder rule the engine cannot apply the limit, because whether a URI survives
 	# is decided here. Without one its count and its page are both final.
 	var hard_limit := MAX_RESULTS if folders.is_empty() else 0
-	var found: Dictionary = _vfs.find_files(needle, ext_filter, drop, hard_limit)
+	var found: Dictionary = _vfs.find_files(needle, ext_filter, drop, _chosen_prefixes(),
+		hard_limit)
 
 	var shown := 0
 	var matched := int(found["total"])

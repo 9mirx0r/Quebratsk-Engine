@@ -25,7 +25,7 @@ func _ready() -> void:
 	print("mounted %d archives from the base game" % mounted)
 	mounted += _mount_mods(vfs)
 
-	var hit: Dictionary = vfs.find_files("", PackedStringArray(["paa"]), PackedStringArray(), 0)
+	var hit: Dictionary = vfs.find_files("", PackedStringArray(["paa"]), PackedStringArray(), PackedStringArray(), 0)
 	var all: PackedStringArray = hit["files"]
 	print("%d .paa files reachable" % all.size())
 	if all.is_empty():

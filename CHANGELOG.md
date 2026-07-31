@@ -29,6 +29,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A game to search in.** With more than one game mounted, "police" returned hits from all
+  of them mixed together and the origin column only told you where something came from once
+  you had already found it. A dropdown beside the category picker narrows the search to one
+  game, and it appears only when there is more than one to choose between.
+
+  The filter is applied in the engine rather than to the page, for the same reason the
+  companion-file exclusion is: filtering afterwards would hand the caller a page drawn from
+  every game and leave whatever survived.
+
 - **Real Virtuality textures import.** `.paa` in DXT1, DXT5 and the packed ARGB and
   grey-plus-alpha layouts, including the LZO-compressed mipmaps that nearly all of them use.
   Listed in the supported table, because it earned it: against a retail DayZ install with
