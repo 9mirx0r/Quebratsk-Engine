@@ -4,13 +4,19 @@ build-release/
 bin/
 out/
 
-# demo/bin is the shipped GDExtension folder, not a build artifact directory.
-# Git cannot re-include files under an excluded directory, so un-ignore the folder
-# first and then filter its contents. Without this the .gdextension manifest never
-# reached the repository and a fresh clone could not load the extension at all.
+# demo/bin holds the GDExtension manifest, which is source, next to the compiled
+# library, which is not. Git cannot re-include files under an excluded directory, so
+# un-ignore the folder first and then filter its contents. Without this the
+# .gdextension manifest never reaches the repository and a fresh clone cannot load the
+# extension at all.
+#
+# The .dll used to be tracked here. It is a 7 MB build output that changed on nearly
+# every commit, and it accounted for 125 MB of the repository's 95 MB history — more
+# than twice what the committed release archives cost. CI builds it and publishes it as
+# an artifact, and users get it from Releases, so committing it bought nothing. Build
+# before running the demo project; the README says so.
 !demo/bin/
 demo/bin/*
-!demo/bin/*.dll
 !demo/bin/*.gdextension
 !demo/bin/*.uid
 .vs/
@@ -33,7 +39,6 @@ Makefile
 *.so
 *.dylib
 *.dll
-!demo/bin/*.dll
 *.exe
 *.obj
 *.o
