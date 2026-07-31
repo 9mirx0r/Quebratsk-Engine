@@ -56,6 +56,26 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_win64.exe.zip" -OutFile godot.zip
           Expand-Archive godot.zip -DestinationPath godot-bin
 
+      # Two passes, and the first one's output is discarded on purpose.
+      #
+      # Godot 4.3 records the GDExtensions it finds into .godot/extension_list.cfg during
+      # the initial project scan and loads them on the *next* start. So on a fresh
+      # checkout the first run has no VFSManager, every statically typed reference to it
+      # is a parse error, and the check fails on code that is fine. Godot 4.7 loads them
+      # during the scan, which is why this never reproduced on the developer machine.
+      #
+      # It is also what docs/TUTORIAL.md already tells users: close Godot and open the
+      # project again after installing.
+      - name: Import the project
+        shell: pwsh
+        run: |
+          $godot = (Get-ChildItem godot-bin -Filter *.exe -Recurse | Select-Object -First 1).FullName
+          & $godot --headless --editor --quit-after 200 --path demo *> $null
+          if (-not (Test-Path demo/.godot/extension_list.cfg)) {
+            throw "the import pass did not register the GDExtension"
+          }
+          Get-Content demo/.godot/extension_list.cfg
+
       - name: Check for GDScript errors
         shell: pwsh
         run: |
