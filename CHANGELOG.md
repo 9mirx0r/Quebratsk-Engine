@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The dock reads like a tool instead of a debug panel.** Everything ran together in one
+  column with technical labels; it is now three headed sections following the order the
+  work happens — *Your games*, *Find something*, *What you picked* — with consistent
+  margins and dimmed secondary text.
+
+  The wording rule throughout: say what a thing **is**, not what the file format calls it.
+
+  | Before | After |
+  |---|---|
+  | Three rows — `fallbacks_dir`, `garrysmod_dir`, `garry's_mod` — for one game the user added | One row: **Garry's Mod — 25,990 files**. Mounts are grouped by the thing the user chose, however many archives it took internally |
+  | `garrysmod_dir/models/player/police.mdl` | **police.mdl**, with a per-type icon; the full path moves to the tooltip |
+  | "Models" / "Maps" / ".vtf" | "Characters & props" / "Maps & terrain" / "Texture" |
+  | "Showing 400 of 25990 matches" | "Showing the first 400 of 18,090. Keep typing to narrow it down." |
+  | "Pose" → "Automatic" | "Standing pose" → "Whatever the game uses by default" |
+  | "VTF files can be browsed but not placed in a scene yet." | "Textures can be found here, but they are used by models and maps rather than placed on their own." |
+
+- **Companion files are no longer listed.** A Source model is split across `police.mdl` +
+  `police.vvd` + `police.dx90.vtx` + `police.ani`, and the importer resolves the
+  companions itself. Searching "police" returned 36 rows where the user wanted one, and
+  picking any of the extra three did nothing. `.vvd`, `.vtx`, `.ani` and `.phy` are hidden
+  — 25,990 indexed files, 18,090 of them actually pickable.
+
+- A restored session now says "Picking up where you left off." The greeting used to be
+  written and then immediately overwritten by the search-result count.
+
 ---
 
 ## [0.7.0-alpha] - 2026-07-30
