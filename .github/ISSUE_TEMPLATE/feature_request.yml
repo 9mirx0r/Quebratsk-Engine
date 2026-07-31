@@ -1,0 +1,50 @@
+name: Feature Request
+description: Suggest an enhancement or new format parser for Quebratsk Engine
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature! Please consult the [Roadmap](https://github.com/9mirx0r/Quebratsk-Engine#roadmap) before filing a request to check if the feature or engine format is already planned.
+
+  - type: dropdown
+    id: feature_category
+    attributes:
+      label: Feature Category
+      description: What area of the project does this feature apply to?
+      options:
+        - "GoldSrc (Half-Life / CS 1.6)"
+        - "Source Engine 1 (HL2 / GMod / TF2 / CS:S)"
+        - "Real Virtuality (Arma / DayZ)"
+        - "Virtual File System (VFS) / Archive Readers"
+        - "Editor Plugin / UX / Dock"
+        - "Performance / Hardware Optimizations"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_description
+    attributes:
+      label: Problem Description & Use Case
+      description: Describe the problem, limitation, or workflow gap you are encountering.
+      placeholder: Describe why this feature would be valuable for developers using Quebratsk Engine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution & Desired Behavior
+      description: Provide a clear description of what you want to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives_considered
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions, third-party workarounds, or GDScript scripts you have tried.
+    validations:
+      required: false

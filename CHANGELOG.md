@@ -9,7 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Community templates and a contributing guide** — `.github/ISSUE_TEMPLATE/`,
+  `.github/PULL_REQUEST_TEMPLATE.md`, `CONTRIBUTING.md`.
+
+  The bug form requires the four things without which an import report cannot be acted
+  on: Godot version, plugin version, the exact game and file that failed, and the
+  untruncated Output panel text. It also states up front which formats are *not*
+  supported, so those never become bug reports.
+
+  `CONTRIBUTING.md` carries the rule this project learned the hard way: **a format is not
+  documented as supported until it has been run against a retail game installation.** Both
+  the PR checklist and the guide restate it.
+
+- **Spanish (Río de la Plata) translation of the dock** —
+  `demo/addons/quebratsk_editor/i18n/dock.csv`. 60 strings, English source as the key so a
+  missing translation falls back to English rather than showing a symbol. Not yet wired:
+  the dock still needs `tr()` and a Localization entry, so the file is inert.
+
+- **Editor icons** — `demo/addons/quebratsk_editor/icons/`. Twelve monochrome 16×16 SVGs
+  (six asset types, three engines, add, remove) plus the plugin icon. Monochrome and
+  `currentColor` so the editor tints them per theme; a coloured icon breaks in light mode.
+  Not yet wired either — the dock still resolves icons through Godot's built-in
+  `EditorIcons`.
+
 ### Changed
+
+- **The roadmap image distinguishes shipped from planned.** It read as a flat capability
+  diagram and said C++20 where the project is C++23. Now *Shipping now* is ticked in cyan
+  and *Planned roadmap* is greyed with hourglasses, so the right-hand column cannot be
+  mistaken for finished work.
 
 - **The dock reads like a tool instead of a debug panel.** Everything ran together in one
   column with technical labels; it is now three headed sections following the order the
