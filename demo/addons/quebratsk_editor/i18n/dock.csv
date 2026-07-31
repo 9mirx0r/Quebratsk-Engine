@@ -1,61 +1,61 @@
 keys,en,es
-"Your games","Your games",
-"Find something","Find something",
-"What you picked","What you picked",
-"Add a game","Add a game",
-"Mount a game you have installed, a folder, or a single archive file","Mount a game you have installed, a folder, or a single archive file",
-"No installed games found automatically","No installed games found automatically",
-"Choose a game folder...","Choose a game folder...",
-"Open one archive file...","Open one archive file...",
-"Game archives","Game archives",
-"Nothing added yet","Nothing added yet",
-"Remove %s","Remove %s",
-"Removed %s.","Removed %s.",
-"%s is already in the list.","%s is already in the list.",
-"Added %s. Search for something above.","Added %s. Search for something above.",
-"Added %s.","Added %s.",
-"Could not read that folder. Check it still exists.","Could not read that folder. Check it still exists.",
-"Nothing importable in that folder.","Nothing importable in that folder.",
-"%s is not a game archive Quebratsk can read.","%s is not a game archive Quebratsk can read.",
-"Picking up where you left off.","Picking up where you left off.",
-"Start by adding a game you have installed.","Start by adding a game you have installed.",
-"Type a name, like police or dust","Type a name, like police or dust",
-"Browse by what a thing is, without having to search for it","Browse by what a thing is, without having to search for it",
-"Everything","Everything",
-"Characters & people","Characters & people",
-"Weapons","Weapons",
-"Vehicles","Vehicles",
-"Props & scenery","Props & scenery",
-"All models","All models",
-"Maps & terrain","Maps & terrain",
-"Textures & materials","Textures & materials",
-"Sounds","Sounds",
-"Model","Model",
-"Map","Map",
-"Terrain","Terrain",
-"Texture","Texture",
-"Material","Material",
-"Sound","Sound",
-"Add a game to see what is inside it","Add a game to see what is inside it",
-"Nothing found","Nothing found",
-"No matches. Try a shorter word, or a different category.","No matches. Try a shorter word, or a different category.",
-"Showing the first %s of %s. Keep typing to narrow it down.","Showing the first %s of %s. Keep typing to narrow it down.",
-"%s items.","%s items.",
-"%s item.","%s item.",
-"Nothing yet","Nothing yet",
-"Pick something from the list above.","Pick something from the list above.",
-"From %s","From %s",
-"Standing pose","Standing pose",
-"Which frame of the game's own animations the model stands in","Which frame of the game's own animations the model stands in",
-"Whatever the game uses by default","Whatever the game uses by default",
-"Add to scene","Add to scene",
-"Ready. Press Add to scene.","Ready. Press Add to scene.",
-"Open a scene first — then press Add to scene again.","Open a scene first — then press Add to scene again.",
-"Added %s. It is selected in the scene now.","Added %s. It is selected in the scene now.",
-"Arma and DayZ models cannot be imported yet — only their maps and archives.","Arma and DayZ models cannot be imported yet — only their maps and archives.",
-"%ss can be found here, but they are used by models and maps rather than placed on their own.","%ss can be found here, but they are used by models and maps rather than placed on their own.",
-"That file could not be read. Was the game moved or uninstalled?","That file could not be read. Was the game moved or uninstalled?",
-"This model keeps its shape in companion files that are not here. Add the rest of the game's archives and try again.","This model keeps its shape in companion files that are not here. Add the rest of the game's archives and try again.",
-"This file was recognised but nothing could be read out of it.","This file was recognised but nothing could be read out of it.",
-"Something went wrong inside the plugin. Disable and re-enable it.","Something went wrong inside the plugin. Disable and re-enable it.",
-"That did not work. The Output panel at the bottom has the details.","That did not work. The Output panel at the bottom has the details.",
+"Your games","Your games","Tus juegos"
+"Find something","Find something","Buscá algo"
+"What you picked","What you picked","Lo que elegiste"
+"Add a game","Add a game","Agregar un juego"
+"Mount a game you have installed, a folder, or a single archive file","Mount a game you have installed, a folder, or a single archive file","Cargá un juego instalado, una carpeta o un archivo de archivo"
+"No installed games found automatically","No installed games found automatically","No encontramos juegos instalados automáticamente"
+"Choose a game folder...","Choose a game folder...","Elegir carpeta de un juego..."
+"Open one archive file...","Open one archive file...","Abrir un archivo comprimido..."
+"Game archives","Game archives","Archivos del juego"
+"Nothing added yet","Nothing added yet","Todavía no agregaste nada"
+"Remove %s","Remove %s","Sacar %s"
+"Removed %s.","Removed %s.","Se sacó %s."
+"%s is already in the list.","%s is already in the list.","%s ya está en la lista."
+"Added %s. Search for something above.","Added %s. Search for something above.","Se agregó %s. Buscá algo arriba."
+"Added %s.","Added %s.","Se agregó %s."
+"Could not read that folder. Check it still exists.","Could not read that folder. Check it still exists.","No se pudo leer esa carpeta. Fíjate si todavía existe."
+"Nothing importable in that folder.","Nothing importable in that folder.","No hay nada que se pueda importar en esa carpeta."
+"%s is not a game archive Quebratsk can read.","%s is not a game archive Quebratsk can read.","%s no es un archivo de juego que Quebratsk pueda leer."
+"Picking up where you left off.","Picking up where you left off.","Retomando donde lo dejaste."
+"Start by adding a game you have installed.","Start by adding a game you have installed.","Empezá agregando un juego que tengas instalado."
+"Type a name, like police or dust","Type a name, like police or dust","Escribí un nombre, como police o dust"
+"Browse by what a thing is, without having to search for it","Browse by what a thing is, without having to search for it","Navegá según lo que sea, sin tener que buscarlo por nombre"
+"Everything","Everything","Todo"
+"Characters & people","Characters & people","Personajes y personas"
+"Weapons","Weapons","Armas"
+"Vehicles","Vehicles","Vehículos"
+"Props & scenery","Props & scenery","Objetos y escenarios"
+"All models","All models","Todos los modelos"
+"Maps & terrain","Maps & terrain","Mapas y terrenos"
+"Textures & materials","Textures & materials","Texturas y materiales"
+"Sounds","Sounds","Sonidos"
+"Model","Model","Modelo"
+"Map","Map","Mapa"
+"Terrain","Terrain","Terreno"
+"Texture","Texture","Textura"
+"Material","Material","Material"
+"Sound","Sound","Sonido"
+"Add a game to see what is inside it","Add a game to see what is inside it","Agregá un juego para ver qué tiene adentro"
+"Nothing found","Nothing found","No encontramos nada"
+"No matches. Try a shorter word, or a different category.","No matches. Try a shorter word, or a different category.","Sin resultados. Probá con una palabra más corta o elegí otra categoría."
+"Showing the first %s of %s. Keep typing to narrow it down.","Showing the first %s of %s. Keep typing to narrow it down.","Mostrando los primeros %s de %s. Seguí escribiendo para achicar la lista."
+"%s items.","%s items.","%s elementos."
+"%s item.","%s item.","%s elemento."
+"Nothing yet","Nothing yet","Nada seleccionado"
+"Pick something from the list above.","Pick something from the list above.","Elegí algo de la lista de arriba."
+"From %s","From %s","De %s"
+"Standing pose","Standing pose","Postura inicial"
+"Which frame of the game's own animations the model stands in","Which frame of the game's own animations the model stands in","En qué postura de las animaciones del juego se queda el modelo"
+"Whatever the game uses by default","Whatever the game uses by default","La que usa el juego"
+"Add to scene","Add to scene","Agregar a la escena"
+"Ready. Press Add to scene.","Ready. Press Add to scene.","Listo. Tocá Agregar a la escena."
+"Open a scene first — then press Add to scene again.","Open a scene first — then press Add to scene again.","Abrí una escena primero — después volvé a tocar Agregar a la escena."
+"Added %s. It is selected in the scene now.","Added %s. It is selected in the scene now.","Se agregó %s. Ahora está seleccionado en la escena."
+"Arma and DayZ models cannot be imported yet — only their maps and archives.","Arma and DayZ models cannot be imported yet — only their maps and archives.","Los modelos de Arma y DayZ todavía no se pueden importar — solo sus mapas y archivos."
+"%ss can be found here, but they are used by models and maps rather than placed on their own.","%ss can be found here, but they are used by models and maps rather than placed on their own.","Podés encontrar %s acá, pero se usan en modelos y mapas en vez de colocarse por separado."
+"That file could not be read. Was the game moved or uninstalled?","That file could not be read. Was the game moved or uninstalled?","No se pudo leer ese archivo. ¿Moviste o desinstalaste el juego?"
+"This model keeps its shape in companion files that are not here. Add the rest of the game's archives and try again.","This model keeps its shape in companion files that are not here. Add the rest of the game's archives and try again.","Este modelo necesita archivos adicionales que no están acá. Agregá los demás archivos del juego y probá de nuevo."
+"This file was recognised but nothing could be read out of it.","This file was recognised but nothing could be read out of it.","Reconocimos el archivo, pero no pudimos leer nada de su contenido."
+"Something went wrong inside the plugin. Disable and re-enable it.","Something went wrong inside the plugin. Disable and re-enable it.","Algo falló adentro del plugin. Desactivalo y volvelo a activar."
+"That did not work. The Output panel at the bottom has the details.","That did not work. The Output panel at the bottom has the details.","Eso no funcionó. Podés ver los detalles en el panel Salida de abajo."
