@@ -41,7 +41,8 @@ Two things it gets right that most converters miss:
 Models arrive in a pose the game actually uses. A bind pose is a modelling artefact players
 never see. Quebratsk decodes the animation sequences, including the external `.ani` blocks
 that a Garry's Mod player model borrows from a shared 7 MB animation model, and offers all
-341 stances.
+426 stances. Ask for a sequence by name and it comes in moving, on an AnimationPlayer,
+instead of frozen on one frame.
 
 Companion files resolve themselves. A Source `.mdl` holds no vertex data at all; that lives
 in a `.vvd` and a `.dx90.vtx` beside it. You name one file and get a complete model.
@@ -102,6 +103,12 @@ for path in vfs.list_files("vfs://hl2/models/"):
 var npc := importer.load_model("vfs://hl2/models/police.mdl", "idle_smg1")
 add_child(npc)
 print(npc.get_meta("quebratsk_poses"))   # every stance this model can hold
+
+# Or bring a sequence in as something that plays.
+var walker := importer.load_model("vfs://hl2/models/police.mdl", "",
+                                  PackedStringArray(["walk_all"]))
+add_child(walker)
+walker.get_node("AnimationPlayer").play("walk_all")
 ```
 
 ## Supported formats
@@ -112,7 +119,7 @@ in `demo/tests/`. Nothing gets listed here until it works end to end.
 | Engine | Archives | Models | Maps | Textures |
 |---|---|---|---|---|
 | GoldSrc <br/><sub>Half-Life, Counter-Strike 1.6</sub> | `.wad` (WAD3) | `.mdl` (StudioMDL v10) with geometry, skinning and `T.mdl` textures | `.bsp` (BSP30) with geometry, UVs, per-face normals, embedded and WAD textures | WAD3 lumps, `.spr` |
-| Source 1 <br/><sub>Half-Life 2, Garry's Mod, CS:S, TF2</sub> | `.vpk` v1 and v2 with side archives, `.gma` | `.mdl` v44 to v49 plus `.vvd` and `.vtx`: geometry, skinning, animation sequences, external `.ani`, `includemodel` | `.bsp` (BSP30) | `.vtf` (DXT1/BC1, DXT5/BC3, uncompressed), `.vmt` |
+| Source 1 <br/><sub>Half-Life 2, Garry's Mod, CS:S, TF2</sub> | `.vpk` v1 and v2 with side archives, `.gma` | `.mdl` v44 to v49 plus `.vvd` and `.vtx`: geometry, skinning, playable animation, external `.ani`, `includemodel` | `.bsp` (BSP30) | `.vtf` (DXT1/BC1, DXT5/BC3, uncompressed), `.vmt` |
 | Real Virtuality <br/><sub>Arma, DayZ</sub> | `.pbo` | not yet | `.wrp` heightmaps | not yet |
 
 Not supported: Real Virtuality models (`.p3d`, both MLOD and ODOL) and textures (`.paa`),
@@ -181,10 +188,9 @@ docs/                       API reference and beginner's guide
   <img src="docs/images/roadmap.jpg" alt="Roadmap" width="100%" style="border-radius: 8px;"/>
 </p>
 
-The goal is full coverage of the engines in that diagram. The three on the left import
-today. The three on the right are where the work is going, and none of them is implemented
-yet. This list says so plainly instead of shipping a class named after a format that
-returns nothing.
+The goal is full coverage of the engines in that diagram. The left column imports today.
+The right column is where the work is going, and none of it is implemented yet. This list
+says so plainly instead of shipping a class named after a format that returns nothing.
 
 Shipping now:
 
@@ -193,14 +199,56 @@ Shipping now:
 - Real Virtuality: PBO archives, WRP terrain
 - The editor plugin, which browses by category and imports without writing code
 
-Planned, in roughly the order it is likely to land:
+### Next
+
+Finishing what is already half-built, in roughly this order:
 
 | | Why it is next |
 |---|---|
 | Real Virtuality models, `.p3d` MLOD then ODOL | The archive and terrain half already works, so Arma and DayZ are one format away from complete |
 | Real Virtuality textures, `.paa` | DXT decoding is already in the engine, so this is mostly container work |
-| Sound extraction | Every mounted game is full of audio that gets listed but cannot be used |
+| Sounds you can keep | They are found and previewed already; what is missing is placing one in a scene and saving it as a resource |
 | Source 2, `.vmdl_c` and `.vtex_c` (CS2, Half-Life: Alyx) | The VPK v2 reader is already shared with Source 1 |
+
+### Two engines worth going after next
+
+Everything above extends what this already does. These two open catalogues it cannot touch
+at all, and both are a better fit for the era this project cares about than another
+shooter would be.
+
+**RenderWare: Grand Theft Auto III, Vice City and San Andreas.** San Andreas alone is
+tens of thousands of assets: pedestrians, hundreds of vehicles, an entire state's worth of
+buildings and terrain, and twenty years of a modding scene that never stopped. The formats
+are chunked, unencrypted and thoroughly documented, which makes this the largest catalogue
+per unit of work anywhere on this list.
+
+| | |
+|---|---|
+| `.img` | Archive. San Andreas uses version 2 with the directory inside; III and Vice City keep a separate `.dir` |
+| `.dff` | Models, as RenderWare clumps: geometry, skinning, hierarchy |
+| `.txd` | Texture dictionaries, DXT1/DXT3 and palettised, and the DXT decoder already exists here |
+| `.col` | Collision meshes, COL1 through COL3 |
+| `.ifp` | Skeletal animation, which the animation work above is the groundwork for |
+| `.ide` / `.ipl` | What objects exist, and where they are placed in the world |
+
+**Torque3D: BeamNG.drive.** Unusually open for a commercial game: its content ships as
+ordinary ZIP archives with nothing encrypted, and the vehicle definitions are readable
+text. It is also the only entry here with real *physics* data rather than just art.
+
+| | |
+|---|---|
+| ZIP mounting | Vehicles and levels are plain `.zip` under `content/`. The VFS already declares Deflate; this is the container it was meant for |
+| `.cdae` and `.dae` | Meshes, compiled and source COLLADA |
+| `.jbeam` | The soft-body node and beam definitions, the part that makes a BeamNG car a BeamNG car. Text, so this is a parser rather than a decoder |
+| `.dds` | Textures, already decodable |
+| `.ter` | Terrain heightmaps |
+
+### Later
+
+| | |
+|---|---|
+| RAGE, `.rpf` v3 (Grand Theft Auto IV) | Paged resource files (`.wdr`, `.wtd`, `.wbn`), a real step up in difficulty from RenderWare |
+| RAGE, `.rpf` v7 (Grand Theft Auto V) | The archives are AES-encrypted and the keys live in the game executable. Worth being clear that this is the one entry on the list whose obstacle is not technical |
 | Bohemia Enfusion, `.pak` and `.xob` (Arma Reforger) | |
 | Unity, `.bundle` (UnityFS) | |
 | Unreal Engine 4 and 5, `.pak` and `.uasset` | |
