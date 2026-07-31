@@ -68,6 +68,27 @@ of leaving it behind with the engine it was made for.
 The formats already supported cover the games with the deepest modding histories. The
 roadmap below is the rest of them.
 
+## What this project holds itself to
+
+Three rules, because each of them was learned by getting it wrong first.
+
+**A format is supported once it has been run against a retail game install.** Not when its
+parser compiles, not when a unit test built from the same reading of the spec agrees with
+it. Version 2.0 deleted seven registered classes that were named after formats and returned
+empty meshes. There is a `.paa` reader in this repository right now that is deliberately not
+listed above, because it has not yet read a real file.
+
+**If you cannot reach it from the dock, it is not finished.** An engine capability nobody
+can find is a line in a changelog. Animation import landed with a tickbox next to the pose
+list on the same day the parser did; sounds became placeable and saveable rather than merely
+audible. This is the rule that costs the most and the one worth keeping: the target user has
+never opened Godot, and every feature has to survive that.
+
+**Numbers come from measuring, not from reading the code.** Three separate guesses about
+where this plugin spent its time were wrong this release, two of them by an order of
+magnitude, and the one that mattered was found only by timing each call. The test harnesses
+print their measurements so the next guess has to argue with them.
+
 ## Install
 
 1. Download the latest archive from [Releases](../../releases).
@@ -120,7 +141,7 @@ in `demo/tests/`. Nothing gets listed here until it works end to end.
 |---|---|---|---|---|
 | GoldSrc <br/><sub>Half-Life, Counter-Strike 1.6</sub> | `.wad` (WAD3) | `.mdl` (StudioMDL v10) with geometry, skinning and `T.mdl` textures | `.bsp` (BSP30) with geometry, UVs, per-face normals, embedded and WAD textures | WAD3 lumps, `.spr` |
 | Source 1 <br/><sub>Half-Life 2, Garry's Mod, CS:S, TF2</sub> | `.vpk` v1 and v2 with side archives, `.gma` | `.mdl` v44 to v49 plus `.vvd` and `.vtx`: geometry, skinning, playable animation, external `.ani`, `includemodel` | `.bsp` (BSP30) | `.vtf` (DXT1/BC1, DXT5/BC3, uncompressed), `.vmt` |
-| Real Virtuality <br/><sub>Arma, DayZ</sub> | `.pbo` | not yet | `.wrp` heightmaps | not yet |
+| Real Virtuality <br/><sub>Arma, DayZ</sub> | `.pbo` | not yet, see the roadmap | `.wrp` heightmaps | not yet, a `.paa` reader exists but is unverified |
 
 Sounds come out of any mounted game: `.wav` is decoded here, `.mp3` and `.ogg` are handed
 to Godot's own importers untouched. Verified against 9,465 WAV and 338 MP3 files across
