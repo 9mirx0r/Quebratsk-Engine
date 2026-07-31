@@ -109,13 +109,19 @@ file on disk:
 { "prefix": "hl2", "real_path": ".../hl2_misc_dir.vpk",
   "engine": "Source1",       # GoldSrc | Source1 | RealVirtuality | BSP | Custom
   "file_count": 18796,       # entries reachable under this prefix
-  "archive_count": 5 }       # real files backing it (a _dir.vpk plus its side archives)
+  "archive_count": 5,        # real files backing it (a _dir.vpk plus its side archives)
+  "is_directory": false }    # true when mounted with mount_directory()
 ```
 
 Mounting one `_dir.vpk` places several containers internally — the directory plus each
 numbered side archive — all under the same prefix. They are grouped here, because the
 prefix is the unit a user mounted and can `unmount()`. Summing `file_count` over the array
 equals `list_files().size()`.
+
+`mount_directory()` mounts appear here too, with `is_directory` set. Persist that flag if
+you save mounts across sessions: a directory must be restored with `mount_directory()` and
+an archive with `mount_container()`, and once the game is uninstalled the path alone can
+no longer tell you which it was.
 
 **`scan_game_directory(real_dir)`** answers "what is in this folder?" for a setup wizard:
 

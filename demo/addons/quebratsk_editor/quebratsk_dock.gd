@@ -67,6 +67,9 @@ func _ready() -> void:
 	_build_ui()
 	_restore_mounts()
 	_refresh_mounts()
+	# Without this the file list is empty on open even when content was restored, so the
+	# dock looks like it has nothing in it until the user happens to type something.
+	_refresh_results()
 
 
 # ---------------------------------------------------------------------------- UI ----
@@ -306,14 +309,20 @@ func _on_mount_button(item: TreeItem, _col: int, _id: int, _mouse: int) -> void:
 
 func _save_mounts() -> void:
 	var cfg := ConfigFile.new()
-	var paths := PackedStringArray()
-	var prefixes := PackedStringArray()
+	# Load before saving: the file also carries the one-time "introduced" flag that
+	# plugin.gd sets, and a blank ConfigFile would drop it on every mount change.
+	cfg.load(MOUNTS_FILE)
+	var rows := []
 	for m in _vfs.get_mounts_info():
 		var info: Dictionary = m
-		paths.append(str(info.get("real_path", "")))
-		prefixes.append(str(info.get("prefix", "")))
-	cfg.set_value("mounts", "paths", paths)
-	cfg.set_value("mounts", "prefixes", prefixes)
+		rows.append({
+			"path": str(info.get("real_path", "")),
+			"prefix": str(info.get("prefix", "")),
+			# An archive and a directory need different mount calls, and the path alone
+			# cannot tell them apart once the game is uninstalled.
+			"is_directory": bool(info.get("is_directory", false)),
+		})
+	cfg.set_value("mounts", "sources", rows)
 	cfg.save(MOUNTS_FILE)
 
 
@@ -321,23 +330,37 @@ func _restore_mounts() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(MOUNTS_FILE) != OK:
 		return
-	var paths: PackedStringArray = cfg.get_value("mounts", "paths", PackedStringArray())
-	var prefixes: PackedStringArray = cfg.get_value("mounts", "prefixes", PackedStringArray())
+
+	var rows: Array = cfg.get_value("mounts", "sources", [])
 	var restored := 0
-	for i in mini(paths.size(), prefixes.size()):
-		var path := paths[i]
-		if path.is_empty():
+	var missing := 0
+	for r in rows:
+		var row: Dictionary = r
+		var path := str(row.get("path", ""))
+		var prefix := str(row.get("prefix", ""))
+		if path.is_empty() or prefix.is_empty():
 			continue
-		# A game can be uninstalled between sessions; skip silently rather than erroring.
-		if DirAccess.dir_exists_absolute(path):
-			if _vfs.mount_directory(prefixes[i], path) > 0:
+
+		if bool(row.get("is_directory", false)):
+			# A game can be uninstalled between sessions; skip rather than erroring.
+			if not DirAccess.dir_exists_absolute(path):
+				missing += 1
+				continue
+			if _vfs.mount_directory(prefix, path) > 0:
 				restored += 1
-		elif FileAccess.file_exists(path):
-			if _vfs.mount_container(prefixes[i], path):
+		else:
+			if not FileAccess.file_exists(path):
+				missing += 1
+				continue
+			if _vfs.mount_container(prefix, path):
 				restored += 1
-	if restored > 0:
-		_set_status("Restored %d source%s from your last session."
-			% [restored, "" if restored == 1 else "s"])
+
+	if restored > 0 or missing > 0:
+		var msg := "Restored %d source%s from your last session." \
+			% [restored, "" if restored == 1 else "s"]
+		if missing > 0:
+			msg += " %d no longer exist%s on disk." % [missing, "s" if missing == 1 else ""]
+		_set_status(msg)
 
 
 # ----------------------------------------------------------------------- results ----
