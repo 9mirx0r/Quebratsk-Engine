@@ -80,3 +80,6 @@ demo/bin/~*.dll
 
 # Working notes and reference documents that are not part of the project.
 *.docx
+
+# Third-party writing skill installed for local use, not part of the project.
+.claude/skills/

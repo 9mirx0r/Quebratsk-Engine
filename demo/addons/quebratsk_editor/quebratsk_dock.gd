@@ -454,7 +454,11 @@ func _frame_preview(node: Node3D) -> void:
 	_preview_pivot.position = -bounds.get_center()
 	# A map is tens of metres and a character is under two; one fixed distance cannot suit
 	# both, so it scales with what is actually there.
-	_orbit_distance = maxf(bounds.size.length() * 0.85, 0.5)
+	#
+	# The factor is set against Godot's default 75 degree vertical FOV: filling the frame
+	# with an object of height h needs (h / 2) / tan(37.5 deg), about 0.65 h. Using the
+	# box diagonal instead of the height keeps wide objects in frame too.
+	_orbit_distance = maxf(bounds.size.length() * 0.62, 0.4)
 	_apply_orbit()
 
 
@@ -465,7 +469,10 @@ func _apply_orbit() -> void:
 		sin(yaw) * cos(pitch),
 		-sin(pitch),
 		cos(yaw) * cos(pitch)) * _orbit_distance
-	_preview.set_camera_pose(offset, Vector3(rad_to_deg(pitch), rad_to_deg(yaw) + 180.0, 0.0))
+	# A Godot camera looks down its own -Z, so a camera sitting at P and facing the origin
+	# needs yaw = atan2(P.x, P.z) exactly. Adding 180 to that turns it around and leaves
+	# the model behind the camera, which renders as an empty viewport rather than an error.
+	_preview.set_camera_pose(offset, Vector3(rad_to_deg(pitch), rad_to_deg(yaw), 0.0))
 
 
 func _on_preview_input(event: InputEvent) -> void:
@@ -519,6 +526,17 @@ func _engine_icon(label: String) -> String:
 ##
 ## `name` is either one of our filenames ("type_model") or a Godot editor icon name
 ## ("Search"), so a caller can ask for whichever exists.
+## Icons are rasterised with the theme's colour baked in, so a cached one is only valid
+## for the theme it was built under. Switching the editor from dark to light would
+## otherwise leave every icon tinted for the old one — and near-invisible.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_THEME_CHANGED and not _icon_cache.is_empty():
+		_icon_cache.clear()
+		if _games != null:
+			_refresh_games()
+			_refresh_results()
+
+
 func _icon(name: String) -> Texture2D:
 	if _icon_cache.has(name):
 		return _icon_cache[name]
