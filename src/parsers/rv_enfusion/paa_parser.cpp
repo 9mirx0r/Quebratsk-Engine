@@ -2,9 +2,11 @@
 
 #include "../../core/io/byte_reader.h"
 #include "../../core/image/dxt_decoder.h"
+#include "../../core/vfs/decompressors/lzo_decompressor.h"
 
 #include <array>
 #include <cstring>
+#include <vector>
 
 namespace quebratsk::parsers::rv_enfusion {
 
@@ -93,6 +95,25 @@ bool decode_packed(PAAFormat format, std::span<const std::byte> src,
     return true;
 }
 
+/// How many bytes a decoded mipmap of these dimensions occupies, or 0 for a layout with no
+/// decoder here. This is what a compressed payload has to inflate to, exactly.
+size_t expected_payload_size(PAAFormat format, uint32_t width, uint32_t height) {
+    switch (format) {
+        case PAAFormat::DXT1:
+            return image::dxt1_encoded_size(width, height);
+        case PAAFormat::DXT5:
+            return image::dxt5_encoded_size(width, height);
+        case PAAFormat::ARGB8888:
+            return static_cast<size_t>(width) * height * 4;
+        case PAAFormat::ARGB4444:
+        case PAAFormat::ARGB1555:
+        case PAAFormat::AI88:
+            return static_cast<size_t>(width) * height * 2;
+        default:
+            return 0;
+    }
+}
+
 } // namespace
 
 std::expected<PAAInfo, PAAParseError> PAAParser::parse_info(std::span<const std::byte> bytes) {
@@ -175,18 +196,31 @@ std::expected<ir::IRTextureData, PAAParseError> PAAParser::parse(std::span<const
     const PAAMipmap& mip = info->mipmaps.front();
     if (mip.width == 0 || mip.height == 0) return std::unexpected(PAAParseError::Truncated);
 
-    // A compressed payload would decode into noise if handed to the block decoders, which
-    // is worse than refusing: a texture that is visibly wrong is harder to diagnose than
-    // one that is visibly absent.
-    if (mip.compressed) return std::unexpected(PAAParseError::CompressedMipmap);
-
     ByteReader reader(bytes);
-    const auto payload = reader.bytes_at(mip.data_offset, mip.data_length);
+    auto payload = reader.bytes_at(mip.data_offset, mip.data_length);
     if (payload.empty()) return std::unexpected(PAAParseError::Truncated);
 
     ir::IRTextureData out;
     out.width = mip.width;
     out.height = mip.height;
+
+    // Almost every texture a shipped Arma or DayZ build contains takes this path: of a
+    // 1,500 file sample from a retail install, 1,457 store their mipmaps compressed.
+    //
+    // The expected size is computed from the dimensions rather than taken from the stream,
+    // which turns it into a check. A decompressor that has gone subtly wrong practically
+    // never lands on exactly the right byte count.
+    std::vector<std::byte> inflated;
+    if (mip.compressed) {
+        const size_t expected = expected_payload_size(info->format, mip.width, mip.height);
+        if (expected == 0) return std::unexpected(PAAParseError::UnsupportedFormat);
+
+        inflated.resize(expected);
+        if (!vfs::LZODecompressor::decompress(payload, inflated)) {
+            return std::unexpected(PAAParseError::CompressedMipmap);
+        }
+        payload = std::span<const std::byte>(inflated);
+    }
 
     switch (info->format) {
         case PAAFormat::DXT1:

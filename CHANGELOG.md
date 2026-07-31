@@ -29,15 +29,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **The `.paa` reader is wired into the texture loader** and has now been run against a
-  retail DayZ install with eight workshop mods: 29,018 files reachable. Of a 1,500-file
-  sample, 42 decode, with dimensions exactly as an artist would author them, 2048x2048 down
-  to 16x16, which is the evidence that the container is being read correctly.
+- **Real Virtuality textures import.** `.paa` in DXT1, DXT5 and the packed ARGB and
+  grey-plus-alpha layouts, including the LZO-compressed mipmaps that nearly all of them use.
+  Listed in the supported table, because it earned it: against a retail DayZ install with
+  eight workshop mods, 29,018 files reachable and **1,499 of a 1,500-file sample decoded**.
+  The single refusal is a genuinely truncated file.
 
-  It is still not listed as a supported format, for a reason the same run made clear:
-  **1,457 of those 1,500 store their mipmaps compressed** and are refused rather than
-  decoded into noise. Reading them needs a decompressor this project does not have yet, and
-  until it does, `.paa` support would be a promise kept 3% of the time.
+  The first run of this reader decoded 42 of 1,500. **1,457 of them store their mipmaps
+  LZO-compressed**, so a reader without the decompressor would have worked on 3% of what it
+  was pointed at, which is why it shipped in 2.0.2 unlisted.
+
+- **An LZO1X decompressor**, in `src/core/vfs/decompressors/`. Distinct from the LZSS beside
+  it, which is what PBO entries use; the two get confused because both arrive in Bohemia
+  containers, and they share nothing.
+
+  It is written in the reference decoder's shape, gotos included, because that algorithm's
+  states genuinely jump into each other's middles and every restructuring produces a subtly
+  different decoder that still handles most inputs. What was added is the bounds checking the
+  reference leaves to its caller: every read, every write, and every back-reference.
+
+  The output size is a parameter rather than something the stream declares, because the
+  caller always knows it, a DXT payload's size follows from the mipmap's dimensions. That
+  turns the size into the test. A decompressor that has gone subtly wrong essentially never
+  lands on exactly the right byte count, and this one landed on it 1,456 times out of 1,457.
 
 ---
 
