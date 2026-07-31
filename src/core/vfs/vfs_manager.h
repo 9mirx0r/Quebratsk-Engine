@@ -25,8 +25,11 @@ enum class CompressionType : uint32_t {
 };
 
 /// Indexed entry: either a slice of a mounted container, or a loose file on disk.
+///
+/// Deliberately without its own URI field. It used to carry one, which was a character-for-
+/// character copy of the key it is stored under: 60,584 redundant string allocations for a
+/// two-game setup, rebuilt on every mount. Its one reader, unmount(), has the key in hand.
 struct VFSEntry {
-    std::string virtual_path;     // Normalized VFS URI path (lowercase)
     size_t container_index = 0;   // Index into m_containers
     size_t offset = 0;            // Byte offset in container
     size_t disk_size = 0;         // Stored size on disk

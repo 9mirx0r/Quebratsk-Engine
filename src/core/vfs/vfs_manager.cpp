@@ -187,6 +187,11 @@ void VFSManager::index_vpk(size_t container_idx, const std::string& dir_real_pat
     size_t indexed = 0;
     size_t skipped = 0;
 
+    // Size the index for what is about to go in it. An unordered_map grown from empty to
+    // 60,584 entries rehashes roughly seventeen times on the way, and every rehash walks
+    // and reinserts everything already there.
+    m_index.reserve(m_index.size() + parsed->entries.size());
+
     for (const auto& e : parsed->entries) {
         size_t owner = container_idx;
         if (!e.is_inline()) {
@@ -214,17 +219,16 @@ void VFSManager::index_vpk(size_t container_idx, const std::string& dir_real_pat
             continue;
         }
 
-        const std::string vfs_uri = "vfs://" + prefix + "/" + to_lower(e.path);
+        std::string vfs_uri = "vfs://" + prefix + "/" + to_lower(e.path);
 
         VFSEntry entry;
-        entry.virtual_path = vfs_uri;
         entry.container_index = owner;
         entry.offset = offset;
         entry.disk_size = length;
         entry.uncompressed_size = length;
         entry.compression = CompressionType::None;
 
-        m_index[vfs_uri] = std::move(entry);
+        m_index.insert_or_assign(std::move(vfs_uri), std::move(entry));
         ++indexed;
     }
 
@@ -275,26 +279,29 @@ int64_t VFSManager::mount_directory(const String& vfs_prefix, const String& real
         if (ec) break;
         if (!it->is_regular_file(ec) || ec) continue;
 
-        const std::filesystem::path rel = std::filesystem::relative(it->path(), root, ec);
-        if (ec) continue;
-
-        std::string rel_str = rel.generic_string();
+        // Lexically, not std::filesystem::relative(): that one resolves both paths through
+        // weakly_canonical, touching the filesystem once per file to chase symlinks that
+        // cannot be there, since the walk is already rooted at `root`. Subtracting a known
+        // prefix needs no syscall at all.
+        std::string rel_str = it->path().lexically_relative(root).generic_string();
         std::replace(rel_str.begin(), rel_str.end(), '\\', '/');
 
-        const std::string vfs_uri = "vfs://" + prefix_std + "/" + to_lower(rel_str);
+        std::string vfs_uri = "vfs://" + prefix_std + "/" + to_lower(rel_str);
 
-        const auto size = std::filesystem::file_size(it->path(), ec);
+        // From the directory_entry, which cached it during enumeration. Asking
+        // std::filesystem::file_size() for the path re-opens the file to learn something
+        // the walk was already told.
+        const auto size = it->file_size(ec);
         if (ec) continue;
 
         VFSEntry entry;
-        entry.virtual_path = vfs_uri;
         entry.container_index = container_idx;
         entry.loose_path = it->path().string();
         entry.disk_size = static_cast<size_t>(size);
         entry.uncompressed_size = entry.disk_size;
         entry.compression = CompressionType::None;
 
-        m_index[vfs_uri] = std::move(entry);
+        m_index.insert_or_assign(std::move(vfs_uri), std::move(entry));
         ++indexed;
     }
 
@@ -318,7 +325,7 @@ void VFSManager::unmount(const String& vfs_prefix) {
     const std::string uri_prefix = "vfs://" + prefix_std + "/";
 
     for (auto it = m_index.begin(); it != m_index.end(); ) {
-        if (it->second.virtual_path.starts_with(uri_prefix)) {
+        if (it->first.starts_with(uri_prefix)) {
             it = m_index.erase(it);
         } else {
             ++it;
@@ -366,6 +373,11 @@ void VFSManager::index_wad3(size_t container_idx) {
         static_cast<size_t>(header->dir_offset), static_cast<size_t>(header->num_lumps));
     if (lumps.empty()) return;
 
+    // Size the index for what is about to go in it. An unordered_map grown from empty to
+    // 60,584 entries rehashes roughly seventeen times on the way, and every rehash walks
+    // and reinserts everything already there.
+    m_index.reserve(m_index.size() + lumps.size());
+
     for (const auto& lump : lumps) {
         if (lump.file_pos < 0 || lump.disk_size < 0 || lump.uncompressed_size < 0) {
             continue;
@@ -381,14 +393,13 @@ void VFSManager::index_wad3(size_t container_idx) {
         std::string vfs_uri = "vfs://" + container.mount_prefix + "/" + to_lower(lump_name);
 
         VFSEntry entry;
-        entry.virtual_path = vfs_uri;
         entry.container_index = container_idx;
         entry.offset = offset;
         entry.disk_size = disk_size;
         entry.uncompressed_size = static_cast<size_t>(lump.uncompressed_size);
         entry.compression = CompressionType::None;
 
-        m_index[vfs_uri] = entry;
+        m_index.insert_or_assign(std::move(vfs_uri), std::move(entry));
     }
 }
 
@@ -434,6 +445,11 @@ void VFSManager::index_gma(size_t container_idx) {
     // Data blobs start immediately after file table
     size_t data_offset = cursor;
 
+    // Size the index for what is about to go in it. An unordered_map grown from empty to
+    // 60,584 entries rehashes roughly seventeen times on the way, and every rehash walks
+    // and reinserts everything already there.
+    m_index.reserve(m_index.size() + file_entries.size());
+
     for (const auto& [rel_path, fsize] : file_entries) {
         // file_size is attacker-controlled. Validating each blob here keeps the stored
         // offsets inside the mapping, so read_file() can never build an out-of-range span.
@@ -446,14 +462,13 @@ void VFSManager::index_gma(size_t container_idx) {
         std::string vfs_uri = "vfs://" + container.mount_prefix + "/" + to_lower(rel_path);
 
         VFSEntry entry;
-        entry.virtual_path = vfs_uri;
         entry.container_index = container_idx;
         entry.offset = data_offset;
         entry.disk_size = static_cast<size_t>(fsize);
         entry.uncompressed_size = static_cast<size_t>(fsize);
         entry.compression = CompressionType::None;
 
-        m_index[vfs_uri] = entry;
+        m_index.insert_or_assign(std::move(vfs_uri), std::move(entry));
         data_offset += static_cast<size_t>(fsize);
     }
 }
@@ -506,6 +521,11 @@ void VFSManager::index_pbo(size_t container_idx) {
 
     size_t payload_offset = cursor;
 
+    // Size the index for what is about to go in it. An unordered_map grown from empty to
+    // 60,584 entries rehashes roughly seventeen times on the way, and every rehash walks
+    // and reinserts everything already there.
+    m_index.reserve(m_index.size() + raw_headers.size());
+
     for (const auto& raw : raw_headers) {
         const size_t disk_size = static_cast<size_t>(
             raw.fields.data_size == 0 ? raw.fields.original_size : raw.fields.data_size);
@@ -521,7 +541,6 @@ void VFSManager::index_pbo(size_t container_idx) {
         std::string vfs_uri = "vfs://" + container.mount_prefix + "/" + to_lower(raw.filename);
 
         VFSEntry entry;
-        entry.virtual_path = vfs_uri;
         entry.container_index = container_idx;
         entry.offset = payload_offset;
         entry.disk_size = disk_size;
@@ -533,7 +552,7 @@ void VFSManager::index_pbo(size_t container_idx) {
             entry.compression = CompressionType::None;
         }
 
-        m_index[vfs_uri] = entry;
+        m_index.insert_or_assign(std::move(vfs_uri), std::move(entry));
         payload_offset += entry.disk_size;
     }
 }

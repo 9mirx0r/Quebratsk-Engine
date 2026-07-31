@@ -48,11 +48,48 @@ func _check_detect() -> void:
 
 func _check_add() -> void:
 	print("\n2. Adding two games")
+	# Adding a game is the one operation a user waits on, and it also runs on every editor
+	# start when the previous session's games are restored. Worth knowing what it costs.
+	var t0 := Time.get_ticks_msec()
 	_dock._add_game_folder(GMOD, "Garry's Mod")
-	print("   says: %s" % _dock._status.text)
+	var gmod_ms := Time.get_ticks_msec() - t0
+	print("   says: %s   (%d ms)" % [_dock._status.text, gmod_ms])
 	# A second game is what makes the origin column matter: both ship a police.mdl.
+	t0 = Time.get_ticks_msec()
 	_dock._add_game_folder(HL2, "Half-Life 2")
-	print("   says: %s" % _dock._status.text)
+	print("   says: %s   (%d ms)" % [_dock._status.text, Time.get_ticks_msec() - t0])
+
+	_split_mount_cost()
+
+
+## Where the time in "add a game" actually goes.
+##
+## Adding a game is three different jobs wearing one button: a recursive walk of the folder
+## to find out what is in it, one mount per archive, and a second recursive walk to index
+## the loose files. Guessing which one dominates has been wrong twice, so this measures.
+func _split_mount_cost() -> void:
+	var vfs := VFSManager.new()
+	add_child(vfs)
+
+	var t := Time.get_ticks_msec()
+	var scan: Dictionary = vfs.scan_game_directory(GMOD)
+	print("     scan_game_directory   %4d ms  (%d archives found)"
+		% [Time.get_ticks_msec() - t, int(scan.get("total_archives", 0))])
+
+	var n := 0
+	for archive in scan.get("archives", []):
+		t = Time.get_ticks_msec()
+		vfs.mount_container("probe%d" % n, str(archive))
+		print("     mount_container       %4d ms  %s"
+			% [Time.get_ticks_msec() - t, str(archive).get_file()])
+		n += 1
+
+	t = Time.get_ticks_msec()
+	var loose: int = vfs.mount_directory("probe_loose", GMOD)
+	print("     mount_directory       %4d ms  (%d loose files)"
+		% [Time.get_ticks_msec() - t, loose])
+
+	vfs.queue_free()
 
 	# The point of the redesign: one row per game, not one per archive file.
 	var row: TreeItem = _dock._games.get_root().get_first_child()
@@ -331,8 +368,10 @@ func _check_pick() -> void:
 
 func _check_persistence() -> void:
 	print("\n5. Reopening the editor")
+	var t0 := Time.get_ticks_msec()
 	var fresh: VBoxContainer = DockScript.new()
 	add_child(fresh)
+	print("   the dock was ready again in %d ms" % (Time.get_ticks_msec() - t0))
 	print("   restored %d game(s): %s" % [fresh._sources.size(), fresh._status.text])
 	var row: TreeItem = fresh._games.get_root().get_first_child()
 	while row != null:
