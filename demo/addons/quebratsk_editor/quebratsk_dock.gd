@@ -94,6 +94,16 @@ var _file_dialog: EditorFileDialog
 var _search_debounce: Timer
 var _icon_cache: Dictionary = {}
 
+var _preview_frame: SubViewportContainer
+var _preview: SubViewport
+var _preview_pivot: Node3D
+var _preview_node: Node3D
+var _preview_debounce: Timer
+## Orbit state, in degrees. Yaw starts three-quarters on so a character is not seen
+## dead-on, which reads flat.
+var _orbit := Vector2(35, -18)
+var _orbit_distance := 3.0
+
 ## Display name -> { "path": String, "mounts": [ {prefix, path, is_directory} ] }
 ##
 ## A game is one thing to the user even though it costs several mounts: Garry's Mod is
@@ -255,6 +265,12 @@ func _build_ui() -> void:
 	_search_debounce.timeout.connect(_refresh_results)
 	add_child(_search_debounce)
 
+	_preview_debounce = Timer.new()
+	_preview_debounce.wait_time = 0.25
+	_preview_debounce.one_shot = true
+	_preview_debounce.timeout.connect(_refresh_preview)
+	add_child(_preview_debounce)
+
 	_filter = OptionButton.new()
 	for f in CATEGORIES:
 		_filter.add_item(tr(str((f as Dictionary)["label"])))
@@ -294,6 +310,35 @@ func _build_ui() -> void:
 	add_child(picked_margin)
 	var picked := VBoxContainer.new()
 	picked_margin.add_child(picked)
+
+	# A look at the thing before it lands in the scene. Without this the only way to know
+	# whether you picked the right police.mdl is to import it, look, and undo.
+	_preview_frame = SubViewportContainer.new()
+	_preview_frame.stretch = true
+	_preview_frame.custom_minimum_size = Vector2(0, 170)
+	_preview_frame.visible = false
+	_preview_frame.mouse_filter = Control.MOUSE_FILTER_STOP
+	_preview_frame.tooltip_text = tr("Drag to turn it around")
+	_preview_frame.gui_input.connect(_on_preview_input)
+	picked.add_child(_preview_frame)
+
+	_preview = MapPreviewViewport.new()
+	_preview.transparent_bg = true
+	_preview.own_world_3d = true
+	_preview_frame.add_child(_preview)
+
+	var key := DirectionalLight3D.new()
+	key.rotation_degrees = Vector3(-38, -35, 0)
+	key.light_energy = 1.25
+	_preview.add_child(key)
+
+	var fill := DirectionalLight3D.new()
+	fill.rotation_degrees = Vector3(-10, 150, 0)
+	fill.light_energy = 0.45
+	_preview.add_child(fill)
+
+	_preview_pivot = Node3D.new()
+	_preview.add_child(_preview_pivot)
 
 	_picked_name = Label.new()
 	_picked_name.text = tr("Nothing yet")
@@ -340,6 +385,109 @@ func _build_ui() -> void:
 	status_margin.add_child(_status)
 
 	_say(tr("Start by adding a game you have installed."))
+
+
+# -------------------------------------------------------------------- preview ----
+
+## Load the picked asset into the preview viewport.
+##
+## Debounced, and deliberately not run straight from the selection handler: a full import
+## is ~170 ms against ~70 ms for the pose list alone, so arrow-keying down a list of 400
+## results would rebuild a model per keypress. The wait means only what you settle on is
+## ever loaded.
+func _refresh_preview() -> void:
+	_clear_preview()
+
+	if _selected_uri.is_empty():
+		return
+	var kind := _kind_of(_selected_uri)
+	if not bool(kind["placeable"]):
+		return
+
+	var node: Node3D = null
+	var ext := _selected_uri.get_extension().to_lower()
+	if ext == "bsp" or ext == "wrp":
+		var mesh: ArrayMesh = _importer.load_mesh(_selected_uri)
+		if mesh != null:
+			var mi := MeshInstance3D.new()
+			mi.mesh = mesh
+			# Named here rather than on import: the preview node is what ends up in the
+			# scene, so it has to arrive already carrying the name the user will see.
+			mi.name = _selected_uri.get_file().get_basename()
+			node = mi
+	else:
+		node = _importer.load_model(_selected_uri, _chosen_pose())
+
+	if node == null:
+		return
+
+	_preview_node = node
+	_preview_pivot.add_child(node)
+	_frame_preview(node)
+	_preview_frame.visible = true
+
+
+func _clear_preview() -> void:
+	_preview_frame.visible = false
+	if is_instance_valid(_preview_node):
+		_preview_pivot.remove_child(_preview_node)
+		_preview_node.queue_free()
+	_preview_node = null
+
+
+## Point the camera at the model and back off far enough to hold all of it.
+func _frame_preview(node: Node3D) -> void:
+	var bounds := AABB()
+	var found := false
+	for child in node.get_children():
+		if child is MeshInstance3D:
+			bounds = child.get_aabb() if not found else bounds.merge(child.get_aabb())
+			found = true
+	if node is MeshInstance3D:
+		bounds = node.get_aabb()
+		found = true
+	if not found or bounds.size.length() <= 0.0:
+		bounds = AABB(Vector3(-1, 0, -1), Vector3(2, 2, 2))
+
+	# Centre the model on the pivot so orbiting turns it in place rather than swinging it
+	# around a corner of its bounding box.
+	_preview_pivot.position = -bounds.get_center()
+	# A map is tens of metres and a character is under two; one fixed distance cannot suit
+	# both, so it scales with what is actually there.
+	_orbit_distance = maxf(bounds.size.length() * 0.85, 0.5)
+	_apply_orbit()
+
+
+func _apply_orbit() -> void:
+	var yaw := deg_to_rad(_orbit.x)
+	var pitch := deg_to_rad(clampf(_orbit.y, -85.0, 85.0))
+	var offset := Vector3(
+		sin(yaw) * cos(pitch),
+		-sin(pitch),
+		cos(yaw) * cos(pitch)) * _orbit_distance
+	_preview.set_camera_pose(offset, Vector3(rad_to_deg(pitch), rad_to_deg(yaw) + 180.0, 0.0))
+
+
+func _on_preview_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
+		_orbit.x -= event.relative.x * 0.5
+		_orbit.y = clampf(_orbit.y + event.relative.y * 0.5, -85.0, 85.0)
+		_apply_orbit()
+	elif event is InputEventMouseButton and event.pressed:
+		# Wheel zoom, clamped so the model cannot be pushed inside the near plane or lost.
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_orbit_distance = maxf(_orbit_distance * 0.9, 0.3)
+			_apply_orbit()
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_orbit_distance = minf(_orbit_distance * 1.1, 500.0)
+			_apply_orbit()
+
+
+## The pose the user settled on, or "" for the importer's own choice.
+func _chosen_pose() -> String:
+	if _pose_row.visible and _pose_picker.selected >= 0:
+		return str(_pose_picker.get_item_metadata(_pose_picker.selected))
+	return ""
 
 
 ## Which engine badge to show beside a game in the list.
@@ -786,6 +934,8 @@ func _clear_selection() -> void:
 	_pose_row.visible = false
 	_picked_name.text = tr("Nothing yet")
 	_picked_kind.text = tr("Pick something from the list above.")
+	if _preview_frame != null:
+		_clear_preview()
 
 
 func _on_result_selected() -> void:
@@ -810,6 +960,9 @@ func _on_result_selected() -> void:
 	_pose_row.visible = false
 	if uri.get_extension().to_lower() == "mdl":
 		_load_poses(uri)
+
+	_clear_preview()
+	_preview_debounce.start()
 
 	if bool(kind["placeable"]):
 		_add_button.disabled = false
@@ -839,6 +992,13 @@ func _load_poses(uri: String) -> void:
 		_pose_picker.set_item_metadata(_pose_picker.item_count - 1, p)
 	_pose_picker.select(0)
 	_pose_row.visible = true
+	# Changing the pose has to rebuild the model; that is the whole point of previewing it.
+	if not _pose_picker.item_selected.is_connected(_on_pose_chosen):
+		_pose_picker.item_selected.connect(_on_pose_chosen)
+
+
+func _on_pose_chosen(_index: int) -> void:
+	_preview_debounce.start()
 
 
 # ----------------------------------------------------------------------- import ----
@@ -855,7 +1015,16 @@ func _on_add_pressed() -> void:
 	var ext := _selected_uri.get_extension().to_lower()
 	var node: Node3D = null
 
-	if ext == "bsp" or ext == "wrp":
+	# Adopt what is already on screen. The preview holds a fully imported node built with
+	# the pose the user settled on, so re-importing here would repeat ~170 ms of work to
+	# produce exactly the same thing — and could differ from what they were looking at.
+	if is_instance_valid(_preview_node):
+		node = _preview_node
+		_preview_pivot.remove_child(node)
+		_preview_node = null
+		_preview_frame.visible = false
+		node.position = Vector3.ZERO
+	elif ext == "bsp" or ext == "wrp":
 		var mesh: ArrayMesh = _importer.load_mesh(_selected_uri)
 		if mesh != null:
 			var mi := MeshInstance3D.new()
@@ -863,10 +1032,7 @@ func _on_add_pressed() -> void:
 			mi.name = _selected_uri.get_file().get_basename()
 			node = mi
 	else:
-		var pose := ""
-		if _pose_row.visible and _pose_picker.selected >= 0:
-			pose = str(_pose_picker.get_item_metadata(_pose_picker.selected))
-		node = _importer.load_model(_selected_uri, pose)
+		node = _importer.load_model(_selected_uri, _chosen_pose())
 
 	if node == null:
 		_say(_explain_failure(), true)
