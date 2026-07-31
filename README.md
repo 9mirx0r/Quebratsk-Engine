@@ -51,7 +51,7 @@ Two details it gets right that most converters do not:
    `res://addons/quebratsk_editor/`.
 3. Re-open the project.
 4. **Project → Project Settings → Plugins → enable "Quebratsk Engine".**
-5. Open the **Quebratsk** tab in the left dock and press **Add game content**.
+5. Open the **Quebratsk** tab in the left dock and press **Add a game**.
 
 Requires Godot 4.3 or newer, Windows x86_64.
 

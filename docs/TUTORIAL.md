@@ -37,7 +37,7 @@ A **Quebratsk** tab appears in the panel on the left, next to *Scene* and *Impor
 
 ## 2. Add a game
 
-Open the **Quebratsk** tab and press **Add game content**.
+Open the **Quebratsk** tab and press **Add a game**.
 
 The menu lists the games it found installed on your computer. Pick one — Half-Life 2, say.
 

@@ -136,6 +136,25 @@ func _check_pick() -> void:
 		   _dock._pose_picker.get_item_text(0) if _dock._pose_picker.item_count > 0 else ""])
 	print("   Add button enabled: %s" % (not _dock._add_button.disabled))
 
+	# The preview is debounced, so drive it directly rather than waiting on a timer that
+	# does not tick meaningfully in a headless run.
+	var t0 := Time.get_ticks_msec()
+	_dock._refresh_preview()
+	var dt := Time.get_ticks_msec() - t0
+	var node: Node3D = _dock._preview_node
+	print("   preview: visible=%s node=%s in %d ms"
+		% [_dock._preview_frame.visible, "null" if node == null else node.get_class(), dt])
+	if node != null:
+		print("     camera distance %.2f m, pivot offset %s"
+			% [_dock._orbit_distance, _dock._preview_pivot.position.round()])
+
+	# Pressing Add must adopt the previewed node, not import a second copy.
+	var before: Node3D = _dock._preview_node
+	_dock._plugin = null   # no EditorInterface headless; stop before the scene insert
+	_dock._on_add_pressed()
+	print("   after Add with no editor: preview kept = %s"
+		% (_dock._preview_node == before))
+
 	# A texture is findable but not something you drop into a scene on its own.
 	_dock._search.text = ""
 	_pick_category("Textures & materials")

@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A 3D preview before importing.** The dock shows the picked model or map in a rotatable
+  viewport — drag to turn it, wheel to zoom. Until now the only way to know whether you had
+  the right `police.mdl` was to import it, look, and undo.
+
+  The camera frames whatever is there rather than sitting at a fixed distance: a character
+  is under two metres and a map is tens, so the distance comes from the asset's bounding
+  box, and the pivot is centred on it so orbiting turns the model in place instead of
+  swinging it around a corner of its bounds.
+
+  Loading is debounced by 250 ms. A full import is ~230 ms against ~70 ms for the pose list
+  alone, so arrow-keying down 400 results would otherwise rebuild a model per keypress.
+  Changing the standing pose rebuilds the preview, which is the point of having one.
+
+  **Add to scene adopts the previewed node** instead of importing a second time. It is
+  already built with the pose the user settled on, so re-importing would repeat the work to
+  produce the same thing — and risk handing over something other than what they were
+  looking at.
+
+  This is also the first consumer of `MapPreviewViewport`, a registered class that until now
+  nothing used.
+
+### Fixed
+
+- The README and the beginner's guide told users to press **Add game content**. The button
+  has been called **Add a game** since the dock was restructured.
+
 ### Removed
 
 - **Seven registered classes and ten parser stubs that did not do what their names said.**

@@ -45,6 +45,7 @@ keys,en,es
 "Nothing yet","Nothing yet","Nada seleccionado"
 "Pick something from the list above.","Pick something from the list above.","Elegí algo de la lista de arriba."
 "From %s","From %s","De %s"
+"Drag to turn it around","Drag to turn it around","Arrastrá para girarlo"
 "Standing pose","Standing pose","Postura inicial"
 "Which frame of the game's own animations the model stands in","Which frame of the game's own animations the model stands in","En qué postura de las animaciones del juego se queda el modelo"
 "Whatever the game uses by default","Whatever the game uses by default","La que usa el juego"
