@@ -230,6 +230,35 @@ func _check_pick() -> void:
 	print("   after Add with no editor: preview kept = %s"
 		% (_dock._preview_node == before))
 
+	# "Bring it in moving" is the only way an animation is reachable without writing code,
+	# so it is worth driving the same way a person would: pick a pose, tick the box, look
+	# at what comes out.
+	_dock._search.text = "police"
+	_pick_category("Characters & people")
+	var pick: TreeItem = _dock._results.get_root().get_first_child()
+	if pick != null and pick.is_selectable(0):
+		_dock._results.set_selected(pick, 0)
+		_dock._on_result_selected()
+		var walk := -1
+		for i in _dock._pose_picker.item_count:
+			if _dock._pose_picker.get_item_text(i).to_lower().contains("walk"):
+				walk = i
+				break
+		if walk >= 0:
+			_dock._pose_picker.select(walk)
+			_dock._animate_toggle.button_pressed = true
+			_dock._refresh_preview()
+			var previewed: Node3D = _dock._preview_node
+			var ap: AnimationPlayer = null
+			if previewed != null:
+				ap = previewed.get_node_or_null("AnimationPlayer")
+			print("   'Bring it in moving' with pose '%s' -> %s"
+				% [_dock._pose_picker.get_item_text(walk),
+				   "no AnimationPlayer" if ap == null
+				   else "%s, %.2f s" % [", ".join(ap.get_animation_list()),
+										ap.get_animation(ap.get_animation_list()[0]).get_length()]])
+			_dock._animate_toggle.button_pressed = false
+
 	# A sound is listed but was inert until now: parse the WAV out of the archive and
 	# report what came back, since a bad header yields silence rather than an error.
 	_dock._search.text = ""

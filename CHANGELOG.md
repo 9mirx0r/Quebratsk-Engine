@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **Animations import and play.** Until now a model came in wearing one frozen frame of one
+  sequence. Naming sequences brings them in as `Animation` resources on an `AnimationPlayer`
+  attached to the skeleton, under the labels the game itself uses:
+
+  ```gdscript
+  var npc := importer.load_model(uri, "idle_all_01", PackedStringArray(["walk_all"]))
+  npc.get_node("AnimationPlayer").play("walk_all")
+  ```
+
+  In the dock this is the **Bring it in moving** tickbox beside the pose list.
+
+  The decoder already took a frame index and handled the run-length walk; what was missing
+  was that both call sites passed a hard-coded zero, sections were resolved for frame 0
+  only, and `AnimationConverter` had never had a producer — it wrote a track path,
+  `%GeneralSkeleton:`, that matches nothing this project builds.
+
+  Nothing decodes unless it is named. A model carries hundreds of sequences and each is one
+  keyframe per bone per frame, so importing them all would cost far more than any caller
+  wants. Tracks whose value never changes collapse to a single key, which is most bones in
+  any one sequence.
+
+### Fixed
+
+- **85 animation sequences were missing from every Garry's Mod player model.** A section
+  whose data begins at the first byte of its animation block records an offset of zero, and
+  the resolver rejected zero everywhere as invalid. It is only invalid for data stored
+  inline, where offset zero from the descriptor *is* the descriptor. `list_poses()` on a
+  player model returns 426 sequences where it returned 341, and long sequences no longer
+  stop at whichever section happened to land on a block boundary — a 9.3 second idle
+  decoded 240 of its 280 frames.
+
+  Found by counting keyframes against the declared duration rather than by reading the
+  code, which is also why the animation's length is now taken from the frames actually
+  decoded: a partial decode used to claim the full duration and leave the model frozen
+  through the part that was never read.
+
+---
+
 ## [2.0.1] - 2026-07-31
 
 Everything since `0.7.0-alpha`. Version 2.0.0 was tagged and published without its own

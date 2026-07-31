@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../core/ir/ir_animation_data.h"
 #include "../../core/ir/ir_mesh_data.h"
 #include "../../core/ir/ir_skeleton_data.h"
 #include "structs/anim_structs.h"
@@ -25,6 +26,11 @@ enum class SourceMDLParseError {
 struct ParsedSourceMDLModel {
     ir::IRMeshData mesh_data;
     ir::IRSkeletonData skeleton_data;
+
+    /// One entry per sequence named in SourceModelBundle::animate that decoded. Empty
+    /// unless animations were asked for: a player model has 359 sequences and decoding
+    /// every frame of all of them is tens of megabytes of keyframes.
+    std::vector<ir::IRAnimationData> animations;
 };
 
 /// A .mdl together with the external animation-block file it defers its long sequences
@@ -46,6 +52,10 @@ struct SourceModelBundle {
     std::span<const std::byte> vvd;
     std::span<const std::byte> vtx;
     std::span<const std::byte> ani;  // this model's own animation blocks, if any
+
+    /// Sequences to decode in full, by the name the game calls them ("walk_all_01").
+    /// Anything not listed still contributes its frame-0 pose and nothing more.
+    std::vector<std::string> animate;
 
     /// Models named by the .mdl's includemodel table, already fetched by the caller.
     /// GMod player models carry no animation of their own and borrow every sequence

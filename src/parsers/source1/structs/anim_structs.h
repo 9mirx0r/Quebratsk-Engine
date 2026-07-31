@@ -136,6 +136,10 @@ inline constexpr uint8_t kAnimAnimRot = 0x08; // SourceAnimValuePtr for rotation
 inline constexpr uint8_t kAnimDelta   = 0x10; // values are offsets from the rest pose
 inline constexpr uint8_t kAnimRawRot2 = 0x20; // SourceQuat64 follows
 
+/// mstudioseqdesc_t::flags. Only the one this project reads is named; STUDIO_LOOPING is
+/// what tells an idle to repeat rather than play once and freeze on its last frame.
+inline constexpr int32_t kSeqLooping = 0x0001;
+
 static_assert(sizeof(SourceSeqDesc) == 212, "SourceSeqDesc size mismatch");
 static_assert(sizeof(SourceAnimDesc) == 100, "SourceAnimDesc size mismatch");
 static_assert(sizeof(SourceBoneAnim) == 4, "SourceBoneAnim size mismatch");
