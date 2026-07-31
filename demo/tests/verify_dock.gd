@@ -389,11 +389,24 @@ func _check_pick() -> void:
 	# A texture is findable but not something you drop into a scene on its own.
 	_dock._search.text = ""
 	_pick_category("Textures & materials")
+	# The first row of this category is usually a .vmt, which is a material and has no image
+	# of its own. Walk to something that is actually a picture.
 	var tex: TreeItem = _dock._results.get_root().get_first_child()
+	while tex != null and not str(tex.get_metadata(0)).get_extension().to_lower() in ["vtf", "png", "tga", "paa"]:
+		tex = tex.get_next()
 	if tex != null and tex.is_selectable(0):
 		_dock._results.set_selected(tex, 0)
 		_dock._on_result_selected()
 		print("   texture picked -> Add enabled: %s" % (not _dock._add_button.disabled))
+
+		# Whether the preview actually draws. This check did not exist, and the preview had
+		# never worked: load_texture() could not resolve a full vfs:// URI, so it returned
+		# null and the frame stayed blank without a word to anyone.
+		var drawn: bool = _dock._preview_texture(str(tex.get_metadata(0)))
+		var shown: Texture2D = _dock._texture_frame.texture
+		print("   texture preview -> %s" % [
+			"nothing drawn  ** FAILED **" if not drawn or shown == null
+			else "%dx%d" % [shown.get_width(), shown.get_height()]])
 		print("   says: %s" % _dock._status.text)
 
 
