@@ -561,7 +561,13 @@ void VFSManager::index_pbo(size_t container_idx) {
         entry.container_index = container_idx;
         entry.offset = payload_offset;
         entry.disk_size = disk_size;
-        entry.uncompressed_size = static_cast<size_t>(raw.fields.original_size);
+        // original_size is only meaningful for a compressed entry; an uncompressed one
+        // leaves it at zero and its stored size is its real size. Taking it at face value
+        // made get_file_size() report 0 for most of a DayZ install, including a 213 MB
+        // terrain, while read_file() on the same entry returned every byte.
+        entry.uncompressed_size = raw.fields.original_size != 0
+                                      ? static_cast<size_t>(raw.fields.original_size)
+                                      : disk_size;
 
         if (raw.fields.packing_method == parsers::rv_enfusion::kPboMagicCprs) {
             entry.compression = CompressionType::LZSS_Bohemia;

@@ -21,11 +21,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   about, ever resolved. All five container indexers now file paths the same way, through one
   function that states the convention.
 
+- **`get_file_size()` reported 0 for most of a DayZ install.** A PBO entry only fills in
+  its uncompressed size when it is compressed; an uncompressed one leaves the field at zero
+  and its stored size is its real size. Taking the field at face value meant the dock showed
+  "0 B" beside files it could read perfectly well, including a 213 MB terrain.
+
 - **The dock's texture preview never showed anything.** `load_texture()` only knew how to
   resolve a texture *reference*, the kind a material names, by searching the index for a
   matching suffix. Handed a full `vfs://` URI, which is what every caller holding a search
   result actually has, the search asked for an entry *ending in* `/vfs://mount/path` and
   could never match. It returned null without a word, and the preview silently drew nothing.
+
+### Changed
+
+- **The `.wrp` row in the supported table now says what it actually covers.** It claimed
+  Arma and DayZ terrain. DayZ's `chernarusplus.wrp` and `enoch.wrp` are OPRW version 29, and
+  the reader recognises the magic and then decodes nothing from them. Older Arma terrain may
+  work, but there is no Arma install here to say so, and a parser that compiles is not what
+  this project calls supported.
 
 ### Added
 
