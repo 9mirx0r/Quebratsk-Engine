@@ -178,6 +178,16 @@ hit["files"]   # PackedStringArray, at most `limit` URIs (0 means no limit)
 hit["total"]   # how many matched in full, so you can say "showing 400 of 4,264"
 ```
 
+Results come back **sorted by filename**, with the full path as the tiebreak, and `total`
+counts every match rather than the page. Sorting on the filename rather than the whole URI
+is what puts Garry's Mod's `police.mdl` next to Half-Life 2's: ordering by URI groups
+by mount prefix instead, so a 400-row page would come entirely from whichever game sorts
+first and the other one's matches would never be seen.
+
+The order matters more than it looks. The index is a hash map, so before this the page was
+whichever entries the bucket layout happened to yield, it changed whenever the map was
+resized, and "showing the first 400 of 41,969" named a first that did not exist.
+
 `needle` matches anywhere in the URI, case-insensitively; an empty one matches everything.
 `extensions` are lowercase and without the dot. `exclude` is subtracted first, which is the
 point of having it: filtering the returned page yourself would both shrink the page and

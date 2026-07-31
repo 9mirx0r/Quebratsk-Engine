@@ -72,6 +72,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `demo/tests/verify_dock.gd` prints the split per call now, so the next guess has to argue
   with it.
 
+- **The results list has an order.** `find_files()` iterated a hash map, so which 400 of
+  41,969 matches you were shown was whatever the bucket layout gave, it changed whenever the
+  map was resized, and *"Showing the first 400 of 41,969"* named a first that did not exist.
+  The same search twice could return different rows.
+
+  Matches are now sorted by filename, with the full path as the tiebreak. On the filename
+  rather than the whole URI, because that is what puts Garry's Mod's `police.mdl` next to
+  Half-Life 2's; sorting by URI groups by mount prefix, so a 400-row page would come
+  entirely from whichever game sorts first and the other one's matches would never appear.
+
+  Only the page is sorted, not all 41,969 matches, and the filename offset is carried
+  alongside each match rather than rescanned on every comparison. The whole thing costs
+  about half a millisecond: a list refresh went from 15 ms to 17 ms.
+
 - **`VFSEntry` no longer carries a copy of its own key.** Every indexed file stored the
   `vfs://` URI it is filed under, character for character: 60,584 redundant string
   allocations for a two-game setup, rebuilt on every mount. Its one reader, `unmount()`,
