@@ -169,6 +169,37 @@ func _check_search() -> void:
 			% [label, _dock._status.text, Time.get_ticks_msec() - t0, sample])
 
 	_time_filtering()
+	_check_order()
+
+
+## The list claims to show "the first 400 of 41,969", which is only true if there is a first.
+## The index is a hash map, so before this was ordered the page was whatever the bucket
+## layout gave, and it changed whenever the map was resized.
+func _check_order() -> void:
+	_dock._search.text = ""
+	_pick_category("Everything")
+
+	var previous := ""
+	var out_of_order := 0
+	var rows := 0
+	var row: TreeItem = _dock._results.get_root().get_first_child()
+	while row != null:
+		var name := str(row.get_metadata(0)).get_file()
+		if not previous.is_empty() and name < previous:
+			out_of_order += 1
+		previous = name
+		rows += 1
+		row = row.get_next()
+
+	print("\n   %d rows, %d out of order" % [rows, out_of_order])
+
+	# Same query twice must give the same page, which is the property that was missing.
+	var first: Dictionary = _dock._vfs.find_files("police", PackedStringArray(["mdl"]),
+		PackedStringArray(), 5)
+	var again: Dictionary = _dock._vfs.find_files("police", PackedStringArray(["mdl"]),
+		PackedStringArray(), 5)
+	print("   'police' first five: %s" % ", ".join(first["files"]))
+	print("   repeatable: %s" % (first["files"] == again["files"]))
 
 	print("\n   searching inside a category")
 	_dock._search.text = "player"

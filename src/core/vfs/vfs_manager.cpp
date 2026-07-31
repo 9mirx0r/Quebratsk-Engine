@@ -597,8 +597,20 @@ Dictionary VFSManager::find_files(const String& needle,
     const std::vector<std::string> wanted_ext = lowered(extensions);
     const std::vector<std::string> unwanted_ext = lowered(exclude);
 
-    PackedStringArray files;
-    int64_t total = 0;
+    // Collecting matches before choosing a page is what makes the page mean anything: the
+    // index is a hash map, so iteration order is whatever the bucket layout gives, and it
+    // changes when the map is resized. "The first 400 of 41,969" needs there to be a first.
+    //
+    // The filename offset is carried alongside rather than recomputed, because sorting
+    // compares each entry many times and scanning back for the last slash on every one of
+    // those comparisons is the expensive way to reach the same answer. The pointer stays
+    // valid: the lock is held and nothing is inserted here.
+    struct Match {
+        const std::string* uri;
+        uint32_t name_at;
+    };
+    std::vector<Match> matches;
+    matches.reserve(m_index.size());
 
     for (const auto& [uri, entry] : m_index) {
         std::string_view ext;
@@ -625,17 +637,41 @@ Dictionary VFSManager::find_files(const String& needle,
 
         if (!want.empty() && uri.find(want) == std::string::npos) continue;
 
-        ++total;
-        // Counting continues past the limit: the caller needs the full total to say how
-        // much it is not showing.
-        if (limit <= 0 || files.size() < limit) {
-            files.append(String(uri.c_str()));
-        }
+        const size_t slash = uri.find_last_of('/');
+        matches.push_back({&uri, static_cast<uint32_t>(slash == std::string::npos ? 0
+                                                                                 : slash + 1)});
+    }
+
+    // By filename first, full path second. A user searching "police" wants the two games'
+    // police.mdl side by side, which sorting on the whole URI would not give: that groups
+    // by mount prefix, so a 400-row page would come entirely from whichever game sorts
+    // first and the second game's matches would be invisible.
+    auto by_name = [](const Match& a, const Match& b) {
+        const std::string_view an(a.uri->data() + a.name_at, a.uri->size() - a.name_at);
+        const std::string_view bn(b.uri->data() + b.name_at, b.uri->size() - b.name_at);
+        return an != bn ? an < bn : *a.uri < *b.uri;
+    };
+
+    // Only the page is ordered. Sorting all 41,969 matches to show 400 of them is work
+    // thrown away, and partial_sort is O(n log page) against O(n log n).
+    const size_t take = (limit <= 0)
+                            ? matches.size()
+                            : std::min(static_cast<size_t>(limit), matches.size());
+    std::partial_sort(matches.begin(),
+                      matches.begin() + static_cast<std::ptrdiff_t>(take),
+                      matches.end(), by_name);
+
+    PackedStringArray files;
+    files.resize(static_cast<int64_t>(take));
+    for (size_t i = 0; i < take; ++i) {
+        files.set(static_cast<int64_t>(i), String(matches[i].uri->c_str()));
     }
 
     Dictionary out;
     out["files"] = files;
-    out["total"] = total;
+    // The count is every match, not the page: a UI needs it to say how much it is not
+    // showing.
+    out["total"] = static_cast<int64_t>(matches.size());
     return out;
 }
 
