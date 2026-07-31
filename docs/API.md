@@ -3,9 +3,13 @@
 **Audience:** whoever builds the editor addon, the docs and the cosmetic assets, in
 parallel with work on the C++ parsers.
 
-**Status:** valid as of `v0.6.0-alpha` (commit `29b1369`). Every signature below was read
-out of `src/register_types.cpp` and the `_bind_methods()` bodies, not from memory. If
-something here disagrees with the code, the code is right and this file is a bug.
+**Status:** valid as of 2.0. Every signature below was read out of
+`src/register_types.cpp` and the `_bind_methods()` bodies, not from memory. If something
+here disagrees with the code, the code is right and this file is a bug.
+
+**2.0 removed seven registered classes and ten parser stubs** that did not do what their
+names said — see *Removed in 2.0* at the end of §4 before assuming an old call still
+works.
 
 ---
 
@@ -25,9 +29,11 @@ Shared, coordinate before touching: `demo/project.godot`, `README.md`, `CHANGELO
 
 **Three rules.**
 
-1. **Do not build on anything marked ❌ below.** Those classes are registered and callable
-   — they will not crash — but they return placeholder data. A dock built on
-   `VFSFileTree.get_mounted_file_tree()` would display a single hardcoded row forever.
+1. **Everything registered now does what its name says.** That was not true before 2.0:
+   nine classes returned placeholder data, and a dock built on
+   `VFSFileTree.get_mounted_file_tree()` would have displayed one hardcoded row forever.
+   They were deleted rather than documented. Keep it that way — do not register a class
+   before it works.
 2. **Do not write binary format parsing.** `.mdl`, `.bsp`, `.vpk`, `.vtf` struct layouts
    stay on the engine side. A wrong field offset does not crash, it silently yields empty
    results, and that has already cost this project days.
@@ -46,7 +52,7 @@ GDScript.** Section 6 already lists the ones I know are missing.
 |---|---|
 | ✅ | Implemented and exercised against retail game assets in Godot 4.7.1 |
 | ⚠️ | Works, but with a limitation stated inline that will affect UI design |
-| ❌ | **Stub.** Registered and callable, returns placeholder data. Do not build on it |
+| ❌ | Not implemented. Since 2.0 nothing registered is marked this way; the label is kept for the format table |
 
 ---
 
@@ -319,35 +325,42 @@ Nothing in the engine writes to it yet — today it is a container your own UI d
 
 ---
 
-### `ImportPresets` ⚠️ — static
+### `QuebratskSettings` ✅ — project settings
 
-```gdscript
-void ImportPresets.apply_preset(preset_index: int)
-ImportPresets.MAX_PERFORMANCE   # 0
-ImportPresets.RETRO_FIDELITY    # 1
-ImportPresets.MAX_QUALITY       # 2
-```
+One setting, and the engine reads it:
 
-Writes three keys under `quebratsk/performance/` in `ProjectSettings`.
+| Key | Default | Effect |
+|---|---|---|
+| `quebratsk/performance/max_background_threads` | cores − 1, clamped to 1–8 | Ceiling on concurrent `load_*_async` workers |
 
-**Be careful exposing this.** Those settings are written but **not read by anything in the
-engine today** — `vram_eviction_timeout_msec`, `max_background_threads` and
-`enable_shader_precaching` currently have no effect. A polished UI for controls that do
-nothing is worse than no UI. Leave it out until the engine consumes them.
+`AsyncAssetImporter` consults it before spawning, so importing a folder in a loop no
+longer creates one thread per asset, each holding a decoded copy. Read at the point of
+use, so changing it in Project Settings takes effect without a restart.
+
+An `ImportPresets` class used to write three keys here —
+`vram_eviction_timeout_msec`, `max_background_threads` and `enable_shader_precaching`.
+Nothing read any of them: `TextureCache` has no eviction and there is no shader
+precaching. They appeared in the Project Settings UI, could be changed and saved, and did
+nothing. The two unimplementable ones were removed and the third was made real. A setting
+with no effect is worse than a missing one, because the user believes they configured
+something.
 
 ---
 
-### `NeuralMaterialTranslator` ✅ — static
+### `MaterialHeuristics` ✅ — static
 
 ```gdscript
-StandardMaterial3D NeuralMaterialTranslator.translate_material(
+StandardMaterial3D MaterialHeuristics.translate_material(
     material_name: String, shader_type: String,
     default_roughness: float = 0.5, default_metallic: float = 0.0)
 ```
 
-Despite the name there is **no machine learning here** — it is a keyword heuristic on the
-material name (`metal`/`steel`/`chrome` → metallic 0.85, `water`/`glass` → alpha, and so
-on). Accurate naming in user-facing copy, please: "PBR guess from material name".
+A keyword heuristic on the material name: `metal`/`steel`/`chrome` → metallic 0.85,
+`water`/`glass` → alpha, `concrete`/`stone` → rough, and so on. Describe it as "PBR guess
+from the material name".
+
+Called `NeuralMaterialTranslator` until 2.0. There is no machine learning in it and never
+was.
 
 ---
 
@@ -379,17 +392,28 @@ exactly what a "missing textures" panel should offer.
 
 ---
 
-### ❌ Do not build on these
+### Removed in 2.0
 
-Registered and callable, but they return placeholder data:
+These were registered and callable, and none of them did what its name said. A registered
+class is a promise, so they were deleted rather than documented:
 
-| Class | What it actually does |
+| Class | What it actually did |
 |---|---|
-| `VFSFileTree.get_mounted_file_tree()` | Returns an `Array` with **one hardcoded `{name: "vfs://", type: "directory"}`**. Build the dock tree from `VFSManager.list_files(prefix)` instead |
-| `DependencyGraphBuilder.build_dependency_graph()` | Returns the asset name and an **always-empty** `dependencies` array. Parses nothing |
-| `BSPMapRenderer.load_map()` | Explicitly not implemented — pushes an error and returns `false`. Use `UnifiedAssetImporter.load_mesh()` for BSP geometry |
-| `BSPMapRenderer.perform_pvs_culling()` | No-op. Culls nothing |
-| `TextureUpscalerPipeline`, `VulkanRTBuilder`, `P2PVFSStreamer`, `ObsidianDocExporter`, `UAssetMeshExtractor`, `BundleMeshExtractor` | Skeletons, 28–51 lines each including boilerplate. Unreal `.uasset` and Unity `.bundle` import **do not work** |
+| `UAssetMeshExtractor`, `BundleMeshExtractor` | Returned a mesh with a name and a material and **zero vertices**. Unreal and Unity "support" was that |
+| `VulkanRTBuilder` | Reported `is_built: true` for an acceleration structure Godot 4.3 has no API to build |
+| `P2PVFSStreamer` | Contained no networking at all |
+| `BSPMapRenderer` | Not implemented. Use `UnifiedAssetImporter.load_mesh()` for BSP geometry |
+| `VFSFileTree` | Returned one hardcoded row. Build a tree from `VFSManager.list_files(prefix)` instead |
+| `DependencyGraphBuilder` | Returned an always-empty dependency list |
+| `ImportPresets` | Wrote three settings nothing read (see `QuebratskSettings`) |
+
+Ten unreachable parser stubs went with them — `uasset_parser`, `bundle_parser`,
+`vmdl_parser`, `xob_parser`, `paa_decoder`, `audio_decoder` and others, 16 to 32 lines
+each. The importer never called any of them; they existed to make a format table look
+longer.
+
+**If you had code calling these, it was returning nothing.** The replacement in every case
+is either `UnifiedAssetImporter` or "that format is not supported yet".
 
 ---
 
@@ -409,12 +433,16 @@ retail installs.
 | Source 1 | GMA addons | ✅ |
 | Source 1 | VTF / VMT | ✅ DXT1/BC1, DXT5/BC3, uncompressed |
 | Real Virtuality | PBO archives | ✅ (121 entries indexed from a DayZ PBO) |
-| Real Virtuality | P3D MLOD | ⚠️ MLOD only; ODOL v40/v48 not supported |
+| Real Virtuality | WRP terrain | ✅ heightmap, with overflow-safe grid bounds |
+| Real Virtuality | P3D models | ❌ **not implemented, MLOD or ODOL.** This file previously said "⚠️ MLOD only", which was wrong: the parser validated the magic and returned a *successful* empty model named "BohemiaModel". It reports an error now |
 | Real Virtuality | PAA textures | ❌ not implemented |
-| Unreal | `.uasset` | ❌ stub |
-| Unity | `.bundle` | ❌ stub |
+| Source 2 · Enfusion · Unity · Unreal | — | ❌ not implemented. Their stub parsers were deleted in 2.0 |
 
 Not implemented anywhere yet: sound extraction, LOD generation, collision decomposition.
+
+Nothing reaches this table until it has been run against a retail install. `P3D` is the
+cautionary tale — it was documented from the parser's shape rather than from its
+behaviour.
 
 ---
 
@@ -424,7 +452,7 @@ Not implemented anywhere yet: sound extraction, LOD generation, collision decomp
 
 `load_model_async()`, `list_poses()`, `get_mounts_info()`, `scan_game_directory()`,
 `get_last_error_code()` and the Source titles in `SteamLibraryDetector` all exist and are
-exercised by `demo/verify_api.gd`. Run that scene against a real Steam install before
+exercised by `demo/tests/verify_api.gd`. Run that scene against a real Steam install before
 trusting any change to them; it prints a pass/fail line per API.
 
 Two carry caveats worth designing around, both stated in §4: `scan_game_directory()`
@@ -448,7 +476,9 @@ prefix rather than by file on disk.
 4. **Steam paths come back malformed but usable** — `C://Program Files (x86)//Steam/...`
    with doubled separators and a mixed backslash, from the `libraryfolders.vdf` parse.
    Windows accepts them, but never string-compare two of these; normalise first.
-5. **`ImportPresets` still writes settings nothing reads** (see §4). Unchanged.
+5. **The editor dock is not covered by the C++ tests.** `demo/tests/verify_dock.gd` drives
+   it headlessly against a real Steam install, but it needs games installed, so CI cannot
+   run it. Run it before changing the dock.
 
 ---
 

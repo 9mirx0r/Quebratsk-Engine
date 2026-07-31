@@ -9,7 +9,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Seven registered classes and ten parser stubs that did not do what their names said.**
+  A registered class is a promise to whoever calls it, and these were promises the project
+  could not keep:
+
+  | Class | What it actually did |
+  |---|---|
+  | `UAssetMeshExtractor`, `BundleMeshExtractor` | Returned a mesh carrying a name and a material and **zero vertices**. Unreal and Unity "support" was that |
+  | `VulkanRTBuilder` | Reported `is_built: true` for an acceleration structure Godot 4.3 has no API to build |
+  | `P2PVFSStreamer` | Contained no networking whatsoever |
+  | `BSPMapRenderer` | Not implemented; `UnifiedAssetImporter.load_mesh()` already did the job |
+  | `VFSFileTree` | Returned one hardcoded row |
+  | `DependencyGraphBuilder` | Returned an always-empty dependency list |
+  | `ImportPresets` | Wrote three settings nothing read |
+
+  The parser stubs — `uasset_parser`, `bundle_parser`, `vmdl_parser`, `xob_parser`,
+  `paa_decoder`, `audio_decoder` and four others, 16 to 32 lines each — were never reached
+  by the importer at all. They existed to make a format table look longer.
+
+  Registered classes: 23 → 15.
+
+### Fixed
+
+- **`P3DMLODParser` returned success for a model it had not read.** It checked the magic
+  and handed back a `ParsedP3DModel` named `"BohemiaModel"` with zero surfaces and zero
+  bones, so every caller saw a valid parse of an empty model and had no way to tell that
+  nothing had been decoded. It also accepted ODOL, a different container entirely. It
+  reports an error now, and the dock says Arma and DayZ models cannot be imported yet
+  rather than letting the user press Add and get a failure they cannot act on.
+
+  `docs/API.md` had listed this as "⚠️ MLOD only", which was wrong — the row was written
+  from the parser's shape rather than from running it. Corrected, and the file now records
+  P3D as the cautionary example.
+
+- **`AsyncAssetImporter` spawned an unbounded thread per call.** Importing a folder of 200
+  models from a loop created 200 threads at once, each holding a decoded copy of its
+  asset. It honours `quebratsk/performance/max_background_threads` now — which until this
+  release was a Project Setting nothing read.
+
 ### Added
+
+- **`QuebratskSettings.max_background_threads`**, defaulting to cores − 1 clamped to 1–8,
+  read at the point of use so a change takes effect without a restart. It is the only
+  setting the engine declares, because it is the only one the engine reads.
 
 - **Community templates and a contributing guide** — `.github/ISSUE_TEMPLATE/`,
   `.github/PULL_REQUEST_TEMPLATE.md`, `CONTRIBUTING.md`.
@@ -65,6 +109,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A restored session now says "Picking up where you left off." The greeting used to be
   written and then immediately overwritten by the search-result count.
+
+- **`NeuralMaterialTranslator` is now `MaterialHeuristics`.** There is no machine learning
+  in it and never was — it matches keywords in the material name. Breaking rename, which
+  is what a major version is for.
+
+- **The repository holds the project and nothing else.** Seven packaged releases (~11 MB)
+  and the compiled extension were committed; between them they were 186 MB of a 95 MB
+  history, since every rebuild stored a fresh 7 MB DLL. Both are purged from history and
+  ignored going forward — CI builds the binary and publishes it as an artifact, and users
+  install from Releases. `.git` went from **95 MB to 3.3 MB**. The seven release archives
+  remain downloadable from their tags, which is where they always belonged.
+
+  A fresh clone therefore contains no binary. Build before opening `demo/` in Godot;
+  `CONTRIBUTING.md` says so.
+
+- **The five test suites are CMake targets**, so `ctest -C Debug` runs all of them. Each
+  was previously buildable only by copying a hand-written `cl` command line out of a
+  comment at the top of the file — five different command lines, none verified by
+  anything.
 
 ### Added
 
