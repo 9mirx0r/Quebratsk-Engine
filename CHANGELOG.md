@@ -34,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Save ignored the pose you picked.** *Add to scene* adopts the previewed node, so it
+  arrives in the chosen stance, but *Save* rebuilt the model from scratch with no pose and
+  no animation. The two buttons produced different models from the same selection. Saving a
+  multi-selection still uses each model's own default, since a sequence label picked against
+  one model rarely exists in another.
+
 - **85 animation sequences were missing from every Garry's Mod player model.** A section
   whose data begins at the first byte of its animation block records an offset of zero, and
   the resolver rejected zero everywhere as invalid. It is only invalid for data stored

@@ -1438,7 +1438,7 @@ func _on_save_pressed() -> void:
 	var last := ""
 	for entry in batch:
 		var uri := str(entry)
-		var node := _build_for_scene(uri)
+		var node := _build_for_scene(uri, batch.size() == 1)
 		if node == null:
 			continue
 
@@ -1557,7 +1557,9 @@ func _add_batch(uris: Array, scene_root: Node) -> void:
 	var built: Array[Node3D] = []
 	for entry in uris:
 		var uri := str(entry)
-		var node := _build_for_scene(uri)
+		# Never `alone`: a batch is several models, and the pose picked against one of them
+		# names a sequence the others most likely do not have.
+		var node := _build_for_scene(uri, false)
 		if node == null:
 			failed += 1
 			continue
@@ -1587,7 +1589,11 @@ func _add_batch(uris: Array, scene_root: Node) -> void:
 
 
 ## Import one URI into a scene-ready node, without touching the preview.
-func _build_for_scene(uri: String) -> Node3D:
+## Build a node for saving. `alone` is true when this is the only asset being saved, which
+## is the only case where the pose and animation choices apply: they were made against the
+## selected model, and a sequence label from one model rarely exists in another. Saving a
+## multi-selection uses each model's own default.
+func _build_for_scene(uri: String, alone: bool) -> Node3D:
 	var ext := uri.get_extension().to_lower()
 	if ext == "bsp" or ext == "wrp":
 		var mesh: ArrayMesh = _importer.load_mesh(uri)
@@ -1597,7 +1603,9 @@ func _build_for_scene(uri: String) -> Node3D:
 		mi.mesh = mesh
 		mi.name = uri.get_file().get_basename()
 		return mi
-	return _importer.load_model(uri, "")
+	if not alone:
+		return _importer.load_model(uri, "")
+	return _importer.load_model(uri, _chosen_pose(), _chosen_animations())
 
 
 func _claim_ownership(node: Node, scene_root: Node) -> void:
