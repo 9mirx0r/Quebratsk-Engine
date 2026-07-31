@@ -130,6 +130,11 @@ var _favourites: Dictionary = {}
 ## Most recent first, capped at MAX_RECENTS.
 var _recents: Array = []
 var _star_button: Button
+var _save_button: Button
+var _texture_frame: TextureRect
+var _sound_row: HBoxContainer
+var _play_button: Button
+var _audio: AudioStreamPlayer
 
 
 func set_editor_plugin(plugin: EditorPlugin) -> void:
@@ -363,6 +368,27 @@ func _build_ui() -> void:
 	_preview_pivot = Node3D.new()
 	_preview.add_child(_preview_pivot)
 
+	# Textures get the same slot as the 3D view. Only one of the two is ever shown, so a
+	# .vtf reads as "here is your thing" rather than an empty panel with a name over it.
+	_texture_frame = TextureRect.new()
+	_texture_frame.custom_minimum_size = Vector2(0, 170)
+	_texture_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_texture_frame.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_texture_frame.visible = false
+	picked.add_child(_texture_frame)
+
+	_sound_row = HBoxContainer.new()
+	_sound_row.visible = false
+	picked.add_child(_sound_row)
+	_play_button = Button.new()
+	_play_button.text = tr("Play")
+	_play_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_play_button.pressed.connect(_on_play_pressed)
+	_sound_row.add_child(_play_button)
+
+	_audio = AudioStreamPlayer.new()
+	add_child(_audio)
+
 	_picked_name = Label.new()
 	_picked_name.text = tr("Nothing yet")
 	_picked_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -394,6 +420,13 @@ func _build_ui() -> void:
 	_star_button.disabled = true
 	_star_button.pressed.connect(_on_star_pressed)
 	button_row.add_child(_star_button)
+
+	_save_button = Button.new()
+	_save_button.text = tr("Save")
+	_save_button.tooltip_text = tr("Write it to res://imported/ so you can reuse it")
+	_save_button.disabled = true
+	_save_button.pressed.connect(_on_save_pressed)
+	button_row.add_child(_save_button)
 
 	_add_button = Button.new()
 	_add_button.text = tr("Add to scene")
@@ -431,7 +464,18 @@ func _refresh_preview() -> void:
 
 	if _selected_uri.is_empty():
 		return
+
 	var kind := _kind_of(_selected_uri)
+	var ext_now := _selected_uri.get_extension().to_lower()
+
+	# Not placeable does not mean not previewable. A texture can be shown and a sound can
+	# be played; both were listed but inert before.
+	if str(kind["name"]) == tr("Texture") or ext_now in ["vtf", "png", "tga", "paa"]:
+		_preview_texture(_selected_uri)
+		return
+	if ext_now == "wav":
+		_sound_row.visible = true
+		return
 	if not bool(kind["placeable"]):
 		return
 
@@ -458,8 +502,92 @@ func _refresh_preview() -> void:
 	_preview_frame.visible = true
 
 
+## Show a texture in the preview slot. Covers .vtf through the engine's own decoder as
+## well as the plain .png and .tga that mods drop next to their models.
+func _preview_texture(uri: String) -> bool:
+	var tex: Texture2D = _importer.load_texture(uri)
+	if tex == null:
+		return false
+	_texture_frame.texture = tex
+	_texture_frame.visible = true
+	_picked_kind.text += "  ·  %d x %d" % [tex.get_width(), tex.get_height()]
+	return true
+
+
+## Build a playable stream from a .wav in the VFS.
+##
+## Godot can only load audio off disk, and these files live inside a VPK that is never
+## extracted, so the container is parsed here and the samples handed over directly. RIFF
+## is a chunk list, not a fixed header: the fmt and data chunks are found by walking it,
+## because real game audio carries LIST and fact chunks in between.
+func _load_wav(uri: String) -> AudioStreamWAV:
+	var bytes := _vfs.read_file(uri)
+	if bytes.size() < 44:
+		return null
+	if bytes.slice(0, 4).get_string_from_ascii() != "RIFF":
+		return null
+	if bytes.slice(8, 12).get_string_from_ascii() != "WAVE":
+		return null
+
+	var channels := 0
+	var rate := 0
+	var bits := 0
+	var samples := PackedByteArray()
+
+	var pos := 12
+	while pos + 8 <= bytes.size():
+		var id := bytes.slice(pos, pos + 4).get_string_from_ascii()
+		var size := bytes.decode_u32(pos + 4)
+		var body := pos + 8
+		# A declared size past the end means the file is truncated; stop rather than
+		# slicing beyond the buffer.
+		if size > bytes.size() - body:
+			break
+		if id == "fmt ":
+			channels = bytes.decode_u16(body + 2)
+			rate = bytes.decode_u32(body + 4)
+			bits = bytes.decode_u16(body + 14)
+		elif id == "data":
+			samples = bytes.slice(body, body + size)
+		pos = body + size + (size & 1)  # chunks are word-aligned
+
+	if samples.is_empty() or rate <= 0 or channels <= 0:
+		return null
+
+	var stream := AudioStreamWAV.new()
+	match bits:
+		8: stream.format = AudioStreamWAV.FORMAT_8_BITS
+		16: stream.format = AudioStreamWAV.FORMAT_16_BITS
+		_: return null  # ADPCM and float WAVs are not handled
+	stream.mix_rate = rate
+	stream.stereo = channels >= 2
+	stream.data = samples
+	return stream
+
+
+func _on_play_pressed() -> void:
+	if _audio.playing:
+		_audio.stop()
+		_play_button.text = tr("Play")
+		return
+	var stream := _load_wav(_selected_uri)
+	if stream == null:
+		_say(tr("This sound is in a format Quebratsk cannot play yet."), true)
+		return
+	_audio.stream = stream
+	_audio.play()
+	_play_button.text = tr("Stop")
+
+
 func _clear_preview() -> void:
 	_preview_frame.visible = false
+	_texture_frame.visible = false
+	_texture_frame.texture = null
+	_sound_row.visible = false
+	if _audio != null and _audio.playing:
+		_audio.stop()
+	if _play_button != null:
+		_play_button.text = tr("Play")
 	if is_instance_valid(_preview_node):
 		_preview_pivot.remove_child(_preview_node)
 		_preview_node.queue_free()
@@ -1108,6 +1236,8 @@ func _add_result_row(root: TreeItem, uri: String) -> void:
 func _clear_selection() -> void:
 	_selected_uri = ""
 	_add_button.disabled = true
+	if _save_button != null:
+		_save_button.disabled = true
 	_pose_row.visible = false
 	_picked_name.text = tr("Nothing yet")
 	_picked_kind.text = tr("Pick something from the list above.")
@@ -1146,9 +1276,11 @@ func _on_result_selected() -> void:
 
 	if bool(kind["placeable"]):
 		_add_button.disabled = false
+		_save_button.disabled = false
 		_say(tr("Ready. Press Add to scene."))
 	else:
 		_add_button.disabled = true
+		_save_button.disabled = true
 		var why := str(kind.get("why", ""))
 		if why.is_empty():
 			why = tr("%ss can be found here, but they are used by models and maps rather than placed on their own.") % tr(str(kind["name"]))
@@ -1182,6 +1314,57 @@ func _on_pose_chosen(_index: int) -> void:
 
 
 # ----------------------------------------------------------------------- import ----
+
+const SAVE_DIR := "res://imported"
+
+## Write the selection to res://imported/<name>.tscn.
+##
+## Adding to the current scene is a one-off; a saved scene can be instanced anywhere,
+## versioned, and edited. This is the difference between a browser and something you build
+## a level with.
+func _on_save_pressed() -> void:
+	var batch := _selected_uris()
+	if batch.is_empty():
+		return
+
+	DirAccess.make_dir_recursive_absolute(SAVE_DIR)
+
+	var written := 0
+	var last := ""
+	for entry in batch:
+		var uri := str(entry)
+		var node := _build_for_scene(uri)
+		if node == null:
+			continue
+
+		# PackedScene only keeps descendants owned by the node being packed, so ownership
+		# is assigned against the branch root rather than an edited scene.
+		_claim_ownership(node, node)
+		node.owner = null
+
+		var packed := PackedScene.new()
+		if packed.pack(node) != OK:
+			node.queue_free()
+			continue
+
+		var path := "%s/%s.tscn" % [SAVE_DIR, uri.get_file().get_basename().validate_filename()]
+		if ResourceSaver.save(packed, path) == OK:
+			written += 1
+			last = path
+		node.queue_free()
+		_remember_recent(uri)
+
+	if written == 0:
+		_say(tr("Nothing could be saved."), true)
+		return
+
+	if _plugin != null:
+		_plugin.get_editor_interface().get_resource_filesystem().scan()
+	if written == 1:
+		_say(tr("Saved to %s") % last)
+	else:
+		_say(tr("Saved %s scenes to %s/") % [_grouped(written), SAVE_DIR])
+
 
 ## Every placeable URI the user has selected, in tree order.
 func _selected_uris() -> Array:
