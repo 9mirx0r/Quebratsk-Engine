@@ -59,11 +59,15 @@ func _check_add() -> void:
 		% [rows, _dock._vfs.get_mounts_info().size()])
 
 
-## Select a category by its label, so reordering CATEGORIES cannot silently make this
-## test assert something other than what it says.
+## Select a category by its English label.
+##
+## Matched against CATEGORIES rather than the dropdown text: the dropdown is translated,
+## so on a Spanish editor "Characters & people" reads "Personajes y personas" and matching
+## on what is displayed makes this test pass or fail by locale. The index is what the dock
+## actually uses, and it is locale-independent.
 func _pick_category(label: String) -> void:
-	for i in _dock._filter.item_count:
-		if _dock._filter.get_item_text(i) == label:
+	for i in _dock.CATEGORIES.size():
+		if str((_dock.CATEGORIES[i] as Dictionary)["label"]) == label:
 			_dock._filter.select(i)
 			_dock._refresh_results()
 			return
