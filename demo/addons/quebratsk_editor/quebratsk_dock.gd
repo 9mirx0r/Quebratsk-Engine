@@ -16,6 +16,8 @@ extends VBoxContainer
 ## Engine calls follow the surface documented in docs/API.md.
 
 const MOUNTS_FILE := "user://quebratsk_mounts.cfg"
+const ICON_DIR := "res://addons/quebratsk_editor/icons"
+const TRANSLATIONS := "res://addons/quebratsk_editor/i18n/dock.csv"
 
 ## list_files() with no prefix returns every indexed entry — a Half-Life 2 plus Garry's
 ## Mod setup is over 100,000. Populating a Tree with that locks the editor.
@@ -23,22 +25,22 @@ const MAX_RESULTS := 400
 
 ## Extension -> what a person would call it, and the editor icon that reads as that thing.
 const KINDS := {
-	"mdl": {"name": "Model", "icon": "MeshInstance3D", "placeable": true},
+	"mdl": {"name": "Model", "icon": "type_model", "placeable": true},
 	# Arma and DayZ models are listed so the archive can be explored, but their geometry
 	# is not decoded yet — saying so here beats letting the user press Add and get an
 	# error they cannot act on.
-	"p3d": {"name": "Model", "icon": "MeshInstance3D", "placeable": false,
+	"p3d": {"name": "Model", "icon": "type_model", "placeable": false,
 		"why": "Arma and DayZ models cannot be imported yet — only their maps and archives."},
-	"bsp": {"name": "Map", "icon": "GridMap", "placeable": true},
-	"wrp": {"name": "Terrain", "icon": "GridMap", "placeable": true},
-	"vtf": {"name": "Texture", "icon": "ImageTexture", "placeable": false},
-	"tga": {"name": "Texture", "icon": "ImageTexture", "placeable": false},
-	"png": {"name": "Texture", "icon": "ImageTexture", "placeable": false},
-	"paa": {"name": "Texture", "icon": "ImageTexture", "placeable": false},
-	"vmt": {"name": "Material", "icon": "StandardMaterial3D", "placeable": false},
-	"wav": {"name": "Sound", "icon": "AudioStreamPlayer", "placeable": false},
-	"mp3": {"name": "Sound", "icon": "AudioStreamPlayer", "placeable": false},
-	"ogg": {"name": "Sound", "icon": "AudioStreamPlayer", "placeable": false},
+	"bsp": {"name": "Map", "icon": "type_map", "placeable": true},
+	"wrp": {"name": "Terrain", "icon": "type_terrain", "placeable": true},
+	"vtf": {"name": "Texture", "icon": "type_texture", "placeable": false},
+	"tga": {"name": "Texture", "icon": "type_texture", "placeable": false},
+	"png": {"name": "Texture", "icon": "type_texture", "placeable": false},
+	"paa": {"name": "Texture", "icon": "type_texture", "placeable": false},
+	"vmt": {"name": "Material", "icon": "type_material", "placeable": false},
+	"wav": {"name": "Sound", "icon": "type_sound", "placeable": false},
+	"mp3": {"name": "Sound", "icon": "type_sound", "placeable": false},
+	"ogg": {"name": "Sound", "icon": "type_sound", "placeable": false},
 }
 
 ## Never listed. These are pieces of another file rather than things in their own right:
@@ -90,6 +92,7 @@ var _selected_uri := ""
 var _detected_games: Dictionary = {}
 var _file_dialog: EditorFileDialog
 var _search_debounce: Timer
+var _icon_cache: Dictionary = {}
 
 ## Display name -> { "path": String, "mounts": [ {prefix, path, is_directory} ] }
 ##
@@ -116,6 +119,7 @@ func _ready() -> void:
 	add_child(_importer)
 	_importer.set_vfs(_vfs)
 
+	_install_translations()
 	_build_ui()
 	var welcome := _restore_sources()
 	_refresh_games()
@@ -124,6 +128,46 @@ func _ready() -> void:
 	_refresh_results()
 	if not welcome.is_empty():
 		_say(welcome, welcome.ends_with("computer."))
+
+
+# ------------------------------------------------------------------------ i18n ----
+
+## Register the dock's translations, built from the CSV at startup rather than imported.
+##
+## Godot's import route produces .translation files that the *project* must list under
+## Localization. That works in this repository and breaks for the people who actually use
+## this: the addon ships as a zip dropped into someone else's project, whose project.godot
+## we do not control. Parsing 60 rows costs nothing and works the moment the folder exists.
+##
+## Keys are the English strings themselves, so a row that is missing or empty falls back to
+## English rather than showing a symbolic key.
+func _install_translations() -> void:
+	var file := FileAccess.open(TRANSLATIONS, FileAccess.READ)
+	if file == null:
+		return
+
+	var header := file.get_csv_line()
+	if header.size() < 3 or header[0] != "keys":
+		return
+
+	# Column 0 is the key; every column after it is a locale.
+	var per_locale: Array[Translation] = []
+	for i in range(1, header.size()):
+		var t := Translation.new()
+		t.locale = header[i].strip_edges()
+		per_locale.append(t)
+
+	while not file.eof_reached():
+		var row := file.get_csv_line()
+		if row.size() < header.size() or row[0].is_empty():
+			continue
+		for i in range(1, header.size()):
+			var value := row[i].strip_edges()
+			if not value.is_empty():
+				per_locale[i - 1].add_message(row[0], value)
+
+	for t in per_locale:
+		TranslationServer.add_translation(t)
 
 
 # ---------------------------------------------------------------------------- UI ----
@@ -157,14 +201,14 @@ func _row() -> HBoxContainer:
 
 func _build_ui() -> void:
 	# ---------------------------------------------------------------- your games ----
-	_section("Your games")
+	_section(tr("Your games"))
 
 	var add_row := _row()
 	var add_button := MenuButton.new()
-	add_button.text = "Add a game"
-	add_button.icon = _icon("Add")
+	add_button.text = tr("Add a game")
+	add_button.icon = _icon("action_add")
 	add_button.flat = false
-	add_button.tooltip_text = "Mount a game you have installed, a folder, or a single archive file"
+	add_button.tooltip_text = tr("Mount a game you have installed, a folder, or a single archive file")
 	add_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_button.about_to_popup.connect(_rebuild_add_menu)
 	add_button.get_popup().id_pressed.connect(_on_add_menu_pressed)
@@ -186,7 +230,7 @@ func _build_ui() -> void:
 	games_margin.add_child(_games)
 
 	# ------------------------------------------------------------ find something ----
-	_section("Find something")
+	_section(tr("Find something"))
 
 	var search_margin := MarginContainer.new()
 	search_margin.add_theme_constant_override("margin_left", 4)
@@ -196,7 +240,7 @@ func _build_ui() -> void:
 	search_margin.add_child(search_box)
 
 	_search = LineEdit.new()
-	_search.placeholder_text = "Type a name, like police or dust"
+	_search.placeholder_text = tr("Type a name, like police or dust")
 	_search.right_icon = _icon("Search")
 	_search.clear_button_enabled = true
 	_search.text_changed.connect(_on_search_typed)
@@ -213,8 +257,8 @@ func _build_ui() -> void:
 
 	_filter = OptionButton.new()
 	for f in CATEGORIES:
-		_filter.add_item(str((f as Dictionary)["label"]))
-	_filter.tooltip_text = "Browse by what a thing is, without having to search for it"
+		_filter.add_item(tr(str((f as Dictionary)["label"])))
+	_filter.tooltip_text = tr("Browse by what a thing is, without having to search for it")
 	_filter.item_selected.connect(func(_i: int) -> void: _refresh_results())
 	search_box.add_child(_filter)
 
@@ -242,7 +286,7 @@ func _build_ui() -> void:
 	results_margin.add_child(_results)
 
 	# -------------------------------------------------------------- what you got ----
-	_section("What you picked")
+	_section(tr("What you picked"))
 
 	var picked_margin := MarginContainer.new()
 	picked_margin.add_theme_constant_override("margin_left", 4)
@@ -252,12 +296,12 @@ func _build_ui() -> void:
 	picked_margin.add_child(picked)
 
 	_picked_name = Label.new()
-	_picked_name.text = "Nothing yet"
+	_picked_name.text = tr("Nothing yet")
 	_picked_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	picked.add_child(_picked_name)
 
 	_picked_kind = Label.new()
-	_picked_kind.text = "Pick something from the list above."
+	_picked_kind.text = tr("Pick something from the list above.")
 	_picked_kind.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_picked_kind.add_theme_font_size_override("font_size", 11)
 	_picked_kind.add_theme_color_override("font_color", Color(0.62, 0.66, 0.74))
@@ -267,17 +311,17 @@ func _build_ui() -> void:
 	_pose_row.visible = false
 	picked.add_child(_pose_row)
 	var pose_label := Label.new()
-	pose_label.text = "Standing pose"
+	pose_label.text = tr("Standing pose")
 	pose_label.add_theme_font_size_override("font_size", 11)
 	_pose_row.add_child(pose_label)
 	_pose_picker = OptionButton.new()
-	_pose_picker.tooltip_text = "Which frame of the game's own animations the model stands in"
+	_pose_picker.tooltip_text = tr("Which frame of the game's own animations the model stands in")
 	_pose_row.add_child(_pose_picker)
 
 	var button_row := _row()
 	_add_button = Button.new()
-	_add_button.text = "Add to scene"
-	_add_button.icon = _icon("Add")
+	_add_button.text = tr("Add to scene")
+	_add_button.icon = _icon("action_add")
 	_add_button.disabled = true
 	_add_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_add_button.pressed.connect(_on_add_pressed)
@@ -295,15 +339,79 @@ func _build_ui() -> void:
 	_status.add_theme_font_size_override("font_size", 11)
 	status_margin.add_child(_status)
 
-	_say("Start by adding a game you have installed.")
+	_say(tr("Start by adding a game you have installed."))
 
 
-## EditorIcons only exists inside the editor; outside it (the headless dock test) this
-## returns null and controls simply render without an icon.
+## Which engine badge to show beside a game in the list.
+##
+## Taken from what the VFS reports for the archives actually mounted, not from the display
+## name: "Half-Life" and "Half-Life 2" are one character apart and different engines, and a
+## folder the user browsed to may be named anything at all.
+func _engine_icon(label: String) -> String:
+	if not _sources.has(label):
+		return "engine_source"
+
+	var prefixes := {}
+	for entry in (_sources[label] as Dictionary).get("mounts", []):
+		prefixes[str((entry as Dictionary).get("prefix", ""))] = true
+
+	for m in _vfs.get_mounts_info():
+		var info: Dictionary = m
+		if not prefixes.has(str(info.get("prefix", ""))):
+			continue
+		match str(info.get("engine", "")):
+			"GoldSrc": return "engine_goldsrc"
+			"Source1": return "engine_source"
+			"RealVirtuality": return "engine_rv"
+	return "engine_source"
+
+
+## Resolve an icon: this addon's own SVG first, Godot's built-in EditorIcons as a
+## fallback, null outside the editor (the headless dock test renders without icons).
+##
+## `name` is either one of our filenames ("type_model") or a Godot editor icon name
+## ("Search"), so a caller can ask for whichever exists.
 func _icon(name: String) -> Texture2D:
-	if has_theme_icon(name, "EditorIcons"):
-		return get_theme_icon(name, "EditorIcons")
-	return null
+	if _icon_cache.has(name):
+		return _icon_cache[name]
+
+	var tex: Texture2D = _load_svg_icon(name)
+	if tex == null and has_theme_icon(name, "EditorIcons"):
+		tex = get_theme_icon(name, "EditorIcons")
+	_icon_cache[name] = tex
+	return tex
+
+
+## Rasterise one of this addon's SVGs at the editor's scale, tinted to match the theme.
+##
+## The files use fill="currentColor", which is how Godot's own editor icons are authored —
+## but that only resolves because the editor feeds them through its theme colour map.
+## Loading one as an ordinary texture gives the rasteriser no CSS context, so currentColor
+## comes out black: invisible on the dark theme, and unfixable with modulate afterwards
+## because black multiplied by any tint stays black. Substituting the colour into the
+## source before rasterising is what makes these theme-aware.
+func _load_svg_icon(name: String) -> Texture2D:
+	var path := ICON_DIR.path_join(name + ".svg")
+	if not FileAccess.file_exists(path):
+		return null
+
+	var svg := FileAccess.get_file_as_string(path)
+	if svg.is_empty():
+		return null
+
+	var tint := Color(0.88, 0.89, 0.92)
+	if has_theme_color("font_color", "Editor"):
+		tint = get_theme_color("font_color", "Editor")
+	svg = svg.replace("currentColor", "#" + tint.to_html(false))
+
+	var scale := 1.0
+	if _plugin != null:
+		scale = EditorInterface.get_editor_scale()
+
+	var image := Image.new()
+	if image.load_svg_from_string(svg, scale) != OK:
+		return null
+	return ImageTexture.create_from_image(image)
 
 
 func _say(text: String, is_problem: bool = false) -> void:
@@ -340,15 +448,15 @@ func _rebuild_add_menu() -> void:
 	_detected_games = SteamLibraryDetector.detect_installed_games()
 	var id := 0
 	if _detected_games.is_empty():
-		popup.add_item("No installed games found automatically", 1000)
+		popup.add_item(tr("No installed games found automatically"), 1000)
 		popup.set_item_disabled(popup.get_item_count() - 1, true)
 	else:
 		for key in _detected_games.keys():
 			popup.add_item(str(key), id)
 			id += 1
 	popup.add_separator()
-	popup.add_item("Choose a game folder...", 1001)
-	popup.add_item("Open one archive file...", 1002)
+	popup.add_item(tr("Choose a game folder..."), 1001)
+	popup.add_item(tr("Open one archive file..."), 1002)
 
 
 func _find_add_button() -> MenuButton:
@@ -387,18 +495,18 @@ func _open_dialog(mode: int) -> void:
 	_file_dialog.file_mode = mode
 	_file_dialog.clear_filters()
 	if mode == EditorFileDialog.FILE_MODE_OPEN_FILE:
-		_file_dialog.add_filter("*.vpk, *.wad, *.gma, *.pbo", "Game archives")
+		_file_dialog.add_filter("*.vpk, *.wad, *.gma, *.pbo", tr("Game archives"))
 	_file_dialog.popup_centered_ratio(0.6)
 
 
 func _add_game_folder(real_dir: String, label: String) -> void:
 	if _sources.has(label):
-		_say("%s is already in the list." % label)
+		_say(tr("%s is already in the list.") % label)
 		return
 
 	var scan: Dictionary = _vfs.scan_game_directory(real_dir)
 	if scan.has("error"):
-		_say("Could not read that folder. Check it still exists.", true)
+		_say(tr("Could not read that folder. Check it still exists."), true)
 		return
 
 	var mounts := []
@@ -418,25 +526,25 @@ func _add_game_folder(real_dir: String, label: String) -> void:
 			mounts.append({"prefix": prefix, "path": real_dir, "is_directory": true})
 
 	if mounts.is_empty():
-		_say("Nothing importable in that folder.", true)
+		_say(tr("Nothing importable in that folder."), true)
 		return
 
 	_sources[label] = {"path": real_dir, "mounts": mounts}
 	_save_sources()
 	_refresh_games()
 	_refresh_results()
-	_say("Added %s. Search for something above." % label)
+	_say(tr("Added %s. Search for something above.") % label)
 
 
 func _add_archive(path: String) -> void:
 	var label := path.get_file()
 	if _sources.has(label):
-		_say("%s is already in the list." % label)
+		_say(tr("%s is already in the list.") % label)
 		return
 
 	var prefix := _unique_prefix(path.get_file().get_basename())
 	if not _vfs.mount_container(prefix, path):
-		_say("%s is not a game archive Quebratsk can read." % label, true)
+		_say(tr("%s is not a game archive Quebratsk can read.") % label, true)
 		return
 
 	_sources[label] = {
@@ -446,7 +554,7 @@ func _add_archive(path: String) -> void:
 	_save_sources()
 	_refresh_games()
 	_refresh_results()
-	_say("Added %s." % label)
+	_say(tr("Added %s.") % label)
 
 
 func _unique_prefix(base: String) -> String:
@@ -472,7 +580,7 @@ func _refresh_games() -> void:
 
 	if _sources.is_empty():
 		var empty := _games.create_item(root)
-		empty.set_text(0, "Nothing added yet")
+		empty.set_text(0, tr("Nothing added yet"))
 		empty.set_selectable(0, false)
 		empty.set_custom_color(0, Color(0.55, 0.58, 0.64))
 		return
@@ -494,12 +602,12 @@ func _refresh_games() -> void:
 			parts += 1
 
 		var item := _games.create_item(root)
-		item.set_icon(0, _icon("FileList"))
+		item.set_icon(0, _icon(_engine_icon(label)))
 		item.set_text(0, "%s      %s files" % [label, _grouped(files)])
 		item.set_tooltip_text(0, "%s\n%d archive%s mounted"
 			% [group.get("path", ""), parts, "" if parts == 1 else "s"])
-		if _icon("Remove") != null:
-			item.add_button(1, _icon("Remove"), 0, false, "Remove %s" % label)
+		if _icon("action_remove") != null:
+			item.add_button(1, _icon("action_remove"), 0, false, tr("Remove %s") % label)
 		item.set_metadata(0, label)
 
 
@@ -513,7 +621,7 @@ func _on_remove_game(item: TreeItem, _col: int, _id: int, _mouse: int) -> void:
 	_save_sources()
 	_refresh_games()
 	_refresh_results()
-	_say("Removed %s." % label)
+	_say(tr("Removed %s.") % label)
 
 
 # ------------------------------------------------------------------ persistence ----
@@ -562,7 +670,7 @@ func _restore_sources() -> String:
 			restored += 1
 
 	if restored > 0 and gone == 0:
-		return "Picking up where you left off."
+		return tr("Picking up where you left off.")
 	if restored > 0:
 		return "%d game%s no longer on this computer, so %s removed." \
 			% [gone, "" if gone == 1 else "s", "it was" if gone == 1 else "they were"]
@@ -611,7 +719,7 @@ func _refresh_results() -> void:
 	var all: PackedStringArray = _vfs.list_files()
 	if all.is_empty():
 		var hint := _results.create_item(root)
-		hint.set_text(0, "Add a game to see what is inside it")
+		hint.set_text(0, tr("Add a game to see what is inside it"))
 		hint.set_selectable(0, false)
 		hint.set_custom_color(0, Color(0.55, 0.58, 0.64))
 		return
@@ -650,29 +758,34 @@ func _refresh_results() -> void:
 		item.set_text(1, "/ " + _game_of(uri))
 		item.set_custom_color(1, Color(0.58, 0.62, 0.70))
 		item.set_tooltip_text(0, uri)
-		item.set_tooltip_text(1, "From %s" % _game_of(uri))
+		item.set_tooltip_text(1, tr("From %s") % _game_of(uri))
 		item.set_metadata(0, uri)
 		shown += 1
 
 	if matched == 0:
 		var none := _results.create_item(root)
-		none.set_text(0, "Nothing found")
+		none.set_text(0, tr("Nothing found"))
 		none.set_selectable(0, false)
 		none.set_custom_color(0, Color(0.55, 0.58, 0.64))
-		_say("No matches. Try a shorter word, or a different category.")
+		_say(tr("No matches. Try a shorter word, or a different category."))
 	elif matched > shown:
-		_say("Showing the first %s of %s. Keep typing to narrow it down."
+		_say(tr("Showing the first %s of %s. Keep typing to narrow it down.")
 			% [_grouped(shown), _grouped(matched)])
 	else:
-		_say("%s item%s." % [_grouped(matched), "" if matched == 1 else "s"])
+		# Two whole sentences rather than "item" + a conditional "s": plural rules differ
+		# per language, and a translator cannot fix a word glued together in code.
+		if matched == 1:
+			_say(tr("%s item.") % _grouped(matched))
+		else:
+			_say(tr("%s items.") % _grouped(matched))
 
 
 func _clear_selection() -> void:
 	_selected_uri = ""
 	_add_button.disabled = true
 	_pose_row.visible = false
-	_picked_name.text = "Nothing yet"
-	_picked_kind.text = "Pick something from the list above."
+	_picked_name.text = tr("Nothing yet")
+	_picked_kind.text = tr("Pick something from the list above.")
 
 
 func _on_result_selected() -> void:
@@ -691,7 +804,7 @@ func _on_result_selected() -> void:
 	var slash := where.find("/")
 	if slash >= 0:
 		where = where.substr(slash + 1)
-	_picked_kind.text = "%s · %s · %s / %s" % [kind["name"],
+	_picked_kind.text = "%s · %s · %s / %s" % [tr(str(kind["name"])),
 		String.humanize_size(_vfs.get_file_size(uri)), _game_of(uri), where]
 
 	_pose_row.visible = false
@@ -700,11 +813,15 @@ func _on_result_selected() -> void:
 
 	if bool(kind["placeable"]):
 		_add_button.disabled = false
-		_say("Ready. Press Add to scene.")
+		_say(tr("Ready. Press Add to scene."))
 	else:
 		_add_button.disabled = true
-		_say(str(kind.get("why", "%ss can be found here, but they are used by models and \
-maps rather than placed on their own." % kind["name"])))
+		var why := str(kind.get("why", ""))
+		if why.is_empty():
+			why = tr("%ss can be found here, but they are used by models and maps rather than placed on their own.") % tr(str(kind["name"]))
+		else:
+			why = tr(why)
+		_say(why)
 
 
 ## Poses live in the .mdl and its .ani, so this skips the vertex data — but it is not
@@ -715,7 +832,7 @@ func _load_poses(uri: String) -> void:
 	_pose_picker.clear()
 	if poses.is_empty():
 		return
-	_pose_picker.add_item("Whatever the game uses by default")
+	_pose_picker.add_item(tr("Whatever the game uses by default"))
 	_pose_picker.set_item_metadata(0, "")
 	for p in poses:
 		_pose_picker.add_item(p)
@@ -732,7 +849,7 @@ func _on_add_pressed() -> void:
 
 	var scene_root := _plugin.get_editor_interface().get_edited_scene_root()
 	if scene_root == null:
-		_say("Open a scene first — then press Add to scene again.", true)
+		_say(tr("Open a scene first — then press Add to scene again."), true)
 		return
 
 	var ext := _selected_uri.get_extension().to_lower()
@@ -767,7 +884,7 @@ func _on_add_pressed() -> void:
 
 	_plugin.get_editor_interface().get_selection().clear()
 	_plugin.get_editor_interface().get_selection().add_node(node)
-	_say("Added %s. It is selected in the scene now." % node.name)
+	_say(tr("Added %s. It is selected in the scene now.") % node.name)
 
 
 func _claim_ownership(node: Node, scene_root: Node) -> void:
@@ -780,13 +897,12 @@ func _claim_ownership(node: Node, scene_root: Node) -> void:
 func _explain_failure() -> String:
 	match _importer.get_last_error_code():
 		UnifiedAssetImporter.ERR_ASSET_UNREADABLE:
-			return "That file could not be read. Was the game moved or uninstalled?"
+			return tr("That file could not be read. Was the game moved or uninstalled?")
 		UnifiedAssetImporter.ERR_PARSE_FAILED:
 			if _selected_uri.get_extension().to_lower() == "mdl":
-				return "This model keeps its shape in companion files that are not here. \
-Add the rest of the game's archives and try again."
-			return "This file was recognised but nothing could be read out of it."
+				return tr("This model keeps its shape in companion files that are not here. Add the rest of the game's archives and try again.")
+			return tr("This file was recognised but nothing could be read out of it.")
 		UnifiedAssetImporter.ERR_VFS_NOT_SET:
-			return "Something went wrong inside the plugin. Disable and re-enable it."
+			return tr("Something went wrong inside the plugin. Disable and re-enable it.")
 		_:
-			return "That did not work. The Output panel at the bottom has the details."
+			return tr("That did not work. The Output panel at the bottom has the details.")
