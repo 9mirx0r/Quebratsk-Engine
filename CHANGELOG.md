@@ -47,6 +47,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Half-Life 2 and Garry's Mod; neither game ships an `.ogg`, so that path is written but
   has not been run against real data.
 
+### Performance
+
+- **Adding a game got five times faster, and reopening the editor four.** Indexing a folder
+  of loose files cost 300 ms for 1,660 files, while the 24,330 entries of the two archives
+  beside it cost 27 ms between them: 180 microseconds per loose file against 1.1 per archive
+  entry.
+
+  Two calls per file were doing filesystem work the walk had already done.
+  `std::filesystem::relative()` resolves both of its arguments through `weakly_canonical`,
+  chasing symlinks that cannot be there when the walk is rooted at the directory being
+  subtracted; `lexically_relative()` is pure string arithmetic. And `file_size()` re-opened
+  each file to learn a size the `directory_entry` had cached during enumeration.
+
+  | | before | after |
+  |---|---|---|
+  | `mount_directory`, 1,660 files | 300 ms | **19 ms** |
+  | Adding Garry's Mod | 363 ms | **68 ms** |
+  | Adding Half-Life 2 | 279 ms | **104 ms** |
+  | Reopening the editor with both restored | 588 ms | **143 ms** |
+
+  Found by measuring rather than reading. Two earlier guesses at where this time went, the
+  index hash map and a companion-file cache, were both wrong and both worth about nothing.
+  `demo/tests/verify_dock.gd` prints the split per call now, so the next guess has to argue
+  with it.
+
+- **`VFSEntry` no longer carries a copy of its own key.** Every indexed file stored the
+  `vfs://` URI it is filed under, character for character: 60,584 redundant string
+  allocations for a two-game setup, rebuilt on every mount. Its one reader, `unmount()`,
+  has the key in hand already.
+
 ### Fixed
 
 - **Save ignored the pose you picked.** *Add to scene* adopts the previewed node, so it
