@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [2.0.2] "Herkav" - 2026-07-31
+
+Releases carry a name from here on. This one is Herkav.
+
+Two things it commits the project to. The roadmap now names the engines this is going
+after rather than gesturing at them, and it says which of them is hard and why. And every
+capability added here has to be reachable by someone who has never opened Godot: an engine
+feature nobody can find is not finished.
 
 ### Added
 
