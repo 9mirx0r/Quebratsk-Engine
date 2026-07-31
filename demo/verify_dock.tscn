@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://par0hw3co652"]
+
+[ext_resource type="Script" path="res://verify_dock.gd" id="1_dock"]
+
+[node name="VerifyDock" type="Node"]
+script = ExtResource("1_dock")
