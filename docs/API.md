@@ -98,9 +98,42 @@ bool             file_exists(vfs_uri: String)
 PackedStringArray list_files(prefix: String = "")
 PackedByteArray  read_file(vfs_uri: String)
 int              get_file_size(vfs_uri: String)   # -1 when not found
-Array            get_mounts_info()                # returns [{prefix, real_path, engine, file_count}]
+Array            get_mounts_info()
 Dictionary       scan_game_directory(real_dir: String)
 ```
+
+**`get_mounts_info()`** returns one Dictionary **per prefix you mounted**, not per real
+file on disk:
+
+```gdscript
+{ "prefix": "hl2", "real_path": ".../hl2_misc_dir.vpk",
+  "engine": "Source1",       # GoldSrc | Source1 | RealVirtuality | BSP | Custom
+  "file_count": 18796,       # entries reachable under this prefix
+  "archive_count": 5 }       # real files backing it (a _dir.vpk plus its side archives)
+```
+
+Mounting one `_dir.vpk` places several containers internally — the directory plus each
+numbered side archive — all under the same prefix. They are grouped here, because the
+prefix is the unit a user mounted and can `unmount()`. Summing `file_count` over the array
+equals `list_files().size()`.
+
+**`scan_game_directory(real_dir)`** answers "what is in this folder?" for a setup wizard:
+
+```gdscript
+{ "total_archives": 6, "archives": [ ...absolute paths... ],
+  "loose_models": 1, "loose_maps": 2, "loose_textures": 237 }
+# or { "error": "..." } if the directory is missing or unreadable
+```
+
+Two things to design around:
+
+- The `loose_*` counts are **files sitting on disk, not archive contents**. A modern Source
+  game keeps everything inside VPKs, so scanning `GarrysMod/` honestly reports 1 loose
+  model. The answer to "what can I import here" is the `archives` list — mount those to
+  see inside. Do not present `loose_models` as "models available".
+- Only `_dir.vpk` files are listed, since side archives are not separately mountable.
+- It is **synchronous and recursive**. 44 ms over `garrysmod/`, but a whole Steam library
+  is far larger. Run it off the main thread or show a spinner.
 
 **`mount_container()`** — recognised by content, not by extension:
 
@@ -138,7 +171,27 @@ StandardMaterial3D  load_material(vfs_uri: String)
 HeightMapShape3D    load_terrain(vfs_uri: String)
 Texture2D           load_texture(texture_ref: String)
 PackedStringArray   list_poses(vfs_uri: String)
-int                 get_last_error_code()         # 0=OK, 1=VFS Missing, 2=Asset Unreadable, 3=Parse Error
+int                 get_last_error_code()
+```
+
+**`get_last_error_code()`** — why the last `load_*` call ended as it did. Set on **both**
+the success and the failure paths of every entry point, so it always describes the most
+recent call rather than a stale one:
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `UnifiedAssetImporter.ERR_OK` | 0 | succeeded |
+| `UnifiedAssetImporter.ERR_VFS_NOT_SET` | 1 | `set_vfs()` was never called |
+| `UnifiedAssetImporter.ERR_ASSET_UNREADABLE` | 2 | URI not in the VFS, or the read failed |
+| `UnifiedAssetImporter.ERR_PARSE_FAILED` | 3 | decoded to nothing usable |
+
+```gdscript
+var node := importer.load_model(uri)
+if node == null:
+    match importer.get_last_error_code():
+        UnifiedAssetImporter.ERR_ASSET_UNREADABLE: show("Not found — is the archive mounted?")
+        UnifiedAssetImporter.ERR_PARSE_FAILED:     show("Recognised, but nothing could be decoded.")
+        UnifiedAssetImporter.ERR_VFS_NOT_SET:      show("Internal: VFS not attached.")
 ```
 
 **`load_mesh()`** — geometry only, materials attached per surface. Accepts `.bsp` (GoldSrc
@@ -192,7 +245,28 @@ void load_mesh_async(importer: UnifiedAssetImporter, vfs_uri: String, callback: 
 void load_model_async(importer: UnifiedAssetImporter, vfs_uri: String, pose_name: String, callback: Callable)
 ```
 
-Decodes on worker threads, invoking `callback(mesh: ArrayMesh)` or `callback(model_node: Node3D)` on the main thread. Supports non-blocking model and mesh loading.
+Decodes on a worker thread, then invokes `callback(mesh: ArrayMesh)` or
+`callback(model_node: Node3D)` on the main thread. The node arrives unparented and owned
+by you, exactly as with `load_model()`.
+
+```gdscript
+async_importer.load_model_async(importer, uri, "idle_smg1", _on_ready)
+
+func _on_ready(node: Node3D) -> void:
+    if node == null:
+        push_error("import failed: %d" % importer.get_last_error_code())
+        return
+    add_child(node)
+```
+
+**What actually runs where.** Reading the archive stays on the main thread — the VFS is
+main-thread-owned — so the *I/O* is not moved off it; what the worker takes is the decode,
+which is the expensive half (~100 ms of the ~170 ms for a Garry's Mod player model).
+Godot Object allocation happens in the main-thread continuation. Do not try to build nodes
+from a thread yourself.
+
+`callback` may receive `null`; check it, and read `get_last_error_code()` on the importer
+you passed in.
 
 ---
 
@@ -338,24 +412,37 @@ Not implemented anywhere yet: sound extraction, LOD generation, collision decomp
 
 ---
 
-## 6. Known gaps — ask, don't work around
+## 6. Known gaps
 
-Missing API I already know the addon will want. Request these rather than reimplementing
-them in GDScript, because the answers live in the binary formats:
+### Closed — all six original gaps, verified in-engine
 
-1. **`load_model_async()`** — only `load_mesh` has an async form. A 7 MB `.ani` on the main
-   thread is a visible stall.
-2. **Pose list without a full import.** Today the only way to see the 341 labels is to
-   import the model and read `quebratsk_poses`. A dropdown that populates on selection
-   needs a cheap header-only `list_poses(vfs_uri)`.
-3. **Structured mount info.** No way to ask "what is mounted, at which prefix, from which
-   real file, with how many entries" — needed for the dock's mount list.
-4. **A "what can I import here?" scan.** Given a game folder, report which archives exist
-   and how many importable assets each holds. This is the wizard's core screen.
-5. **Machine-readable failures.** Errors currently go to the Godot console as
-   `push_error`. A UI cannot catch those. Distinguishing "file not found" from "missing
-   `.vvd` companion" from "unsupported version" needs real return values.
-6. **Half-Life 2 and the rest of Source in `SteamLibraryDetector`** (see §4).
+`load_model_async()`, `list_poses()`, `get_mounts_info()`, `scan_game_directory()`,
+`get_last_error_code()` and the Source titles in `SteamLibraryDetector` all exist and are
+exercised by `demo/verify_api.gd`. Run that scene against a real Steam install before
+trusting any change to them; it prints a pass/fail line per API.
+
+Two carry caveats worth designing around, both stated in §4: `scan_game_directory()`
+counts loose files only and blocks the main thread, and `get_mounts_info()` groups by
+prefix rather than by file on disk.
+
+### Still open
+
+1. **`list_poses()` is cheaper, not free** — ~70 ms against ~170 ms for a full import. It
+   already skips the `.vvd` and `.vtx` entirely; the remaining cost is the 7.1 MB
+   `m_anm.ani` the model borrows its sequences from, which genuinely has to be read to
+   know the labels. If a dropdown needs to be instant, cache the result per URI in the
+   addon, or ask for a cache on the engine side.
+2. **No async form of `list_poses()` or `load_mesh()` for BSP** — a large map still
+   stalls; only `load_mesh_async` / `load_model_async` exist.
+3. **Failure reasons are still coarse.** Three codes cannot distinguish "the `.vvd` is
+   missing" from "this MDL version is unsupported" — both surface as `ERR_PARSE_FAILED`.
+   The parsers know the difference internally (`SourceMDLParseError` has
+   `MissingCompanionFile`, `VersionMismatch`, `ChecksumMismatch`); it is not yet plumbed
+   out. Ask if the UI needs to tell a user *why*.
+4. **Steam paths come back malformed but usable** — `C://Program Files (x86)//Steam/...`
+   with doubled separators and a mixed backslash, from the `libraryfolders.vdf` parse.
+   Windows accepts them, but never string-compare two of these; normalise first.
+5. **`ImportPresets` still writes settings nothing reads** (see §4). Unchanged.
 
 ---
 

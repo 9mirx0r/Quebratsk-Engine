@@ -87,7 +87,12 @@ public:
 
     /// Read an asset together with the companion files its format requires.
     /// Must run on the thread that owns the VFSManager (the main thread).
-    [[nodiscard]] AssetBundleBytes read_asset_bundle(const godot::String& vfs_uri) const;
+    ///
+    /// `with_geometry = false` skips the .vvd and .vtx. They carry only vertex and index
+    /// data and are the bulk of a model's bytes, so a caller that only wants the skeleton
+    /// or the pose list should not pay to read them.
+    [[nodiscard]] AssetBundleBytes read_asset_bundle(const godot::String& vfs_uri,
+                                                     bool with_geometry = true) const;
 
     /// Load a complete model: geometry, skeleton and skin, wired together.
     ///
@@ -102,10 +107,30 @@ public:
     godot::Node3D* load_model(const godot::String& vfs_uri,
                               const godot::String& pose_name = godot::String());
 
-    /// Fast header-only scanner returning sequence pose names from a model without building full meshes
+    /// Every animation sequence label the model carries, e.g. "idle_smg1".
+    ///
+    /// Skips the .vvd and .vtx entirely — poses live in the .mdl and its .ani, so the
+    /// vertex and index data (by far the bulk of a model) is never read or decoded.
+    /// That is what makes this cheap enough to drive an inspector dropdown.
     godot::PackedStringArray list_poses(const godot::String& vfs_uri);
 
-    /// Get last error code (0 = OK, 1 = File Not Found, 2 = Missing Companion, 3 = Parse Failed)
+    /// Build the scene graph for an already-parsed model. Main thread only: this is the
+    /// half of load_model() that allocates Godot Objects.
+    ///
+    /// Split out so AsyncAssetImporter can parse on a worker and construct here, instead
+    /// of re-reading and re-parsing the asset on the main thread.
+    godot::Node3D* build_model_node(const ParsedAssetIR& parsed,
+                                    const godot::String& pose_name = godot::String());
+
+    /// Why the last load_* call failed. Set by every load_* entry point, on both the
+    /// success and the failure paths, so it always describes the most recent call.
+    enum ErrorCode : int {
+        ERR_OK = 0,
+        ERR_VFS_NOT_SET = 1,       // set_vfs() was never called
+        ERR_ASSET_UNREADABLE = 2,  // URI not in the VFS, or the read failed
+        ERR_PARSE_FAILED = 3,      // decoded to nothing usable
+    };
+
     int get_last_error_code() const { return m_last_error_code; }
 
     /// Parse raw asset bytes into the engine-agnostic IR.

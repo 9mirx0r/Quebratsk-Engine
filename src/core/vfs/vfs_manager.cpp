@@ -691,14 +691,36 @@ PackedByteArray VFSManager::read_file(const String& vfs_uri) const {
 
 Array VFSManager::get_mounts_info() const {
     std::lock_guard<std::mutex> lock(m_mutex);
+
+    // One pass over the index rather than one pass per mount. The nested form was
+    // O(mounts x index): a Half-Life 2 plus Garry's Mod setup is 14 mounts over ~100k
+    // entries, and this is called to refresh a UI panel.
+    std::vector<int64_t> per_container(m_containers.size(), 0);
+    for (const auto& [uri, entry] : m_index) {
+        if (entry.container_index < per_container.size()) {
+            ++per_container[entry.container_index];
+        }
+    }
+
+    // A VPK is one _dir.vpk plus its numbered side archives, and index_vpk() mounts every
+    // one of them under the SAME prefix. Reporting each container separately showed 7
+    // rows for 3 mounts, most of them with a file_count of 0 or 1, because the entries
+    // are attributed to whichever archive physically holds the bytes. Group by prefix:
+    // that is the unit a user actually mounted and can unmount.
     Array mounts;
+    std::unordered_map<std::string, int> row_of_prefix;
+
     for (size_t i = 0; i < m_containers.size(); ++i) {
         const auto& mount = m_containers[i];
-        if (mount.mount_prefix.empty()) continue;
-        Dictionary info;
-        info["prefix"] = String(mount.mount_prefix.c_str());
-        info["real_path"] = String(mount.real_path.c_str());
-        
+        if (mount.mount_prefix.empty()) continue; // freed by unmount()
+
+        if (auto it = row_of_prefix.find(mount.mount_prefix); it != row_of_prefix.end()) {
+            Dictionary existing = mounts[it->second];
+            existing["file_count"] = int64_t(existing["file_count"]) + per_container[i];
+            existing["archive_count"] = int64_t(existing["archive_count"]) + 1;
+            continue;
+        }
+
         std::string eng_str = "Custom";
         switch (mount.engine) {
             case EngineNamespace::GoldSrc: eng_str = "GoldSrc"; break;
@@ -707,16 +729,17 @@ Array VFSManager::get_mounts_info() const {
             case EngineNamespace::BSP: eng_str = "BSP"; break;
             default: break;
         }
-        info["engine"] = String(eng_str.c_str());
 
-        // Count indexed files under this prefix
-        int64_t file_count = 0;
-        for (const auto& [uri, entry] : m_index) {
-            if (entry.container_index == i) {
-                file_count++;
-            }
-        }
-        info["file_count"] = file_count;
+        Dictionary info;
+        info["prefix"] = String(mount.mount_prefix.c_str());
+        // The first container under a prefix is the one the caller named; the side
+        // archives are placed after it.
+        info["real_path"] = String(mount.real_path.c_str());
+        info["engine"] = String(eng_str.c_str());
+        info["file_count"] = per_container[i];
+        info["archive_count"] = int64_t(1);  // real files backing this mount
+
+        row_of_prefix[mount.mount_prefix] = static_cast<int>(mounts.size());
         mounts.append(info);
     }
     return mounts;
@@ -733,35 +756,60 @@ Dictionary VFSManager::scan_game_directory(const String& real_dir) const {
     }
 
     int64_t total_archives = 0;
-    int64_t total_models = 0;
-    int64_t total_maps = 0;
-    int64_t total_textures = 0;
+    int64_t loose_models = 0;
+    int64_t loose_maps = 0;
+    int64_t loose_textures = 0;
 
     Array archives_found;
 
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(root, std::filesystem::directory_options::skip_permission_denied, ec)) {
-        if (ec) break;
-        if (!entry.is_regular_file(ec)) continue;
+    // Explicit iterator with increment(ec) rather than a range-for. The range-for calls
+    // operator++(), which THROWS on an I/O error, and godot-cpp is built with exceptions
+    // disabled — so a disconnected drive or an over-long path partway through a scan
+    // would call terminate() and take the editor down. skip_permission_denied covers
+    // only the most common case, not all of them.
+    std::filesystem::recursive_directory_iterator it(
+        root, std::filesystem::directory_options::skip_permission_denied, ec);
+    if (ec) {
+        scan_result["error"] = "Directory could not be opened for scanning";
+        return scan_result;
+    }
 
-        std::string ext = entry.path().extension().string();
-        for (auto& c : ext) c = static_cast<char>(tolower(c));
+    const std::filesystem::recursive_directory_iterator end;
+    for (; it != end; it.increment(ec)) {
+        if (ec) break; // report what was counted so far rather than nothing
 
-        if (ext == ".wad" || ext == ".vpk" || ext == ".gma" || ext == ".pbo" || ext == ".pak" || ext == ".bundle") {
+        std::error_code file_ec;
+        if (!it->is_regular_file(file_ec) || file_ec) continue;
+
+        std::string ext = it->path().extension().string();
+        for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+        if (ext == ".wad" || ext == ".vpk" || ext == ".gma" || ext == ".pbo" ||
+            ext == ".pak" || ext == ".bundle") {
+            // Side archives are not separately mountable; the _dir.vpk pulls them in.
+            const std::string name = to_lower(it->path().filename().string());
+            if (ext == ".vpk" && !name.ends_with("_dir.vpk")) continue;
+
             total_archives++;
-            archives_found.append(String(entry.path().string().c_str()));
-        } else if (ext == ".mdl" || ext == ".p3d" || ext == ".uasset") {
-            total_models++;
+            archives_found.append(String(it->path().string().c_str()));
+        } else if (ext == ".mdl" || ext == ".p3d") {
+            loose_models++;
         } else if (ext == ".bsp" || ext == ".wrp") {
-            total_maps++;
-        } else if (ext == ".vtf" || ext == ".paa" || ext == ".png" || ext == ".jpg" || ext == ".tga") {
-            total_textures++;
+            loose_maps++;
+        } else if (ext == ".vtf" || ext == ".paa" || ext == ".png" || ext == ".jpg" ||
+                   ext == ".tga") {
+            loose_textures++;
         }
     }
 
     scan_result["total_archives"] = total_archives;
-    scan_result["total_models"] = total_models;
-    scan_result["total_maps"] = total_maps;
-    scan_result["total_textures"] = total_textures;
+    // Deliberately named "loose_": these count files sitting on disk, NOT the contents of
+    // the archives. A modern Source game keeps everything inside VPKs, so scanning
+    // GarrysMod/ honestly reports 1 loose model — the answer to "what can I import here"
+    // is the archive list, and the caller must mount those to see inside.
+    scan_result["loose_models"] = loose_models;
+    scan_result["loose_maps"] = loose_maps;
+    scan_result["loose_textures"] = loose_textures;
     scan_result["archives"] = archives_found;
 
     return scan_result;

@@ -180,11 +180,17 @@ void AsyncAssetImporter::_deliver_model(int64_t job_id) {
     }
 
     auto* importer = Object::cast_to<UnifiedAssetImporter>(ObjectDB::get_instance(job.importer_id));
-    
-    // Delegate main-thread node construction to UnifiedAssetImporter load_model logic
+
+    // Build from the IR the worker already produced.
+    //
+    // This used to call load_model(parsed_ir.mesh.name, ...), which was wrong twice over:
+    // mesh.name is the model's *internal* name from its header ("player/lowpoly/x.mdl"),
+    // not a vfs:// URI, so the lookup always missed and the callback always received
+    // null; and going back through load_model() would have re-read and re-parsed the
+    // whole asset on the main thread, discarding the background work entirely.
     Node3D* model_node = nullptr;
     if (importer) {
-        model_node = importer->load_model(String(job.parsed_ir.mesh.name.c_str()), String(job.pose_name.c_str()));
+        model_node = importer->build_model_node(job.parsed_ir, String(job.pose_name.c_str()));
     }
 
     if (job.callback.is_valid()) {
