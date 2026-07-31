@@ -155,6 +155,24 @@ func _check_pick() -> void:
 	print("   after Add with no editor: preview kept = %s"
 		% (_dock._preview_node == before))
 
+	# A sound is listed but was inert until now: parse the WAV out of the archive and
+	# report what came back, since a bad header yields silence rather than an error.
+	_dock._search.text = ""
+	_pick_category("Sounds")
+	var snd: TreeItem = _dock._results.get_root().get_first_child()
+	while snd != null:
+		var uri := str(snd.get_metadata(0))
+		if uri.ends_with(".wav"):
+			var stream: AudioStreamWAV = _dock._load_wav(uri)
+			if stream == null:
+				print("   sound: %s -> unsupported" % uri.get_file())
+			else:
+				print("   sound: %s -> %d Hz, %s, %d KiB"
+					% [uri.get_file(), stream.mix_rate,
+					   "stereo" if stream.stereo else "mono", stream.data.size() / 1024])
+			break
+		snd = snd.get_next()
+
 	# A texture is findable but not something you drop into a scene on its own.
 	_dock._search.text = ""
 	_pick_category("Textures & materials")
