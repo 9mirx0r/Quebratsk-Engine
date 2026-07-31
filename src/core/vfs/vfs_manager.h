@@ -47,6 +47,18 @@ struct MountedContainer {
     std::string real_path;
     std::string mount_prefix;
     MemoryMappedFile mapped_file;
+
+    /// Whether this slot is live.
+    ///
+    /// Occupancy used to be inferred from mapped_file.is_valid(), which silently assumed
+    /// every mount is backed by an archive. A mount_directory() mount is not: it has no
+    /// mapped file, so its slot read as free and the next mount_container() would recycle
+    /// it out from under the live directory — and its entries, left at the default
+    /// container_index of 0, were attributed to whatever sat in slot 0.
+    bool occupied = false;
+
+    /// A tree of loose files rather than an archive. Nothing to memory-map or unmap.
+    bool is_directory = false;
 };
 
 class VFSManager : public godot::Node {

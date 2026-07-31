@@ -128,10 +128,12 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
 }
 
 size_t VFSManager::place_container(MountedContainer&& container) {
+    container.occupied = true;
+
     // Reuse a slot freed by unmount() instead of growing forever. Existing entries
     // reference containers by index, so slots are recycled, never erased.
     for (size_t i = 0; i < m_containers.size(); ++i) {
-        if (!m_containers[i].mapped_file.is_valid()) {
+        if (!m_containers[i].occupied) {
             m_containers[i] = std::move(container);
             return i;
         }
@@ -242,6 +244,18 @@ int64_t VFSManager::mount_directory(const String& vfs_prefix, const String& real
         return 0;
     }
 
+    // A directory mount is a first-class container even though there is nothing to
+    // memory-map. Without a slot of its own, every entry below kept container_index at
+    // its default of 0 and get_mounts_info() reported the files under whichever archive
+    // happened to occupy that slot — so the directory never appeared as a mount, and the
+    // dock could not persist or unmount it.
+    MountedContainer container;
+    container.real_path = dir_std;
+    container.mount_prefix = prefix_std;
+    container.engine = EngineNamespace::Custom;
+    container.is_directory = true;
+    const size_t container_idx = place_container(std::move(container));
+
     int64_t indexed = 0;
 
     // The error_code overload keeps a permission-denied subdirectory from aborting the
@@ -271,6 +285,7 @@ int64_t VFSManager::mount_directory(const String& vfs_prefix, const String& real
 
         VFSEntry entry;
         entry.virtual_path = vfs_uri;
+        entry.container_index = container_idx;
         entry.loose_path = it->path().string();
         entry.disk_size = static_cast<size_t>(size);
         entry.uncompressed_size = entry.disk_size;
@@ -278,6 +293,12 @@ int64_t VFSManager::mount_directory(const String& vfs_prefix, const String& real
 
         m_index[vfs_uri] = std::move(entry);
         ++indexed;
+    }
+
+    if (indexed == 0) {
+        // Nothing was found, so do not leave an empty mount behind for the UI to show.
+        m_containers[container_idx] = MountedContainer{};
+        return 0;
     }
 
     UtilityFunctions::print("[QuebratskVFS] Mounted directory (", indexed,
@@ -306,10 +327,14 @@ void VFSManager::unmount(const String& vfs_prefix) {
     // reservation leaked. Close the mapping and mark the slot reusable. The slot itself
     // is kept so surviving entries' container_index values stay valid.
     for (auto& c : m_containers) {
-        if (c.mapped_file.is_valid() && c.mount_prefix == prefix_std) {
-            c.mapped_file.close();
+        if (c.occupied && c.mount_prefix == prefix_std) {
+            if (c.mapped_file.is_valid()) {
+                c.mapped_file.close();
+            }
             c.mount_prefix.clear();
             c.real_path.clear();
+            c.is_directory = false;
+            c.occupied = false;
         }
     }
 }
@@ -712,7 +737,7 @@ Array VFSManager::get_mounts_info() const {
 
     for (size_t i = 0; i < m_containers.size(); ++i) {
         const auto& mount = m_containers[i];
-        if (mount.mount_prefix.empty()) continue; // freed by unmount()
+        if (!mount.occupied) continue; // never used, or freed by unmount()
 
         if (auto it = row_of_prefix.find(mount.mount_prefix); it != row_of_prefix.end()) {
             Dictionary existing = mounts[it->second];
@@ -736,6 +761,9 @@ Array VFSManager::get_mounts_info() const {
         // archives are placed after it.
         info["real_path"] = String(mount.real_path.c_str());
         info["engine"] = String(eng_str.c_str());
+        // Lets a caller re-mount correctly after a restart: a directory needs
+        // mount_directory(), an archive needs mount_container().
+        info["is_directory"] = mount.is_directory;
         info["file_count"] = per_container[i];
         info["archive_count"] = int64_t(1);  // real files backing this mount
 

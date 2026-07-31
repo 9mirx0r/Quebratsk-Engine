@@ -65,3 +65,6 @@ Thumbs.db
 # The godot-mcp bridge script, injected into the demo project for automated testing.
 demo/mcp_interaction_server.gd
 demo/mcp_interaction_server.gd.uid
+
+# Godot copies the extension DLL aside for hot-reload while the editor runs.
+demo/bin/~*.dll

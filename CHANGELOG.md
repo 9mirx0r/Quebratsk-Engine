@@ -9,6 +9,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.7.0-alpha] - 2026-07-30
+
+The plugin becomes usable without writing code. Previously every capability in this
+project was reachable only from GDScript; the editor addon was a `Label` reading
+"Quebratsk VFS Explorer Dock — Active".
+
+### Added
+
+- **A working editor dock** — `demo/addons/quebratsk_editor/`.
+
+  Pick an installed game, search, choose a pose, press Add. No URIs to type, no extraction
+  step, no conversion tools, and nothing to know about `.vvd` companions or animation
+  sequences up front.
+
+  | Step | What happens |
+  |---|---|
+  | **Add game content** | Lists Steam games found on this machine, plus *Browse for a folder* and *Open a single archive*. Choosing a game scans it, mounts every archive it holds, and indexes its loose files — Counter-Strike 1.6 keeps its maps as plain `.bsp` on disk, so archives alone are not enough |
+  | **Search + type filter** | Capped at 400 rows with a "narrow the search" hint. `list_files()` over a Half-Life 2 plus Garry's Mod setup returns six figures, and building a `Tree` from that locks the editor |
+  | **Selecting a `.mdl`** | Populates a pose dropdown from `list_poses()` — 342 entries for a Garry's Mod player model — so it can be placed in a real stance instead of a T-pose |
+  | **Add to scene** | Goes through `EditorUndoRedoManager`, sets `owner` on every descendant so the branch survives a save, and selects the new node |
+
+  Failures are explained rather than logged. A Source `.mdl` that decodes to nothing now
+  says its geometry lives in a separate `.vvd` and `.vtx` and to add that archive too,
+  instead of pushing an error to a console the user is not looking at.
+
+  Mounts persist across restarts in `user://quebratsk_mounts.cfg` — `user://` rather than
+  the project, because Steam paths are machine-specific — and a game uninstalled between
+  sessions is skipped silently rather than erroring.
+
+- `demo/verify_dock.gd` — drives the whole flow headlessly (detect, mount, search, pose,
+  persist), because "it compiles" is not evidence that a UI works.
+
+- `MountedContainer::is_directory`, surfaced as `is_directory` in `get_mounts_info()`. A
+  caller restoring saved mounts needs it: a directory must be remounted with
+  `mount_directory()` and an archive with `mount_container()`.
+
+### Fixed
+
+- **`mount_directory()` never registered a container.** It inserted index entries and
+  nothing else, so every one of them kept `VFSEntry::container_index` at its default of
+  `0` and was attributed to whatever archive happened to occupy slot 0 — mounting Garry's
+  Mod showed `fallbacks_dir` with 10,666 files instead of its real 9,006, and the 1,660
+  loose files had no mount of their own at all. They were therefore invisible to
+  `get_mounts_info()`, could not be unmounted, and were silently dropped when the dock
+  saved and restored its mounts. For Counter-Strike 1.6, whose maps are loose `.bsp`
+  files, that meant the maps disappeared on every editor restart.
+
+  Container occupancy was also being inferred from `mapped_file.is_valid()`, which assumed
+  every mount is backed by an archive. A directory mount has no mapped file, so its slot
+  read as free and the next `mount_container()` would have recycled it out from under a
+  live mount. Occupancy is now an explicit flag.
+
+### Removed
+
+- `import_plugin.gd`. An `EditorImportPlugin` operates on files inside `res://`, and game
+  archives are gigabytes living in a Steam folder — nobody copies `hl2_textures_dir.vpk`
+  into their project. It was also never registered in `plugin.cfg`, so it had never run.
+
+---
+
+## [0.6.1-alpha] - 2026-07-30
+
 ### Added
 
 The six APIs `docs/API.md` §6 asked for, so the editor addon can be built against a stable
