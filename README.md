@@ -142,7 +142,14 @@ in `demo/tests/`. Nothing gets listed here until it works end to end.
 |---|---|---|---|---|
 | GoldSrc <br/><sub>Half-Life, Counter-Strike 1.6</sub> | `.wad` (WAD3) | `.mdl` (StudioMDL v10) with geometry, skinning and `T.mdl` textures | `.bsp` (BSP30) with geometry, UVs, per-face normals, embedded and WAD textures | WAD3 lumps, `.spr` |
 | Source 1 <br/><sub>Half-Life 2, Garry's Mod, CS:S, TF2</sub> | `.vpk` v1 and v2 with side archives, `.gma` | `.mdl` v44 to v49 plus `.vvd` and `.vtx`: geometry, skinning, playable animation, external `.ani`, `includemodel` | `.bsp` (BSP30) | `.vtf` (DXT1/BC1, DXT5/BC3, uncompressed), `.vmt` |
-| Real Virtuality <br/><sub>Arma, DayZ</sub> | `.pbo` | not yet, see the roadmap | `.wrp` heightmaps | `.paa` (DXT1, DXT5 and the packed layouts), including LZO-compressed mipmaps |
+| Real Virtuality <br/><sub>Arma, DayZ</sub> | `.pbo` | not yet, see the roadmap | `.wrp`, but not DayZ's, see below | `.paa` (DXT1, DXT5 and the packed layouts), including LZO-compressed mipmaps |
+
+The `.wrp` row is the one thing on this table that has not been run against a retail
+install, and it should not be read as more than it says. DayZ's terrains, `chernarusplus.wrp`
+and `enoch.wrp`, are 213 MB files in OPRW **version 29**, and the reader here does not
+understand that version: it recognises the magic and then decodes nothing. Older Arma
+terrains may well work, but there is no Arma install on hand to say so, and this project does
+not call a format supported on the strength of a parser that compiles.
 
 Real Virtuality textures were verified against a retail DayZ install with eight workshop
 mods: 29,018 `.paa` files reachable, of which a 1,500-file sample decodes 1,499. The one
