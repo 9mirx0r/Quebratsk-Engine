@@ -144,7 +144,8 @@ func _time_filtering() -> void:
 
 	t0 = Time.get_ticks_usec()
 	var found: Dictionary = _dock._vfs.find_files(
-		"player", PackedStringArray(wanted), PackedStringArray(drop), 400)
+		"player", PackedStringArray(wanted), PackedStringArray(drop),
+		PackedStringArray(), 400)
 	var new_us := Time.get_ticks_usec() - t0
 
 	print("   filtering %d entries down to one page:" % all.size())
@@ -195,11 +196,29 @@ func _check_order() -> void:
 
 	# Same query twice must give the same page, which is the property that was missing.
 	var first: Dictionary = _dock._vfs.find_files("police", PackedStringArray(["mdl"]),
-		PackedStringArray(), 5)
+		PackedStringArray(), PackedStringArray(), 5)
 	var again: Dictionary = _dock._vfs.find_files("police", PackedStringArray(["mdl"]),
-		PackedStringArray(), 5)
+		PackedStringArray(), PackedStringArray(), 5)
 	print("   'police' first five: %s" % ", ".join(first["files"]))
 	print("   repeatable: %s" % (first["files"] == again["files"]))
+
+	# Searching one game instead of all of them. With two games mounted and both shipping a
+	# police.mdl, the count going down and the origins collapsing to one name is the whole
+	# point of the control.
+	var all_games: Dictionary = _dock._vfs.find_files("police", PackedStringArray(["mdl"]),
+		PackedStringArray(), PackedStringArray(), 0)
+	for i in _dock._game_filter.item_count:
+		_dock._game_filter.select(i)
+		var label: String = _dock._game_filter.get_item_text(i)
+		var only: Dictionary = _dock._vfs.find_files("police", PackedStringArray(["mdl"]),
+			PackedStringArray(), _dock._chosen_prefixes(), 0)
+		var origins := {}
+		for f in only["files"]:
+			origins[_dock._game_of(str(f))] = true
+		print("   'police' in %-14s -> %3d hits, from: %s"
+			% [label, int(only["total"]), ", ".join(PackedStringArray(origins.keys()))])
+	_dock._game_filter.select(0)
+	print("   (all games together: %d)" % int(all_games["total"]))
 
 	print("\n   searching inside a category")
 	_dock._search.text = "player"
@@ -346,7 +365,7 @@ func _check_pick() -> void:
 	# Which formats these games actually ship decides which paths this run can prove.
 	for ext in _dock.SOUND_EXTENSIONS:
 		var found: Dictionary = _dock._vfs.find_files("", PackedStringArray([ext]),
-			PackedStringArray(), 1)
+			PackedStringArray(), PackedStringArray(), 1)
 		print("   %-4s in the mounted games: %d" % [ext, int(found["total"])])
 	var seen := {}
 	var snd: TreeItem = _dock._results.get_root().get_first_child()
