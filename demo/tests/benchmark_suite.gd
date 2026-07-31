@@ -21,7 +21,6 @@ func run_stress_test(instance_count: int) -> void:
 	print("🔥 Starting stress test spawning ", instance_count, " instances...")
 	
 	# Apply Auto-Batching and Max Performance preset
-	ImportPresets.apply_preset(ImportPresets.MAX_PERFORMANCE)
 	
 	var batch_manager := BatchingManager.new()
 	

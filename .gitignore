@@ -68,3 +68,10 @@ demo/mcp_interaction_server.gd.uid
 
 # Godot copies the extension DLL aside for hot-reload while the editor runs.
 demo/bin/~*.dll
+
+# Packaged releases live on GitHub Releases, not in the repository. Seven of them were
+# committed at the repo root (~11 MB) duplicating assets already published on their tags.
+/quebratsk-engine-*.zip
+
+# Working notes and reference documents that are not part of the project.
+*.docx

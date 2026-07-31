@@ -1,6 +1,7 @@
 #include "async_asset_importer.h"
 #include "../converters/texture_loader.h"
 #include "../converters/skeleton_converter.h"
+#include "../core/config/quebratsk_settings.h"
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/classes/skeleton3d.hpp>
 
@@ -29,6 +30,25 @@ AsyncAssetImporter::~AsyncAssetImporter() {
 
     std::lock_guard<std::mutex> lock(_pending_mutex);
     _pending.clear();
+}
+
+/// Drop threads that have finished, and block if too many are still running.
+///
+/// Every call used to spawn a std::jthread unconditionally, so importing a folder of 200
+/// models from a loop created 200 threads at once — each holding a decoded copy of its
+/// asset. This honours quebratsk/performance/max_background_threads, which until now was
+/// a Project Setting nothing read.
+void AsyncAssetImporter::_reap_finished_workers() {
+    std::erase_if(_workers, [](const std::jthread& t) { return !t.joinable(); });
+
+    const size_t cap = static_cast<size_t>(config::QuebratskSettings::max_background_threads());
+    while (_workers.size() >= cap) {
+        // Oldest first: joining it is what bounds memory, and callbacks are delivered on
+        // the main thread by call_deferred() regardless of completion order.
+        _workers.front().join();
+        _workers.erase(_workers.begin());
+        std::erase_if(_workers, [](const std::jthread& t) { return !t.joinable(); });
+    }
 }
 
 void AsyncAssetImporter::_bind_methods() {
@@ -66,8 +86,7 @@ void AsyncAssetImporter::load_mesh_async(UnifiedAssetImporter* importer,
     const int64_t job_id = _next_job_id.fetch_add(1, std::memory_order_relaxed);
     const uint64_t importer_id = importer->get_instance_id();
 
-    // Reap threads that already finished so the vector does not grow without bound.
-    std::erase_if(_workers, [](const std::jthread& t) { return !t.joinable(); });
+    _reap_finished_workers();
 
     _workers.emplace_back(
         [this, job_id, importer_id, bundle = std::move(owned_bundle), uri_lower, callback](std::stop_token stoken) {

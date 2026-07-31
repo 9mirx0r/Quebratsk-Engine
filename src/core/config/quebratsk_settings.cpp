@@ -1,37 +1,41 @@
 #include "quebratsk_settings.h"
 #include <godot_cpp/classes/project_settings.hpp>
-#include <godot_cpp/variant/dictionary.hpp>
+
+#include <algorithm>
+#include <thread>
 
 namespace quebratsk::config {
 
 using namespace godot;
 
 void QuebratskSettings::_bind_methods() {
-    // No instance methods to bind for this static helper
+    // Static helper; nothing to expose to GDScript.
 }
 
 void QuebratskSettings::register_settings() {
     ProjectSettings* ps = ProjectSettings::get_singleton();
     if (!ps) return;
 
-    // Default VRAM Eviction Timeout
-    if (!ps->has_setting("quebratsk/performance/vram_eviction_timeout_msec")) {
-        ps->set_setting("quebratsk/performance/vram_eviction_timeout_msec", 60000);
+    if (!ps->has_setting(kMaxBackgroundThreads)) {
+        ps->set_setting(kMaxBackgroundThreads, default_background_threads());
     }
-    ps->set_initial_value("quebratsk/performance/vram_eviction_timeout_msec", 60000);
+    ps->set_initial_value(kMaxBackgroundThreads, default_background_threads());
+}
 
-    // Max Background Threads
-    if (!ps->has_setting("quebratsk/performance/max_background_threads")) {
-        ps->set_setting("quebratsk/performance/max_background_threads", 4);
-    }
-    ps->set_initial_value("quebratsk/performance/max_background_threads", 4);
+int QuebratskSettings::default_background_threads() {
+    const unsigned hw = std::thread::hardware_concurrency();
+    if (hw == 0) return 4; // unknowable on this platform
+    return std::clamp(static_cast<int>(hw) - 1, 1, 8);
+}
 
-    // Enable Shader Pre-caching
-    if (!ps->has_setting("quebratsk/performance/enable_shader_precaching")) {
-        ps->set_setting("quebratsk/performance/enable_shader_precaching", true);
+int QuebratskSettings::max_background_threads() {
+    ProjectSettings* ps = ProjectSettings::get_singleton();
+    if (!ps || !ps->has_setting(kMaxBackgroundThreads)) {
+        return default_background_threads();
     }
-    ps->set_initial_value("quebratsk/performance/enable_shader_precaching", true);
-    
+    // User-editable, so it arrives unvalidated: 0 would stall every async import forever,
+    // and a large value would spawn a thread per queued asset.
+    return std::clamp(int(ps->get_setting(kMaxBackgroundThreads)), 1, 32);
 }
 
 } // namespace quebratsk::config
