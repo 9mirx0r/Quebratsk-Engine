@@ -9,6 +9,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# A cold Windows build of godot-cpp takes tens of minutes, so a run per push piles up
+# behind the previous one. Only the newest commit on a branch is worth building.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows:
     name: Windows x86_64
@@ -36,6 +42,30 @@ jobs:
       - name: Test
         working-directory: build
         run: ctest -C Debug --output-on-failure
+
+      # The dock is GDScript, and a parse error there takes the whole plugin down without
+      # touching a line of C++ -- a PackedStringArray inside a const did exactly that.
+      #
+      # This has to run here, after the Debug build, rather than on a cheap Linux runner:
+      # the scripts are statically typed against GDExtension classes (`var _vfs:
+      # VFSManager`), so without the compiled extension loaded every one of those is a
+      # parse error and the check reports failures that do not exist.
+      - name: Install Godot
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_win64.exe.zip" -OutFile godot.zip
+          Expand-Archive godot.zip -DestinationPath godot-bin
+
+      - name: Check for GDScript errors
+        shell: pwsh
+        run: |
+          $godot = (Get-ChildItem godot-bin -Filter *.exe -Recurse | Select-Object -First 1).FullName
+          $log = & $godot --headless --editor --quit-after 200 --path demo 2>&1 | Out-String
+          Write-Host $log
+          if ($log -match "SCRIPT ERROR|Parse Error|Compile Error") {
+            throw "GDScript failed to parse"
+          }
+          Write-Host "no script errors"
 
       # Release is configured into its own tree on purpose. godot-cpp 4.3 reads
       # CMAKE_BUILD_TYPE, which is empty under a multi-config generator, so it defaults to
@@ -87,31 +117,3 @@ jobs:
             demo/bin/libquebratsk.windows.debug.x86_64.dll
             demo/bin/quebratsk.gdextension
             demo/addons/quebratsk_editor/
-
-  gdscript:
-    name: GDScript parses
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      # The dock is GDScript, and a parse error there takes the whole plugin down without
-      # touching a line of C++ — a PackedStringArray inside a const did exactly that.
-      # Godot reports script errors on a headless editor pass; the GDExtension itself
-      # cannot load on Linux (Windows binaries), which does not affect parsing.
-      - name: Install Godot
-        run: |
-          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
-          unzip -q Godot_v4.3-stable_linux.x86_64.zip
-          chmod +x Godot_v4.3-stable_linux.x86_64
-
-      - name: Check for script errors
-        run: |
-          set -o pipefail
-          ./Godot_v4.3-stable_linux.x86_64 --headless --editor --quit-after 120 \
-            --path demo 2>&1 | tee godot.log || true
-          if grep -E "SCRIPT ERROR|Parse Error|Compile Error" godot.log; then
-            echo "::error::GDScript failed to parse"
-            exit 1
-          fi
-          echo "no script errors"
