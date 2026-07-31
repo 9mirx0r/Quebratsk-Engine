@@ -33,6 +33,22 @@ void VFSManager::_bind_methods() {
     ClassDB::bind_method(D_METHOD("scan_game_directory", "real_dir"), &VFSManager::scan_game_directory);
 }
 
+/// A path as it is filed in the index: lowercase, forward slashes.
+///
+/// Real Virtuality PBOs store their paths with backslashes, and index_pbo() was the one
+/// place that did not convert them. Everything downstream that normalises a path before
+/// looking it up then missed: find_by_suffix() could not match a nested file, the dock's
+/// folder categories never matched Arma or DayZ content, and the texture loader turned
+/// a backslash path into a slash one and was told it did not exist. Only files sitting at
+/// the root of a PBO, with no separator to disagree about, ever resolved.
+static std::string to_index_path(std::string_view str) {
+    std::string result(str);
+    std::transform(result.begin(), result.end(), result.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::replace(result.begin(), result.end(), '\\', '/');
+    return result;
+}
+
 static std::string to_lower(std::string_view str) {
     std::string result(str);
     std::transform(result.begin(), result.end(), result.begin(),
@@ -219,7 +235,7 @@ void VFSManager::index_vpk(size_t container_idx, const std::string& dir_real_pat
             continue;
         }
 
-        std::string vfs_uri = "vfs://" + prefix + "/" + to_lower(e.path);
+        std::string vfs_uri = "vfs://" + prefix + "/" + to_index_path(e.path);
 
         VFSEntry entry;
         entry.container_index = owner;
@@ -283,10 +299,9 @@ int64_t VFSManager::mount_directory(const String& vfs_prefix, const String& real
         // weakly_canonical, touching the filesystem once per file to chase symlinks that
         // cannot be there, since the walk is already rooted at `root`. Subtracting a known
         // prefix needs no syscall at all.
-        std::string rel_str = it->path().lexically_relative(root).generic_string();
-        std::replace(rel_str.begin(), rel_str.end(), '\\', '/');
+        const std::string rel_str = it->path().lexically_relative(root).generic_string();
 
-        std::string vfs_uri = "vfs://" + prefix_std + "/" + to_lower(rel_str);
+        std::string vfs_uri = "vfs://" + prefix_std + "/" + to_index_path(rel_str);
 
         // From the directory_entry, which cached it during enumeration. Asking
         // std::filesystem::file_size() for the path re-opens the file to learn something
@@ -390,7 +405,7 @@ void VFSManager::index_wad3(size_t container_idx) {
         }
 
         std::string lump_name(lump.name, strnlen(lump.name, sizeof(lump.name)));
-        std::string vfs_uri = "vfs://" + container.mount_prefix + "/" + to_lower(lump_name);
+        std::string vfs_uri = "vfs://" + container.mount_prefix + "/" + to_index_path(lump_name);
 
         VFSEntry entry;
         entry.container_index = container_idx;
@@ -459,7 +474,7 @@ void VFSManager::index_gma(size_t container_idx) {
             break;
         }
 
-        std::string vfs_uri = "vfs://" + container.mount_prefix + "/" + to_lower(rel_path);
+        std::string vfs_uri = "vfs://" + container.mount_prefix + "/" + to_index_path(rel_path);
 
         VFSEntry entry;
         entry.container_index = container_idx;
@@ -538,7 +553,7 @@ void VFSManager::index_pbo(size_t container_idx) {
             break;
         }
 
-        std::string vfs_uri = "vfs://" + container.mount_prefix + "/" + to_lower(raw.filename);
+        std::string vfs_uri = "vfs://" + container.mount_prefix + "/" + to_index_path(raw.filename);
 
         VFSEntry entry;
         entry.container_index = container_idx;

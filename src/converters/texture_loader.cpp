@@ -4,6 +4,7 @@
 #include "../core/vfs/texture_cache.h"
 #include "../parsers/source1/vtf_parser.h"
 #include "../parsers/goldsrc/wad3_parser.h"
+#include "../parsers/rv_enfusion/paa_parser.h"
 
 #include <godot_cpp/variant/utility_functions.hpp>
 
@@ -71,18 +72,32 @@ Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
     }
 
     std::string resolved_uri;
-    for (const auto& candidate : build_candidates(key)) {
-        resolved_uri = _vfs->find_by_suffix(candidate);
-        if (!resolved_uri.empty()) break;
+    if (key.starts_with("vfs://")) {
+        // Already a full VFS URI, which is what a caller holding a search result has. This
+        // used to fall through to the suffix search below, where it could never match: the
+        // indexed key is "vfs://mount/path" and the search asked for something *ending* in
+        // "/vfs://mount/path". Every such call returned null without a word, which is why
+        // the dock's texture preview quietly showed nothing.
+        if (_vfs->file_exists(godot::String(key.c_str()))) {
+            resolved_uri = key;
+        }
+    } else {
+        for (const auto& candidate : build_candidates(key)) {
+            resolved_uri = _vfs->find_by_suffix(candidate);
+            if (!resolved_uri.empty()) break;
+        }
     }
 
     if (resolved_uri.empty()) {
+        UtilityFunctions::printerr("[TextureLoader] No file matches: ", String(key.c_str()));
         cache.set_texture(key, Ref<Texture2D>());
         return {};
     }
 
     const std::vector<std::byte> bytes = _vfs->read_owned(resolved_uri);
     if (bytes.empty()) {
+        UtilityFunctions::printerr("[TextureLoader] Read returned nothing: ",
+                                   String(resolved_uri.c_str()));
         cache.set_texture(key, Ref<Texture2D>());
         return {};
     }
@@ -95,6 +110,25 @@ Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
             ir_tex = std::move(res.value());
             decoded = true;
         }
+    } else if (resolved_uri.ends_with(".paa")) {
+        auto res = parsers::rv_enfusion::PAAParser::parse(bytes);
+        if (res.has_value()) {
+            ir_tex = std::move(res.value());
+            decoded = true;
+        } else {
+            // Name the reason rather than the category. "Could not decode" for a file whose
+            // mipmaps are simply compressed sends whoever reads it looking for corruption.
+            using E = parsers::rv_enfusion::PAAParseError;
+            const char* why = "unreadable";
+            switch (res.error()) {
+                case E::UnknownFormat:     why = "not a PAA:"; break;
+                case E::Truncated:         why = "truncated PAA:"; break;
+                case E::CompressedMipmap:  why = "PAA with compressed mipmaps, not readable yet:"; break;
+                case E::UnsupportedFormat: why = "PAA in a layout with no decoder:"; break;
+            }
+            UtilityFunctions::printerr("[TextureLoader] ", why, " ",
+                                       String(resolved_uri.c_str()));
+        }
     } else {
         // WAD3 lumps are stored without an extension; miptex is the only other
         // format currently decodable to RGBA8.
@@ -105,8 +139,10 @@ Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
     }
 
     if (!decoded) {
-        UtilityFunctions::printerr("[TextureLoader] Could not decode texture: ",
-                                   String(resolved_uri.c_str()));
+        if (!resolved_uri.ends_with(".paa")) {  // the PAA branch already named its reason
+            UtilityFunctions::printerr("[TextureLoader] Could not decode texture: ",
+                                       String(resolved_uri.c_str()));
+        }
         cache.set_texture(key, Ref<Texture2D>());
         return {};
     }
