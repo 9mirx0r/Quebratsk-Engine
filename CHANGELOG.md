@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`AsyncAssetImporter.load_model_async()`**: Non-blocking asynchronous model loader decoding geometry, skeletons, materials, and poses on worker threads before handing the constructed `Node3D` to the main thread callback.
+- **`UnifiedAssetImporter.list_poses()`**: Header-only pose metadata scanner returning sequence names from models without full mesh decoding.
+- **`VFSManager.get_mounts_info()`**: Returns an array of Dictionaries containing `{prefix, real_path, engine, file_count}` for UI mount tables.
+- **`VFSManager.scan_game_directory()`**: Scans game directories and returns archive and asset counts.
+- **`SteamLibraryDetector` Source Games Expansion**: Expanded auto-detection targets to include Half-Life 2, Episode 1, Episode 2, Portal, Portal 2, Team Fortress 2, and Left 4 Dead 2.
+- **`UnifiedAssetImporter.get_last_error_code()`**: Added machine-readable error codes for UI exception catching.
+
 ---
 
 ## [0.6.0-alpha] - 2026-07-30

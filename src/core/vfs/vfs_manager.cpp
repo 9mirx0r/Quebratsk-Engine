@@ -26,6 +26,8 @@ void VFSManager::_bind_methods() {
     ClassDB::bind_method(D_METHOD("list_files", "prefix"), &VFSManager::list_files, DEFVAL(""));
     ClassDB::bind_method(D_METHOD("read_file", "vfs_uri"), &VFSManager::read_file);
     ClassDB::bind_method(D_METHOD("get_file_size", "vfs_uri"), &VFSManager::get_file_size);
+    ClassDB::bind_method(D_METHOD("get_mounts_info"), &VFSManager::get_mounts_info);
+    ClassDB::bind_method(D_METHOD("scan_game_directory", "real_dir"), &VFSManager::scan_game_directory);
 }
 
 static std::string to_lower(std::string_view str) {
@@ -685,6 +687,84 @@ PackedByteArray VFSManager::read_file(const String& vfs_uri) const {
     }
 
     return result;
+}
+
+Array VFSManager::get_mounts_info() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    Array mounts;
+    for (size_t i = 0; i < m_containers.size(); ++i) {
+        const auto& mount = m_containers[i];
+        if (mount.mount_prefix.empty()) continue;
+        Dictionary info;
+        info["prefix"] = String(mount.mount_prefix.c_str());
+        info["real_path"] = String(mount.real_path.c_str());
+        
+        std::string eng_str = "Custom";
+        switch (mount.engine) {
+            case EngineNamespace::GoldSrc: eng_str = "GoldSrc"; break;
+            case EngineNamespace::Source1: eng_str = "Source1"; break;
+            case EngineNamespace::RV: eng_str = "RealVirtuality"; break;
+            case EngineNamespace::BSP: eng_str = "BSP"; break;
+            default: break;
+        }
+        info["engine"] = String(eng_str.c_str());
+
+        // Count indexed files under this prefix
+        int64_t file_count = 0;
+        for (const auto& [uri, entry] : m_index) {
+            if (entry.container_index == i) {
+                file_count++;
+            }
+        }
+        info["file_count"] = file_count;
+        mounts.append(info);
+    }
+    return mounts;
+}
+
+Dictionary VFSManager::scan_game_directory(const String& real_dir) const {
+    Dictionary scan_result;
+    std::string root = real_dir.utf8().get_data();
+    std::error_code ec;
+
+    if (!std::filesystem::exists(root, ec) || !std::filesystem::is_directory(root, ec)) {
+        scan_result["error"] = "Directory does not exist or is unreadable";
+        return scan_result;
+    }
+
+    int64_t total_archives = 0;
+    int64_t total_models = 0;
+    int64_t total_maps = 0;
+    int64_t total_textures = 0;
+
+    Array archives_found;
+
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(root, std::filesystem::directory_options::skip_permission_denied, ec)) {
+        if (ec) break;
+        if (!entry.is_regular_file(ec)) continue;
+
+        std::string ext = entry.path().extension().string();
+        for (auto& c : ext) c = static_cast<char>(tolower(c));
+
+        if (ext == ".wad" || ext == ".vpk" || ext == ".gma" || ext == ".pbo" || ext == ".pak" || ext == ".bundle") {
+            total_archives++;
+            archives_found.append(String(entry.path().string().c_str()));
+        } else if (ext == ".mdl" || ext == ".p3d" || ext == ".uasset") {
+            total_models++;
+        } else if (ext == ".bsp" || ext == ".wrp") {
+            total_maps++;
+        } else if (ext == ".vtf" || ext == ".paa" || ext == ".png" || ext == ".jpg" || ext == ".tga") {
+            total_textures++;
+        }
+    }
+
+    scan_result["total_archives"] = total_archives;
+    scan_result["total_models"] = total_models;
+    scan_result["total_maps"] = total_maps;
+    scan_result["total_textures"] = total_textures;
+    scan_result["archives"] = archives_found;
+
+    return scan_result;
 }
 
 } // namespace quebratsk::vfs

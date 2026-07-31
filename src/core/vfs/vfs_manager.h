@@ -87,6 +87,12 @@ public:
     /// Get uncompressed file size in bytes (-1 if not found)
     int64_t get_file_size(const godot::String& vfs_uri) const;
 
+    /// Get structured metadata for all active mounts (prefix, real_path, engine, file_count)
+    godot::Array get_mounts_info() const;
+
+    /// Scan a game directory and report existing archives and importable asset counts
+    godot::Dictionary scan_game_directory(const godot::String& real_dir) const;
+
     /// Get raw zero-copy span for uncompressed entries.
     /// WARNING: the span is only valid until the owning container is unmounted. Prefer
     /// read_owned() unless the caller provably outlives no mount change.

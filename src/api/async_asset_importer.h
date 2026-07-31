@@ -35,21 +35,34 @@ public:
                          const godot::String& vfs_uri,
                          const godot::Callable& callback);
 
+    /// Decode a complete model (mesh + skeleton + poses) on a background thread, then
+    /// construct the Node3D scene graph and invoke `callback(model_node: Node3D)` on the main thread.
+    void load_model_async(UnifiedAssetImporter* importer,
+                          const godot::String& vfs_uri,
+                          const godot::String& pose_name,
+                          const godot::Callable& callback);
+
 private:
     struct PendingJob {
         ir::IRMeshData mesh_ir;
         godot::Callable callback;
-        /// ObjectID, not a raw pointer: the importer may be freed while the worker runs.
-        /// Re-resolved on the main thread to build the texture loader.
         uint64_t importer_id = 0;
     };
 
-    /// Main-thread continuation queued by the worker via call_deferred().
+    struct PendingModelJob {
+        ParsedAssetIR parsed_ir;
+        std::string pose_name;
+        godot::Callable callback;
+        uint64_t importer_id = 0;
+    };
+
     void _deliver_mesh(int64_t job_id);
+    void _deliver_model(int64_t job_id);
 
     std::vector<std::jthread> _workers;
     std::mutex _pending_mutex;
     std::unordered_map<int64_t, PendingJob> _pending;
+    std::unordered_map<int64_t, PendingModelJob> _pending_models;
     std::atomic<int64_t> _next_job_id{1};
 };
 
