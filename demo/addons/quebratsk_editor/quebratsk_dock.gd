@@ -257,11 +257,14 @@ func _build_ui() -> void:
 
 	_games = Tree.new()
 	_games.custom_minimum_size = Vector2(0, 84)
+	_games.add_theme_constant_override("v_separation", 3)
 	_games.hide_root = true
 	_games.columns = 2
 	_games.set_column_expand(1, false)
 	_games.set_column_custom_minimum_width(1, 26)
 	_games.button_clicked.connect(_on_remove_game)
+	_games.item_activated.connect(_on_game_row_activated)
+	_games.item_selected.connect(_on_game_row_activated)
 	games_margin.add_child(_games)
 
 	# ------------------------------------------------------------ find something ----
@@ -324,6 +327,7 @@ func _build_ui() -> void:
 	# doing that one round-trip at a time is the difference between usable and tedious.
 	_results.select_mode = Tree.SELECT_MULTI
 	_results.custom_minimum_size = Vector2(0, 170)
+	_results.add_theme_constant_override("v_separation", 3)
 	_results.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_results.item_selected.connect(_on_result_selected)
 	_results.item_activated.connect(_on_add_pressed)
@@ -347,6 +351,12 @@ func _build_ui() -> void:
 	_preview_frame.visible = false
 	_preview_frame.mouse_filter = Control.MOUSE_FILTER_STOP
 	_preview_frame.tooltip_text = tr("Drag to turn it around")
+	var frame_style := StyleBoxFlat.new()
+	frame_style.bg_color = Color(0.09, 0.10, 0.12)
+	frame_style.border_color = Color(1, 1, 1, 0.07)
+	frame_style.set_border_width_all(1)
+	frame_style.set_corner_radius_all(3)
+	_preview_frame.add_theme_stylebox_override("panel", frame_style)
 	_preview_frame.gui_input.connect(_on_preview_input)
 	picked.add_child(_preview_frame)
 
@@ -432,7 +442,10 @@ func _build_ui() -> void:
 	_add_button.text = tr("Add to scene")
 	_add_button.icon = _icon("action_add")
 	_add_button.disabled = true
+	# The primary action, and the only one that should read as such. Star and Save sit
+	# beside it at their natural width so the eye lands here first.
 	_add_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_add_button.size_flags_stretch_ratio = 3.0
 	_add_button.pressed.connect(_on_add_pressed)
 	button_row.add_child(_add_button)
 
@@ -904,10 +917,30 @@ func _refresh_games() -> void:
 	var root := _games.create_item()
 
 	if _sources.is_empty():
-		var empty := _games.create_item(root)
-		empty.set_text(0, tr("Nothing added yet"))
-		empty.set_selectable(0, false)
-		empty.set_custom_color(0, Color(0.55, 0.58, 0.64))
+		# An empty dock with a single grey line is a dead end. The games are already known
+		# by this point, so offer them as rows the user can click instead of making them
+		# discover the menu first. Idea one was a bundled sample, but this project ships no
+		# game content by design, so the shortest honest path is one click to a real game.
+		_detected_games = SteamLibraryDetector.detect_installed_games()
+		if _detected_games.is_empty():
+			var empty := _games.create_item(root)
+			empty.set_text(0, tr("Nothing added yet"))
+			empty.set_selectable(0, false)
+			empty.set_custom_color(0, Color(0.55, 0.58, 0.64))
+			return
+
+		var hint := _games.create_item(root)
+		hint.set_text(0, tr("Found on this computer — click to add"))
+		hint.set_selectable(0, false)
+		hint.set_custom_color(0, Color(0.55, 0.58, 0.64))
+
+		for key in _detected_games.keys():
+			var label := str(key)
+			var row := _games.create_item(root)
+			row.set_icon(0, _icon("action_add"))
+			row.set_text(0, label)
+			row.set_tooltip_text(0, str(_detected_games[label]))
+			row.set_metadata(0, "+" + label)  # '+' marks a suggestion, not a live mount
 		return
 
 	# One row per thing the user added, however many archives it took internally.
@@ -934,6 +967,23 @@ func _refresh_games() -> void:
 		if _icon("action_remove") != null:
 			item.add_button(1, _icon("action_remove"), 0, false, tr("Remove %s") % label)
 		item.set_metadata(0, label)
+
+
+## Clicking one of the suggested games in the empty state adds it.
+##
+## Only rows tagged with a leading '+' are suggestions; a real mount's metadata is its
+## display name, and selecting one of those must not re-add it.
+func _on_game_row_activated() -> void:
+	var item := _games.get_selected()
+	if item == null:
+		return
+	var meta := str(item.get_metadata(0))
+	if not meta.begins_with("+"):
+		return
+	var label := meta.substr(1)
+	if not _detected_games.has(label):
+		return
+	_add_game_folder(str(_detected_games[label]), label)
 
 
 func _on_remove_game(item: TreeItem, _col: int, _id: int, _mouse: int) -> void:
