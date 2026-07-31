@@ -11,6 +11,9 @@ var vfs: VFSManager
 var importer: UnifiedAssetImporter
 var async_importer: AsyncAssetImporter
 var model_uri := ""
+## Set once the async check has an answer, so the deadline below cannot report a timeout
+## for a callback that already arrived.
+var _answered := false
 
 
 func _ready() -> void:
@@ -137,6 +140,20 @@ func _check_load_model_async() -> void:
 		Callable(self, "_on_model_ready"))
 	print("  request dispatched, waiting for callback...")
 
+	# A callback that never arrives is the failure this check exists to catch, so it has to
+	# end the run rather than leave the harness sitting there looking busy.
+	var deadline := get_tree().create_timer(30.0)
+	deadline.timeout.connect(func() -> void:
+		if not _answered:
+			print("  NO CALLBACK within 30 s  ** FAILED **")
+			_finish())
+
+
+func _finish() -> void:
+	_answered = true
+	print("\n=== VERIFICATION COMPLETE ===")
+	get_tree().quit()
+
 
 func _on_model_ready(node) -> void:
 	if node == null:
@@ -148,4 +165,4 @@ func _on_model_ready(node) -> void:
 		print("  CALLBACK -> %s  bones=%d  poses=%d"
 			% [node.get_class(), bones, node.get_meta("quebratsk_poses", PackedStringArray()).size()])
 		node.queue_free()
-	print("\n=== VERIFICATION COMPLETE ===")
+	_finish()

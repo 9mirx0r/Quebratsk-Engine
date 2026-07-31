@@ -33,6 +33,12 @@ func _ready() -> void:
 
 
 func _check_detect() -> void:
+	# Nothing is mounted yet, so the results list must be offering the first step rather
+	# than reading as an empty search.
+	var first: TreeItem = _dock._results.get_root().get_first_child()
+	print("\n0. With no games added, the list says: %s"
+		% ("nothing at all" if first == null else first.get_text(0)))
+
 	print("\n1. Games offered in the Add menu")
 	var games: Dictionary = SteamLibraryDetector.detect_installed_games()
 	print("   %d found" % games.size())
@@ -74,6 +80,43 @@ func _pick_category(label: String) -> void:
 	push_error("no such category: %s" % label)
 
 
+## Both ways of producing the same page of results, timed against each other in one run.
+##
+## The times printed above are a whole refresh, engine scan plus 400 Tree rows, so they
+## cannot say which half the work is in. This does the filtering alone, twice: once the way
+## the dock used to (copy the whole index out, sift it in GDScript) and once the way it does
+## now. Same inputs, same output, so the difference is the approach and not the machine.
+func _time_filtering() -> void:
+	var drop: Array = _dock.COMPANION_EXTENSIONS
+	var wanted := ["mdl"]
+
+	var t0 := Time.get_ticks_usec()
+	var all: PackedStringArray = _dock._vfs.list_files()
+	var old_hits := PackedStringArray()
+	var old_total := 0
+	for uri in all:
+		var ext := uri.get_extension().to_lower()
+		if drop.has(ext) or not wanted.has(ext):
+			continue
+		if not uri.to_lower().contains("player"):
+			continue
+		old_total += 1
+		if old_hits.size() < 400:
+			old_hits.append(uri)
+	var old_us := Time.get_ticks_usec() - t0
+
+	t0 = Time.get_ticks_usec()
+	var found: Dictionary = _dock._vfs.find_files(
+		"player", PackedStringArray(wanted), PackedStringArray(drop), 400)
+	var new_us := Time.get_ticks_usec() - t0
+
+	print("   filtering %d entries down to one page:" % all.size())
+	print("     list_files + GDScript loop: %6.1f ms -> %d of %d"
+		% [old_us / 1000.0, old_hits.size(), old_total])
+	print("     find_files in the engine:   %6.1f ms -> %d of %d"
+		% [new_us / 1000.0, (found["files"] as PackedStringArray).size(), int(found["total"])])
+
+
 func _check_search() -> void:
 	print("\n3. Ready-made categories, no search term")
 	_dock._search.text = ""
@@ -87,6 +130,8 @@ func _check_search() -> void:
 			sample = "%s %s" % [first.get_text(0), first.get_text(1)]
 		print("   %-22s %-46s (%d ms)  e.g. %s"
 			% [label, _dock._status.text, Time.get_ticks_msec() - t0, sample])
+
+	_time_filtering()
 
 	print("\n   searching inside a category")
 	_dock._search.text = "player"
@@ -157,6 +202,15 @@ func _check_pick() -> void:
 		if n2 != null:
 			n2.queue_free()
 
+	# Re-select the model. Every _pick_category() above cleared the selection, so without
+	# this the preview check below runs on an empty URI and reports "node=null" for a
+	# reason that has nothing to do with the preview.
+	_dock._search.text = "police"
+	_pick_category("Characters & people")
+	var again: TreeItem = _dock._results.get_root().get_first_child()
+	_dock._results.set_selected(again, 0)
+	_dock._on_result_selected()
+
 	# The preview is debounced, so drive it directly rather than waiting on a timer that
 	# does not tick meaningfully in a headless run.
 	var t0 := Time.get_ticks_msec()
@@ -188,9 +242,9 @@ func _check_pick() -> void:
 			if stream == null:
 				print("   sound: %s -> unsupported" % uri.get_file())
 			else:
-				print("   sound: %s -> %d Hz, %s, %d KiB"
+				print("   sound: %s -> %d Hz, %s, %.1f KiB"
 					% [uri.get_file(), stream.mix_rate,
-					   "stereo" if stream.stereo else "mono", stream.data.size() / 1024])
+					   "stereo" if stream.stereo else "mono", stream.data.size() / 1024.0])
 			break
 		snd = snd.get_next()
 

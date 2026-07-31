@@ -24,6 +24,9 @@ void VFSManager::_bind_methods() {
     ClassDB::bind_method(D_METHOD("unmount", "vfs_prefix"), &VFSManager::unmount);
     ClassDB::bind_method(D_METHOD("file_exists", "vfs_uri"), &VFSManager::file_exists);
     ClassDB::bind_method(D_METHOD("list_files", "prefix"), &VFSManager::list_files, DEFVAL(""));
+    ClassDB::bind_method(D_METHOD("find_files", "needle", "extensions", "exclude", "limit"),
+                         &VFSManager::find_files,
+                         DEFVAL(PackedStringArray()), DEFVAL(PackedStringArray()), DEFVAL(0));
     ClassDB::bind_method(D_METHOD("read_file", "vfs_uri"), &VFSManager::read_file);
     ClassDB::bind_method(D_METHOD("get_file_size", "vfs_uri"), &VFSManager::get_file_size);
     ClassDB::bind_method(D_METHOD("get_mounts_info"), &VFSManager::get_mounts_info);
@@ -552,6 +555,69 @@ PackedStringArray VFSManager::list_files(const String& prefix) const {
         }
     }
     return result;
+}
+
+Dictionary VFSManager::find_files(const String& needle,
+                                  const PackedStringArray& extensions,
+                                  const PackedStringArray& exclude,
+                                  int64_t limit) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // The index is already lowercase, so the needle is lowered once here rather than
+    // per entry, and no per-entry String is constructed until something matches.
+    const std::string want = to_lower(needle.utf8().get_data());
+
+    auto lowered = [](const PackedStringArray& in) {
+        std::vector<std::string> out;
+        out.reserve(static_cast<size_t>(in.size()));
+        for (int i = 0; i < in.size(); ++i) {
+            out.push_back(to_lower(in[i].utf8().get_data()));
+        }
+        return out;
+    };
+    const std::vector<std::string> wanted_ext = lowered(extensions);
+    const std::vector<std::string> unwanted_ext = lowered(exclude);
+
+    PackedStringArray files;
+    int64_t total = 0;
+
+    for (const auto& [uri, entry] : m_index) {
+        std::string_view ext;
+        if (const size_t dot = uri.find_last_of('.'); dot != std::string::npos) {
+            ext = std::string_view(uri.data() + dot + 1, uri.size() - dot - 1);
+        }
+
+        if (!unwanted_ext.empty()) {
+            bool skip = false;
+            for (const auto& candidate : unwanted_ext) {
+                if (ext == candidate) { skip = true; break; }
+            }
+            if (skip) continue;
+        }
+
+        if (!wanted_ext.empty()) {
+            if (ext.empty()) continue;
+            bool ok = false;
+            for (const auto& candidate : wanted_ext) {
+                if (ext == candidate) { ok = true; break; }
+            }
+            if (!ok) continue;
+        }
+
+        if (!want.empty() && uri.find(want) == std::string::npos) continue;
+
+        ++total;
+        // Counting continues past the limit: the caller needs the full total to say how
+        // much it is not showing.
+        if (limit <= 0 || files.size() < limit) {
+            files.append(String(uri.c_str()));
+        }
+    }
+
+    Dictionary out;
+    out["files"] = files;
+    out["total"] = total;
+    return out;
 }
 
 int64_t VFSManager::get_file_size(const String& vfs_uri) const {

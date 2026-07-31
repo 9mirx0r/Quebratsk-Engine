@@ -93,6 +93,29 @@ public:
     /// List all indexed files matching prefix
     godot::PackedStringArray list_files(const godot::String& prefix = "") const;
 
+    /// Search the index without copying it.
+    ///
+    /// list_files() returns every indexed URI: a Half-Life 2 plus Garry's Mod setup is
+    /// 60,584 strings, several megabytes allocated and thrown away for a caller that only
+    /// ever shows a few hundred. This does the filtering where the data already is and
+    /// returns only what will be displayed. Measured over that index, filtering to the
+    /// same 102 results takes 8.8 ms here against 55.5 ms for list_files() plus the
+    /// equivalent GDScript loop.
+    ///
+    /// `needle` matches anywhere in the URI, case-insensitively; empty matches all.
+    /// `extensions` are lowercase and without a dot ("mdl"); empty matches all.
+    /// `exclude` is subtracted from the result, and must be applied here rather than by
+    ///     the caller: filtering after the limit both truncates the page and inflates the
+    ///     total, because the caller only ever sees the part it was given.
+    /// `limit` caps the returned array, but never the count.
+    ///
+    /// Returns { "files": PackedStringArray, "total": int }, where `total` is how many
+    /// matched before the limit — a UI needs that to say "showing the first 400 of 18,090".
+    godot::Dictionary find_files(const godot::String& needle,
+                                 const godot::PackedStringArray& extensions,
+                                 const godot::PackedStringArray& exclude,
+                                 int64_t limit) const;
+
     /// Read file content as PackedByteArray (decompresses automatically if needed)
     godot::PackedByteArray read_file(const godot::String& vfs_uri) const;
 

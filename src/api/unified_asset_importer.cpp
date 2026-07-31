@@ -202,7 +202,8 @@ AssetBundleBytes UnifiedAssetImporter::read_asset_bundle(const String& vfs_uri,
 }
 
 ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundle,
-                                                  const std::string& lowercase_uri) {
+                                                  const std::string& lowercase_uri,
+                                                  bool pose_names_only) {
     ParsedAssetIR out;
     const std::span<const std::byte> data(bundle.primary);
     if (data.empty()) {
@@ -232,7 +233,9 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
             src_bundle.include_models.push_back({std::span<const std::byte>(inc.mdl),
                                                 std::span<const std::byte>(inc.ani)});
         }
-        if (auto src1_res = parsers::source1::SourceMDLParser::parse_bundle(src_bundle);
+        const auto detail = pose_names_only ? parsers::source1::PoseDetail::NamesOnly
+                                           : parsers::source1::PoseDetail::Full;
+        if (auto src1_res = parsers::source1::SourceMDLParser::parse_bundle(src_bundle, detail);
             src1_res.has_value()) {
             out.mesh = std::move(src1_res->mesh_data);
             out.skeleton = std::move(src1_res->skeleton_data);
@@ -296,7 +299,7 @@ PackedStringArray UnifiedAssetImporter::list_poses(const String& vfs_uri) {
     }
 
     const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
-    const ParsedAssetIR ir = parse_asset_ir(bundle, uri_lower);
+    const ParsedAssetIR ir = parse_asset_ir(bundle, uri_lower, /*pose_names_only=*/true);
 
     for (const auto& pose : ir.skeleton.poses) {
         if (!pose.name.empty()) {

@@ -125,6 +125,9 @@ var _orbit_distance := 3.0
 ## fallbacks_dir, garrysmod_dir, garry's_mod — into one that says "Garry's Mod".
 var _sources: Dictionary = {}
 
+## Mount prefix -> game display name, rebuilt whenever the mounts change. See _game_of().
+var _prefix_to_game: Dictionary = {}
+
 ## vfs:// URI -> true. A set, so membership is a hash lookup while drawing 400 rows.
 var _favourites: Dictionary = {}
 ## Most recent first, capped at MAX_RECENTS.
@@ -913,6 +916,7 @@ func _unique_prefix(base: String) -> String:
 # ----------------------------------------------------------------- games list ----
 
 func _refresh_games() -> void:
+	_rebuild_prefix_map()
 	_games.clear()
 	var root := _games.create_item()
 
@@ -1116,17 +1120,26 @@ func _drop_data(_at: Vector2, data: Variant) -> void:
 
 
 ## Which game a hit belongs to, worked out from the mount prefix in its URI.
+## Rebuild the prefix lookup. Called whenever _sources changes, which is the only thing
+## that can invalidate it.
+func _rebuild_prefix_map() -> void:
+	_prefix_to_game.clear()
+	for key in _sources.keys():
+		for entry in (_sources[key] as Dictionary).get("mounts", []):
+			_prefix_to_game[str((entry as Dictionary).get("prefix", ""))] = str(key)
+
+
+## Which game a URI belongs to, from the mount prefix.
+##
+## This used to walk _sources and its nested mount arrays on every call, once per result
+## row. Drawing 400 rows meant 400 nested scans of the same unchanging data. The map is
+## built once when the mounts change instead.
 func _game_of(uri: String) -> String:
 	var rest := uri.trim_prefix("vfs://")
 	var slash := rest.find("/")
 	if slash < 0:
 		return ""
-	var prefix := rest.substr(0, slash)
-	for key in _sources.keys():
-		for entry in (_sources[key] as Dictionary).get("mounts", []):
-			if str((entry as Dictionary).get("prefix", "")) == prefix:
-				return str(key)
-	return ""
+	return str(_prefix_to_game.get(rest.substr(0, slash), ""))
 
 
 func _refresh_results() -> void:
@@ -1139,8 +1152,10 @@ func _refresh_results() -> void:
 	var wanted: Array = category["ext"]
 	var folders: Array = category["folders"]
 
-	var all: PackedStringArray = _vfs.list_files()
-	if all.is_empty():
+	# _sources is the dock's own record of what is mounted, so "has the user added anything
+	# yet" is answered without touching the index at all. Asking the VFS meant a full scan
+	# of every indexed URI on each keystroke, to learn something already known here.
+	if _sources.is_empty():
 		var hint := _results.create_item(root)
 		hint.set_text(0, tr("Add a game to see what is inside it"))
 		hint.set_selectable(0, false)
@@ -1175,33 +1190,41 @@ func _refresh_results() -> void:
 			_say(tr("%s items.") % _grouped(listed))
 		return
 
-	var shown := 0
-	var matched := 0
-	for uri in all:
-		var ext := uri.get_extension().to_lower()
-		if COMPANION_EXTENSIONS.has(ext):
-			continue
-		if not wanted.is_empty() and not wanted.has(ext):
-			continue
+	# Type and text filtering happen inside the engine, over the index itself, so the
+	# 60,584 URIs are never copied into GDScript just to be discarded. Only the folder
+	# rule runs here, and only over what already survived the cheap filters.
+	var ext_filter := PackedStringArray(wanted)
+	var drop := PackedStringArray(COMPANION_EXTENSIONS)
+	# With a folder rule the engine cannot apply the limit, because whether a URI survives
+	# is decided here. Without one its count and its page are both final.
+	var hard_limit := MAX_RESULTS if folders.is_empty() else 0
+	var found: Dictionary = _vfs.find_files(needle, ext_filter, drop, hard_limit)
 
-		var lower := uri.to_lower()
+	var shown := 0
+	var matched := int(found["total"])
+
+	for entry in found["files"]:
+		var uri := str(entry)
 		if not folders.is_empty():
+			var lower := uri.to_lower()
 			var in_folder := false
 			for f in folders:
 				if lower.contains(str(f)):
 					in_folder = true
 					break
 			if not in_folder:
+				matched -= 1
 				continue
 
-		if not needle.is_empty() and not lower.contains(needle):
-			continue
-		matched += 1
 		if shown >= MAX_RESULTS:
 			continue
-
 		_add_result_row(root, uri)
 		shown += 1
+
+	# With a folder rule the engine could not apply the limit, so `shown` is the honest
+	# ceiling and `matched` counts everything that passed.
+	if not folders.is_empty():
+		matched = maxi(matched, shown)
 
 	if matched == 0:
 		var none := _results.create_item(root)
@@ -1276,10 +1299,11 @@ func _add_result_row(root: TreeItem, uri: String) -> void:
 	# tooltip, rather than the whole row being one long unreadable path.
 	var starred := "★ " if _favourites.has(uri) else ""
 	item.set_text(0, starred + uri.get_file())
-	item.set_text(1, "/ " + _game_of(uri))
+	var game := _game_of(uri)
+	item.set_text(1, "/ " + game)
 	item.set_custom_color(1, Color(0.58, 0.62, 0.70))
 	item.set_tooltip_text(0, uri)
-	item.set_tooltip_text(1, tr("From %s") % _game_of(uri))
+	item.set_tooltip_text(1, tr("From %s") % game)
 	item.set_metadata(0, uri)
 
 
@@ -1339,9 +1363,10 @@ func _on_result_selected() -> void:
 		_say(why)
 
 
-## Poses live in the .mdl and its .ani, so this skips the vertex data — but it is not
-## free (~70 ms for a Garry's Mod player model). Called on selection only, never while
-## typing in the search box.
+## Poses live in the .mdl and its .ani, so this skips the vertex data — but it is not free
+## (~7 ms for a Garry's Mod player model, nearly all of it reading the 7.1 MB animation
+## model the stances are borrowed from). Called on selection only, never while typing in
+## the search box.
 func _load_poses(uri: String) -> void:
 	var poses: PackedStringArray = _importer.list_poses(uri)
 	_pose_picker.clear()

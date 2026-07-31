@@ -102,6 +102,8 @@ int              mount_directory(vfs_prefix: String, real_dir: String)
 void             unmount(vfs_prefix: String)
 bool             file_exists(vfs_uri: String)
 PackedStringArray list_files(prefix: String = "")
+Dictionary       find_files(needle: String, extensions := PackedStringArray(),
+                            exclude := PackedStringArray(), limit := 0)
 PackedByteArray  read_file(vfs_uri: String)
 int              get_file_size(vfs_uri: String)   # -1 when not found
 Array            get_mounts_info()
@@ -165,6 +167,30 @@ case for modders.
 **`list_files(prefix)`** returns full `vfs://` URIs. With no argument it returns
 *everything* — a Half-Life 2 install is ~100,000 entries, so always pass a prefix in UI
 code or you will freeze the editor building a `Tree`.
+
+**`find_files()`** is what to use when the prefix is not the filter. It searches the index
+in place and returns only what you are going to draw:
+
+```gdscript
+var hit := vfs.find_files("police", PackedStringArray(["mdl"]),
+                          PackedStringArray(["vvd", "vtx", "ani", "phy"]), 400)
+hit["files"]   # PackedStringArray, at most `limit` URIs (0 means no limit)
+hit["total"]   # how many matched in full, so you can say "showing 400 of 4,264"
+```
+
+`needle` matches anywhere in the URI, case-insensitively; an empty one matches everything.
+`extensions` are lowercase and without the dot. `exclude` is subtracted first, which is the
+point of having it: filtering the returned page yourself would both shrink the page and
+leave `total` counting rows you removed. The companion files of a Source model
+(`.vvd`, `.vtx`, `.ani`, `.phy`) are the usual thing to exclude, since the importer pulls
+them in by itself and a user picking one gets nothing.
+
+Measured on a 60,584-entry index (Half-Life 2 plus Garry's Mod), producing the same 102
+results both ways: **8.8 ms** here against **55.5 ms** for `list_files()` followed by the
+equivalent GDScript loop. Those are release-build figures, the ones a user gets. A debug
+build narrows it to 33.8 against 64.3, since MSVC's checked iterators tax the C++ side and
+leave the GDScript side alone — worth knowing if you profile your own work against a debug
+extension and wonder where the difference went.
 
 **`unmount()`** invalidates the prefix. Anything already imported stays valid; Godot
 resources are independent copies once built.
@@ -461,11 +487,17 @@ prefix rather than by file on disk.
 
 ### Still open
 
-1. **`list_poses()` is cheaper, not free** — ~70 ms against ~170 ms for a full import. It
-   already skips the `.vvd` and `.vtx` entirely; the remaining cost is the 7.1 MB
-   `m_anm.ani` the model borrows its sequences from, which genuinely has to be read to
-   know the labels. If a dropdown needs to be instant, cache the result per URI in the
-   addon, or ask for a cache on the engine side.
+1. **`list_poses()` is cheaper, not free** — ~7 ms against ~10 ms for a full import on a
+   Garry's Mod player model, release build. It skips the `.vvd` and `.vtx` entirely, and
+   since it only needs the labels it no longer decodes every bone of all 359 sequences,
+   which is what used to make it cost half a full import.
+
+   What is left is almost all one read: the 7.1 MB `m_anm.ani` the model borrows its
+   sequences from. 4.4 ms warm, 15 ms the first time. It genuinely has to be read — a
+   sequence whose data cannot be reached is not a pose the model can stand in, and that is
+   only knowable from the file. Picking a model in the dock reads it twice, once here and
+   once for the import, and again on each pose change. Caching the borrowed animation
+   model is the obvious next move; ask if a dropdown needs to be instant.
 2. **No async form of `list_poses()` or `load_mesh()` for BSP** — a large map still
    stalls; only `load_mesh_async` / `load_model_async` exist.
 3. **Failure reasons are still coarse.** Three codes cannot distinguish "the `.vvd` is
