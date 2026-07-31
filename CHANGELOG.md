@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **Every file inside a Real Virtuality PBO that was not at the archive root was
+  unreachable by path.** PBOs store their paths with backslashes, and `index_pbo()` was the
+  one container indexer that did not convert them, so a DayZ texture was filed under a name
+  containing \\ separators. Anything that normalised a path before looking it up then missed:
+  `find_by_suffix()` could not match a nested file, the dock's folder categories never
+  matched Arma or DayZ content, and the texture loader converted the separators and was told
+  the file did not exist. Only files sitting at a PBO's root, with no separator to disagree
+  about, ever resolved. All five container indexers now file paths the same way, through one
+  function that states the convention.
+
+- **The dock's texture preview never showed anything.** `load_texture()` only knew how to
+  resolve a texture *reference*, the kind a material names, by searching the index for a
+  matching suffix. Handed a full `vfs://` URI, which is what every caller holding a search
+  result actually has, the search asked for an entry *ending in* `/vfs://mount/path` and
+  could never match. It returned null without a word, and the preview silently drew nothing.
+
+### Added
+
+- **The `.paa` reader is wired into the texture loader** and has now been run against a
+  retail DayZ install with eight workshop mods: 29,018 files reachable. Of a 1,500-file
+  sample, 42 decode, with dimensions exactly as an artist would author them, 2048x2048 down
+  to 16x16, which is the evidence that the container is being read correctly.
+
+  It is still not listed as a supported format, for a reason the same run made clear:
+  **1,457 of those 1,500 store their mipmaps compressed** and are refused rather than
+  decoded into noise. Reading them needs a decompressor this project does not have yet, and
+  until it does, `.paa` support would be a promise kept 3% of the time.
+
+---
+
 ## [2.0.2] "Herkav" - 2026-07-31
 
 Releases carry a name from here on. This one is Herkav.
