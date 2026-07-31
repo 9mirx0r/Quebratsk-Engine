@@ -1,193 +1,194 @@
 <p align="center">
-  <img src="docs/images/logo.jpg" alt="Quebratsk Engine Subsystem" width="100%" style="border-radius: 8px;"/>
+  <img src="docs/images/logo.jpg" alt="Quebratsk Engine" width="100%" style="border-radius: 8px;"/>
 </p>
 
-<h1 align="center">Quebratsk Engine Subsystem</h1>
+<h1 align="center">Quebratsk Engine</h1>
 
 <p align="center">
-  Universal asset ingestion subsystem for Godot 4 built with GDExtension and C++20. Reads assets from GoldSrc, Source Engine 1, Real Virtuality / Enfusion, Source Engine 2, Bohemia Enfusion, Unity Engine, and Unreal Engine 4/5 in real time with zero-copy RAM mapping.
+  Import Half-Life, Counter-Strike, Half-Life 2 and Garry's Mod assets into Godot 4
+  straight from the installed game. No extraction step, no conversion tools, no Blender
+  round-trip.
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"/></a>
-  <a href="https://godotengine.org"><img src="https://img.shields.io/badge/Godot-4.x-blueviolet.svg?logo=godotengine&logoColor=white" alt="Godot 4"/></a>
-  <a href="https://en.cppreference.com/w/cpp/20"><img src="https://img.shields.io/badge/C%2B%2B-20-00599C.svg?logo=c%2B%2B&logoColor=white" alt="C++20"/></a>
-  <a href="TUTORIAL_GODOT4.md"><img src="https://img.shields.io/badge/Beginner's_Guide-Godot_4-green.svg" alt="Beginner Tutorial"/></a>
+  <a href="https://godotengine.org"><img src="https://img.shields.io/badge/Godot-4.3%2B-blueviolet.svg?logo=godotengine&logoColor=white" alt="Godot 4.3+"/></a>
+  <a href="https://en.cppreference.com/w/cpp/23"><img src="https://img.shields.io/badge/C%2B%2B-23-00599C.svg?logo=c%2B%2B&logoColor=white" alt="C++23"/></a>
+  <a href="../../actions/workflows/build.yml"><img src="../../actions/workflows/build.yml/badge.svg" alt="Build"/></a>
+  <a href="docs/TUTORIAL.md"><img src="https://img.shields.io/badge/Guide-for%20beginners-green.svg" alt="Beginner's guide"/></a>
 </p>
 
 ---
 
-## 📖 [Beginner's Guide & Tutorial (Click Here)](TUTORIAL_GODOT4.md)
-New to Godot 4 or GDExtension? Read our step-by-step [Beginner's Guide for Godot 4](TUTORIAL_GODOT4.md) to learn how to mount archives and spawn 3D models in 3 simple steps!
+## What it does
 
----
-
-## 🎯 Why Quebratsk Engine Exists
+Point it at a game you own. It mounts the game's archives where they are — a Half-Life 2
+install is about 100,000 files across 70 VPK archives, and none of them are copied — then
+lets you search that content by name and drop a model or a map into your scene.
 
 <p align="center">
-  <img src="docs/images/mission.jpg" alt="Why Quebratsk Engine Exists" width="100%" style="border-radius: 8px;"/>
+  <img src="docs/images/mission.jpg" alt="Why Quebratsk Engine exists" width="100%" style="border-radius: 8px;"/>
 </p>
 
-### The Problem: Decades of Great Content Trapped in Legacy Formats
-Over the past 25 years, game modding communities have built millions of incredible 3D models, maps, weapons, vehicles, and animations across legendary engines like **GoldSrc** (*Half-Life*, *Counter-Strike*), **Source Engine 1** (*Garry's Mod*, *Team Fortress 2*), and **Real Virtuality** (*DayZ*, *Arma*).
+The usual route for legacy game assets is a chain of one-off community tools, then hours in
+Blender fixing UVs, winding order, Z-up axes and proprietary textures. Quebratsk reads the
+formats directly in C++ and hands Godot a finished `ArrayMesh`, `Skeleton3D` and
+`StandardMaterial3D`.
 
-However, independent developers moving to modern open-source engines like **Godot 4** face a frustrating barrier:
-- **Painful Manual Re-Authoring:** Importing legacy assets requires hundreds of hours of manual work in Blender to fix broken UVs, inverted winding orders, incorrect $Z$-Up axes, and proprietary texture formats (`.paa`, `.vtf`).
-- **No Native Modding / UGC Support:** Modern games cannot easily let players load classic Garry's Mod `.gma` packages or Arma `.pbo` mods on the fly without writing custom C++ parsers from scratch.
+Two details it gets right that most converters do not:
 
-### The Solution: A Zero-Copy Universal Memory Bridge
-**Quebratsk Engine** solves this problem at the C++ subsystem level. Instead of forcing developers to manually convert files on disk, Quebratsk mounts container archives (`.wad`, `.gma`, `.pbo`, `.vpk`, `.pak`, `.bundle`) directly into memory using cross-platform memory mapping (`mmap`).
+- **Models arrive in a real pose, not a T-pose.** A bind pose is a modelling artefact the
+  game never shows. Quebratsk decodes the animation sequences — including the external
+  `.ani` blocks a Garry's Mod player model borrows from a shared 7 MB animation model — and
+  offers all **341 stances** the game itself uses.
+- **Companion files resolve themselves.** A Source `.mdl` contains no vertex data at all;
+  it lives in a `.vvd` and a `.dx90.vtx`. You name one file and get a complete model.
 
-It translates binary formats into a standardized **Intermediate Representation (IR)** and converts them in real time into native Godot 4 nodes (`ArrayMesh`, `Skeleton3D`, `StandardMaterial3D`, `HeightMapShape3D`).
+## Install
 
-**Key Goals:**
-1. **Accelerate Indie Prototyping:** Build games in Godot 4 using existing asset libraries immediately without initial modeling bottlenecks.
-2. **Enable Player Modding (UGC):** Allow your game's players to load custom community mods directly inside your compiled game.
-3. **Digital Preservation:** Keep iconic game modding assets usable and alive in modern open-source game development.
+1. Download the latest archive from [Releases](../../releases).
+2. Extract it into your Godot 4 project root, so you end up with `res://bin/` and
+   `res://addons/quebratsk_editor/`.
+3. Re-open the project.
+4. **Project → Project Settings → Plugins → enable "Quebratsk Engine".**
+5. Open the **Quebratsk** tab in the left dock and press **Add game content**.
 
----
+Requires Godot 4.3 or newer, Windows x86_64.
 
-### ❓ Frequently Asked Questions
+New to Godot? Start with the [beginner's guide](docs/TUTORIAL.md).
 
-#### Q1: Why should I use Quebratsk Engine instead of existing standalone scripts or single-format tools?
-**Answer:** Standalone scripts are fragmented, written in high-overhead scripting languages, or abandoned. Quebratsk Engine is a unified, high-performance C++20 GDExtension subsystem. Instead of managing a dozen incompatible plugins for WAD, GMA, and PBO files, Quebratsk provides a single virtual filesystem (`vfs://`), zero-copy memory mapping, automatic $Z$-Up to $Y$-Up coordinate remapping, skeletal retargeting, and real-time Godot 4 node generation under a single unified architecture.
+## From code
 
-#### Q2: Is Quebratsk Engine a serious, production-ready engineering project?
-**Answer:** Absolutely. Quebratsk Engine is engineered with strict C++20 standards. It uses zero-copy memory mapping (`mmap` / `CreateFileMapping`), `#pragma pack(push, 1)` binary layouts validated at compile-time with `static_assert`, zero-allocation streaming pipelines, a decoupled Intermediate Representation (IR), and strict Semantic Versioning. Every feature is audited line-by-line against authoritative engine specifications.
-
-#### Q3: What is the long-term maintenance commitment and expansion vision?
-**Answer:** Quebratsk Engine is actively maintained with a clear, long-term technical roadmap. Beyond classic engines, we have expanded into modern Next-Gen engines (Source 2 / CS2, Bohemia Enfusion / Arma Reforger, Unity / Tarkov, Unreal Engine 4/5) and are actively implementing advanced subsystems including V-HACD 4.0 convex physics decomposition, automated lightmap UV2 packing, SIMD vectorization, async multi-threaded loading, audio streaming, and GLTF export capabilities.
-
----
-
-## About This Project & AI Transparency
-
-This repository is developed in pair-programming mode using **Claude Code** and **Google Antigravity IDE**. 
-
-We choose to be 100% transparent about AI assistance. Open-source developers are rightly skeptical of low-effort "AI slop" projects that generate unverified code and flood repositories with broken boilerplate. 
-
-Quebratsk Engine takes the opposite path:
-- **Architected by humans**: Format specs, memory layouts, and conversion math are verified against authoritative engine references.
-- **Strict C++20 standards**: Code uses memory-mapped I/O, `#pragma pack(push, 1)` structs validated with `static_assert`, zero-copy `std::span` buffers, and zero-allocation pipelines.
-- **Active and iterative**: Features ship incrementally with clear commits, tested binary parsers, and explicit CHANGELOG records.
-
----
-
-## 🗺️ Detailed Technical Roadmap
-
-<p align="center">
-  <img src="docs/images/roadmap.jpg" alt="Quebratsk Engine Visual Roadmap" width="100%" style="border-radius: 8px;"/>
-</p>
-
-### Subsystem Pipeline Architecture
-
-```
-[ Phase 1: VFS Core (Done) ] ──► [ Phase 2: IR & Math (Done) ] ──► [ Phase 3: Classic Engine Parsers (Done) ]
-                                                                                   │
-                                                                                   ▼
-[ 10 QoL Superpowers ] ◄── [ Advanced Quality Subsystems ] ◄── [ Phase 4-6: Converters & API (Done) ]
-```
-
----
-
-### ✅ Completed Milestones
-
-#### 1. Core Subsystem Architecture (Phases 0–6)
-- [x] **Phase 0: Project Infrastructure** — C++20 scaffold, CMake build manifest, `quebratsk.gdextension` symbol definition.
-- [x] **Phase 1: Zero-Copy VFS Core** — Memory mapping (`mmap` / Win32), URI scheme (`vfs://`), `.wad`, `.gma`, `.pbo` mounting, LZSS CPRS stream decompressor.
-- [x] **Phase 2: Intermediate Representation & Spatial Math** — `IRMeshData`, `IRSkeletonData`, `IRMaterialData`, $Z$-Up $\to$ $Y$-Up axis remapping, Hammer Unit scaling, CW $\to$ CCW winding inversion.
-- [x] **Phase 3: Classic Engine Parsers** — GoldSrc (`.wad`, `.bsp`, `.mdl`, `.spr`), Source 1 (`.gma`, `.bsp`, `.mdl`, `.vtf`, `.vmt`), Real Virtuality (`.pbo`, `.p3d`, `.wrp`, `.paa`, `.rvmat`).
-- [x] **Phase 4: Native Godot 4 Converters** — `MeshConverter`, `SkeletonConverter`, `MaterialConverter`, `AnimationConverter`, `CollisionConverter`, `TerrainConverter`.
-- [x] **Phase 5: Unified GDScript API** — `UnifiedAssetImporter` class bound to Godot ClassDB (`load_mesh`, `load_material`, `load_terrain`).
-- [x] **Phase 6: Skeletal Retargeting Engine** — `SkeletalRetargeter` translating legacy bones to Godot 4 `SkeletonProfileHumanoid` standard.
-
-#### 2. Next-Gen Modern Engine Expansion
-- [x] **Source Engine 2 / Counter-Strike 2 (CS2)** — `.vpk` (v2), `.vmdl_c` (KV3 / NTRO).
-- [x] **Bohemia Enfusion / Arma Reforger** — `.pak` (EPAK), `.xob` (Multi-LOD).
-- [x] **Unity Engine / Escape from Tarkov** — `.bundle` (UnityFS), Serialized 3D `Mesh`.
-- [x] **Unreal Engine 4/5** — `.pak` (UE Pak), `.uasset` / `.uexp` (Package Summary & Export tables).
-
-#### 3. Advanced Quality Subsystems
-- [x] **V-HACD 4.0 Physics & Convex Decomposition** — `VHACDDecomposer` for compound `godot::ConvexPolygonShape3D` physics bodies.
-- [x] **Texture & Material Memory Cache** — `TextureCache` manager preventing duplicate RAM allocations across instances.
-- [x] **Lightmap UV2 Bin-Packing & Shader Bridge** — `LightmapPacker` for secondary UV2 atlases & `ShaderBridge` for water/glass/$selfillum shaders.
-- [x] **GLTF Exporter & Audio Decoder** — `GLTFExporter` for GLTF 2.0 file export & `AudioDecoder` for VFS `.wav` audio streaming.
-- [x] **Async Multi-Threaded Importer & Editor Dock** — `AsyncAssetImporter` (`std::thread` background loading) & `quebratsk_editor` dock plugin.
-
----
-
-#### 4. Extreme Performance & Hardware Optimization Subsystems
-- [x] **Zero-Copy Vulkan/DirectX Staging Buffers (`VFS_GPU_Direct`)** — Direct `mmap` RAM to VRAM staging buffer creation using `RenderingServer::mesh_create()`.
-- [x] **SIMD-Accelerated Vertex & Axis Remapping (`AVX2_AxisRemap`)** — AVX2 and ARM Neon vectorization for Z-Up to Y-Up remapping and winding order inversion.
-- [x] **Background Texture Transcoding (DXT1/5 to RGBA8)** — `std::jthread` pool architecture for real-time legacy PC texture decoding.
-- [x] **Instanced Rendering Auto-Batching (`Auto_MultiMesh`)** — Automatic consolidation of duplicate `MeshInstance3D` requests into single `MultiMeshInstance3D` draw calls.
-- [x] **Asynchronous Occlusion Culling Hull Generator** — Background AABB bounding volume extraction generating Godot `BoxOccluder3D` nodes to eliminate overdraw.
-- [x] **Lazy-Loaded VFS Streaming (Paged Memory)** — OS-level `MapViewOfFile` / `mmap` windowed streaming keeping baseline memory footprint under 100MB.
-- [x] **Smart VRAM Garbage Collector (Texture/Mesh Eviction)** — Access timestamp tracking via `std::chrono::steady_clock` with safe main-thread resource eviction.
-- [x] **Automated Shader Pre-Caching (PSO Generation)** — Upfront Pipeline State Object (PSO) compilation during load screens via `RenderingServer`.
-- [x] **Multi-Threaded Collision BVH Builder** — Background face array preparation for static mesh collision shapes.
-- [x] **Configurable Memory Quotas via UI** — Native sliders and controls injected into Godot `ProjectSettings` (`quebratsk/performance/*`).
-
----
-
-### 🎯 Upcoming Roadmap: 10 UX & Intuitiveness Features
-
-The next development phase focuses on developer ergonomics, workflow intuitiveness, and user experience:
-
-1. 🖱️ **Drag-and-Drop VFS Mounting:** Drag `.wad`, `.gma`, or `.pbo` files directly into the Godot 3D Viewport to instantly mount them.
-2. 🎛️ **Lazy Import Presets:** 3 simple one-click presets ("Max Performance", "Retro Fidelity", "Max Quality") replacing complex checkbox menus.
-3. 🔍 **Steam Library Auto-Detection:** Automatically scan Windows registry to detect installed games (Half-Life, Arma 3, CS2) for instant mounting.
-4. 📊 **Native Background Loading UI Bar:** Injected progress bar overlay in the Godot Editor bottom panel for C++ `jthread` tasks.
-5. 🕷️ **Fuzzy-Match Material Auto-Fixer:** Intelligent string matching to automatically recover and link missing textures within mounted VFS archives.
-6. 🗺️ **Dependency Graph Explorer:** Visual node graph displaying connections between maps, models, and materials (highlighting missing assets in red).
-7. 📸 **In-Editor "Map Fly-Through" Preview:** Fly through loaded maps directly inside the Godot editor viewport without pressing Play.
-8. 🚨 **Human-Readable Clickable Console Errors:** Clickable error logs in Godot's console taking developers directly to offending VFS assets.
-9. 🔄 **Interactive Winding Order Visualizer:** Highlight inverted faces in red with a one-click "Flip Normals" button in the editor toolbar.
-10. 📓 **Obsidian Auto-Doc Exporter:** Direct MCP integration button exporting current VFS scene trees and memory states as Markdown notes into Obsidian.
-
----
-
-## Supported Engine Formats (Current Scope)
-
-| Engine | Archive / VFS | Models & Animations | Textures & Materials | Physics & Terrains |
-| :--- | :--- | :--- | :--- | :--- |
-| **GoldSrc** *(Half-Life 1, CS 1.6)* | `.wad` (WAD3) | `.mdl` (StudioMDL v10), `.spr` | 8-bit palette textures, `.spr` frames | `.bsp` v30 ClipNodes |
-| **Source Engine 1** *(GMod, HL2, CS:S)* | `.gma` (GMAD), `.vpk` | `.mdl` (v44–49), `.vtx`, `.vvd` | `.vtf` (v7.0–7.5), `.vmt` (KeyValues) | BSP Brushes, V-HACD |
-| **Real Virtuality** *(DayZ SA, Arma 2/3)* | `.pbo` (CPRS LZSS) | `.p3d` (ODOL v40–v75+, MLOD) | `.paa` / `.pac` (DXT/ARGB), `.rvmat` | `.wrp` Heightmaps, P3D Geometry LODs |
-| **Source Engine 2** *(Counter-Strike 2)* | `.vpk` (v2) | `.vmdl_c` (KV3 / NTRO) | `.vtex_c` (BC7 / DXT5), `.vmat_c` | Physics KV3 Collision |
-| **Bohemia Enfusion** *(Arma Reforger)* | `.pak` (EPAK) | `.xob` (Multi-LOD) | `.edds` (DirectDraw Surface) | Heightmap Terrains |
-| **Unity Engine** *(Escape from Tarkov)* | `.bundle` (UnityFS) | Serialized 3D `Mesh` | Serialized `Texture2D` | MeshColliders |
-| **Unreal Engine 4/5** *(UE4 / UE5)* | `.pak` (UE Pak) | `.uasset` / `.uexp` | `.uasset` Texture2D | USimpleCollision |
-
----
-
-## GDScript Example
+The dock is a thin layer over an API you can drive yourself. Full reference in
+[docs/API.md](docs/API.md).
 
 ```gdscript
-extends Node3D
+var vfs := VFSManager.new()
+add_child(vfs)
 
-var vfs: VFSManager
-var importer: UnifiedAssetImporter
+var importer := UnifiedAssetImporter.new()
+add_child(importer)
+importer.set_vfs(vfs)
 
-func _ready() -> void:
-    vfs = VFSManager.new()
-    importer = UnifiedAssetImporter.new()
-    importer.set_vfs(vfs)
+# Mount the _dir.vpk only — it pulls in its own numbered side archives.
+vfs.mount_container("hl2", "C:/.../half-life 2/hl2/hl2_misc_dir.vpk")
 
-    # Mount archives
-    vfs.mount_container("cs16", "res://assets/packages/cstrike.wad")
-    vfs.mount_container("gmod", "res://assets/packages/weapon_pack.gma")
-    vfs.mount_container("dayz", "res://assets/packages/weapons_firearms.pbo")
+for path in vfs.list_files("vfs://hl2/models/"):
+    print(path)
 
-    # Load weapon mesh from Garry's Mod
-    var weapon_mesh: ArrayMesh = importer.load_mesh("vfs://gmod/models/weapons/w_snip_awp.mdl")
-    var weapon_instance := MeshInstance3D.new()
-    weapon_instance.mesh = weapon_mesh
-    add_child(weapon_instance)
+var npc := importer.load_model("vfs://hl2/models/police.mdl", "idle_smg1")
+add_child(npc)
+print(npc.get_meta("quebratsk_poses"))   # every stance this model can hold
 ```
 
----
+## Supported formats
+
+Everything below is exercised against retail game installs, in Godot 4.7.1, by the
+harnesses in `demo/tests/`. Nothing is listed until it works end to end.
+
+| Engine | Archives | Models | Maps | Textures |
+|---|---|---|---|---|
+| **GoldSrc** <br/><sub>Half-Life, Counter-Strike 1.6</sub> | `.wad` (WAD3) | `.mdl` (StudioMDL v10) — geometry, skinning, `T.mdl` textures | `.bsp` (BSP30) — geometry, UVs, per-face normals, embedded + WAD textures | WAD3 lumps, `.spr` |
+| **Source 1** <br/><sub>Half-Life 2, Garry's Mod, CS:S, TF2</sub> | `.vpk` v1 & v2 (with side archives), `.gma` | `.mdl` v44–49 + `.vvd` + `.vtx` — geometry, skinning, animation sequences, external `.ani`, `includemodel` | `.bsp` (BSP30) | `.vtf` (DXT1/BC1, DXT5/BC3, uncompressed), `.vmt` |
+| **Real Virtuality** <br/><sub>Arma, DayZ</sub> | `.pbo` | — | `.wrp` heightmaps | — |
+
+**Not supported.** Real Virtuality models (`.p3d`, MLOD and ODOL alike) and textures
+(`.paa`); Source 2 (`.vmdl_c`); Bohemia Enfusion (`.pak`, `.xob`); Unity (`.bundle`);
+Unreal Engine (`.uasset`, `.pak`). Earlier versions of this README listed these as done and
+shipped classes named after them that returned an empty mesh with a material name attached.
+They were removed in 2.0 — see the [changelog](CHANGELOG.md).
+
+## Building
+
+Windows, Visual Studio 2022, CMake. godot-cpp is fetched automatically.
+
+```bash
+cmake -S . -B build
+cmake --build build --config Debug
+```
+
+Debug and Release must use **separate build trees**. godot-cpp 4.3 reads
+`CMAKE_BUILD_TYPE`, which is empty under a multi-config generator, so it defaults to Debug
+and bakes `/MDd` into what you asked to be a release build:
+
+```bash
+cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build build-release --config Release
+```
+
+Both write the extension into `demo/bin/`, which is where `quebratsk.gdextension` expects
+it.
+
+## Testing
+
+```bash
+cd build && ctest -C Debug --output-on-failure
+```
+
+Five suites, no framework — each is a plain executable that prints its checks and exits
+non-zero on failure. They cover the bounds-checked reader's invariants against adversarial
+overflow, DXT block decoding, the quantised animation formats and their run-length tracks,
+and the GoldSrc and Source model pipelines.
+
+Unit tests are not the whole story here, because most defects in this project were not the
+kind a unit test finds. `demo/tests/` holds harnesses that drive the real API and the real
+dock against an actual Steam install and print what each call returns:
+
+```bash
+godot --headless --path demo res://tests/verify_api.tscn
+godot --headless --path demo res://tests/verify_dock.tscn
+```
+
+## Repository layout
+
+```
+src/                        C++ engine — parsers, VFS, converters, GDScript API
+tests/                      C++ test suites, run by ctest
+demo/                       Godot project: loads the extension, hosts the addon
+  addons/quebratsk_editor/    the plugin users install
+  tests/                      end-to-end harnesses against real game installs
+docs/                       API reference and beginner's guide
+```
+
+## Roadmap
+
+<p align="center">
+  <img src="docs/images/roadmap.jpg" alt="Roadmap" width="100%" style="border-radius: 8px;"/>
+</p>
+
+The goal is full coverage of the engines above. The three on the left import today; the
+three on the right are where the work is heading. Everything in *Planned* is intended and
+actively worked toward — none of it is implemented yet, and this list says so plainly
+rather than shipping a class named after it that returns nothing.
+
+**Shipping now**
+
+- GoldSrc — archives, maps, models, textures
+- Source 1 — VPK and GMA archives, maps, models with skinning and animation poses, VTF/VMT
+- Real Virtuality — PBO archives, WRP terrain
+- Editor plugin — browse by category and import without writing code
+
+**Planned, in the order it is likely to land**
+
+| | Why it is next |
+|---|---|
+| **3D preview before importing** | The one thing still missing from the dock: today you import, look, and undo if it was the wrong model |
+| **Real Virtuality models** — `.p3d` MLOD then ODOL | The archive and terrain half already works, so Arma and DayZ are one format away from being complete |
+| **Real Virtuality textures** — `.paa` | DXT decoding is already in the engine; this is mostly container work |
+| **Sound extraction** | Every mounted game is full of audio that is currently listed but not usable |
+| **Source 2** — `.vmdl_c`, `.vtex_c` (CS2, Half-Life: Alyx) | The VPK v2 reader is already shared with Source 1 |
+| **Bohemia Enfusion** — `.pak`, `.xob` (Arma Reforger) | |
+| **Unity** — `.bundle` (UnityFS) | |
+| **Unreal Engine 4/5** — `.pak`, `.uasset` | |
+| **Linux and macOS binaries** | The C++ is portable; only the build and CI are Windows-only today |
+
+Progress is tracked in the [changelog](CHANGELOG.md). A format moves from *Planned* to
+*Shipping* only once it has been run against a retail game install, not when the parser
+compiles.
 
 ## License
 
-Quebratsk Engine is released under the [MIT License](LICENSE).
+MIT — see [LICENSE](LICENSE).
+
+This project ships no game content. It reads files you already own, from where you already
+have them installed.

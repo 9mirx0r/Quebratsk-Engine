@@ -1,112 +1,130 @@
-# 🔰 Quebratsk Engine — Beginner's Guide for Godot 4
+# Beginner's guide
 
-Welcome! This step-by-step tutorial will show you how to use **Quebratsk Engine** in your Godot 4 projects, even if you are brand new to game development or GDScript.
+This walks you from a fresh Godot install to a Half-Life 2 character standing in your
+scene. It assumes no Godot experience and no programming.
 
----
-
-## 📌 Step 1: Install Quebratsk Engine in Your Godot Project
-
-1. Download **`quebratsk-engine-v0.1.0-alpha-godot4.zip`** from the [Releases](https://github.com/9mirx0r/Quebratsk-Engine/releases) section on GitHub.
-2. Extract the `addons/quebratsk` folder into your Godot project's root folder (`res://addons/quebratsk`).
-3. Re-open your Godot 4 editor. Godot will automatically detect and load the GDExtension library!
-
-```
-YourGodotProject/
-├── addons/
-│   └── quebratsk/
-│       └── bin/
-│           └── quebratsk.gdextension
-└── main.tscn
-```
+You need Godot 4.3 or newer, on Windows, and at least one supported game installed —
+Half-Life, Counter-Strike 1.6, Half-Life 2, Garry's Mod, Portal or Team Fortress 2.
 
 ---
 
-## 📦 Step 2: How to Mount Your Game Archives (VFS)
+## 1. Install the plugin
 
-Before importing assets, you tell Quebratsk where your game archive files (`.wad`, `.gma`, `.pbo`, `.pak`, `.bundle`) are located using virtual prefixes (`vfs://`):
+1. Download the latest `quebratsk-engine-*.zip` from the
+   [Releases page](https://github.com/9mirx0r/Quebratsk-Engine/releases).
+2. Open your Godot project folder — the one with `project.godot` in it.
+3. Extract the archive there. You should end up with two new folders next to
+   `project.godot`:
+
+   ```
+   your-project/
+     project.godot
+     bin/                      <- the engine itself
+     addons/quebratsk_editor/  <- the panel you will use
+   ```
+
+4. Close Godot and open the project again. This is required: Godot only loads native
+   extensions at startup.
+5. Go to **Project → Project Settings → Plugins** and tick **Enable** next to
+   *Quebratsk Engine*.
+
+A **Quebratsk** tab appears in the panel on the left, next to *Scene* and *Import*.
+
+> If you do not see it, the tab strip may be too narrow — use the small arrows at its
+> right edge to scroll along.
+
+---
+
+## 2. Add a game
+
+Open the **Quebratsk** tab and press **Add game content**.
+
+The menu lists the games it found installed on your computer. Pick one — Half-Life 2, say.
+
+Nothing is copied. The game's archives are read where they already are, so adding
+Half-Life 2 costs no disk space and takes a second or two even though it is about 100,000
+files.
+
+Your game now appears in the list at the top with a file count. The trash icon removes it.
+
+You can also use **Choose a game folder** for a game that was not detected, or for an
+extracted mod folder, and **Open one archive file** for a single `.vpk`, `.wad`, `.gma` or
+`.pbo`.
+
+---
+
+## 3. Find something
+
+Two ways, and you can combine them:
+
+- **The category dropdown** — *Characters & people*, *Weapons*, *Vehicles*,
+  *Props & scenery*, *Maps & terrain*, *Textures & materials*, *Sounds*. Use this when you
+  want to browse rather than search for something specific.
+- **The search box** — type part of a name, like `police` or `dust`.
+
+Each result shows what the file is called and, after a slash, which game it came from. That
+second part matters more than it looks: both Half-Life 2 and Garry's Mod ship a
+`police.mdl`, and they are different models.
+
+---
+
+## 4. Put it in your scene
+
+1. Open or create a 3D scene first. Godot needs somewhere to put the model — if you forget,
+   the panel will tell you.
+2. Click a result. The bottom section shows what you picked.
+3. If it is a character or a prop, a **Standing pose** dropdown appears. Leave it on
+   *Whatever the game uses by default*, or choose one — a Garry's Mod player model offers
+   342, the same ones the game itself uses. `idle_smg1` is a soldier holding a rifle;
+   `crouch_walk_pistol` is what it sounds like.
+4. Press **Add to scene**.
+
+The model appears in your scene tree, textured, with its skeleton, standing in the pose you
+chose. From there it is a normal Godot node: move it, rotate it, attach a script.
+
+**Ctrl+Z** undoes the import like any other editor action.
+
+---
+
+## What you can and cannot import
+
+| You can place in a scene | You can browse but not place |
+|---|---|
+| Models from Half-Life, Counter-Strike 1.6, Half-Life 2, Garry's Mod, Portal, TF2 | Textures and materials — they are used *by* models, not placed on their own |
+| Maps from those games | Sounds |
+| Arma and DayZ terrain (`.wrp`) | Arma and DayZ models — [on the roadmap](../README.md#roadmap) |
+
+If an import fails, the panel says why in plain language rather than logging to a console
+you are not watching. The most common cause is a Source model whose shape lives in
+companion files inside a different archive: add the rest of that game's archives and try
+again.
+
+---
+
+## Doing it from code
+
+Everything the panel does is available from GDScript. See [API.md](API.md) for the full
+reference — mounting, searching, listing poses, async loading and error codes.
 
 ```gdscript
-extends Node3D
+var vfs := VFSManager.new()
+add_child(vfs)
 
-var vfs: VFSManager
+var importer := UnifiedAssetImporter.new()
+add_child(importer)
+importer.set_vfs(vfs)
 
-func _ready() -> void:
-    # Create the Virtual File System
-    vfs = VFSManager.new()
+# Mount the _dir.vpk only; it pulls in its own numbered side archives.
+vfs.mount_container("hl2", "C:/.../half-life 2/hl2/hl2_misc_dir.vpk")
 
-    # Mount your game archives (Prefix, Path to File)
-    vfs.mount_container("cs16", "res://assets/cstrike.wad")
-    vfs.mount_container("gmod", "res://assets/weapon_pack.gma")
-    vfs.mount_container("dayz", "res://assets/weapons.pbo")
-    vfs.mount_container("cs2",  "res://assets/pak01_dir.vpk")
-    vfs.mount_container("tarkov", "res://assets/item_bundle.bundle")
+var npc := importer.load_model("vfs://hl2/models/police.mdl", "idle_smg1")
+add_child(npc)
 ```
 
 ---
 
-## 🎨 Step 3: How to Import and Spawn 3D Models
+## A note on ownership
 
-To load a 3D model (Half-Life `.mdl`, Counter-Strike 2 `.vmdl_c`, Arma `.p3d` or `.xob`), use the `load_mesh` method:
-
-```gdscript
-extends Node3D
-
-var vfs: VFSManager
-var importer: UnifiedAssetImporter
-
-func _ready() -> void:
-    vfs = VFSManager.new()
-    importer = UnifiedAssetImporter.new()
-    importer.set_vfs(vfs)
-
-    # Mount Garry's Mod package
-    vfs.mount_container("gmod", "res://assets/weapons.gma")
-
-    # Load 3D model into an ArrayMesh
-    var my_mesh: ArrayMesh = importer.load_mesh("vfs://gmod/models/weapons/w_snip_awp.mdl")
-
-    # Create a 3D node in Godot and show it on screen
-    var mesh_instance := MeshInstance3D.new()
-    mesh_instance.mesh = my_mesh
-    add_child(mesh_instance) # Spawns the model in your 3D scene!
-```
-
----
-
-## 🖼️ Step 4: How to Import Materials
-
-To load material parameters (Source `.vmt` or Bohemia `.rvmat`):
-
-```gdscript
-var my_material: StandardMaterial3D = importer.load_material("vfs://gmod/materials/models/weapons/v_awp.vmt")
-mesh_instance.material_override = my_material
-```
-
----
-
-## ⛰️ Step 5: How to Import Terrain Heightmaps
-
-To load terrain heightmaps from Bohemia `.wrp` maps into a Godot 4 `CollisionShape3D`:
-
-```gdscript
-var heightmap_shape: HeightMapShape3D = importer.load_terrain("vfs://dayz/chernarus.wrp")
-
-var collision_node := CollisionShape3D.new()
-collision_node.shape = heightmap_shape
-$StaticBody3D.add_child(collision_node) # Creates 3D physics terrain!
-```
-
----
-
-## 💡 Summary of Easy Commands
-
-| Goal | GDScript Command |
-| :--- | :--- |
-| **Mount Archive** | `vfs.mount_container("prefix", "res://path/to/archive.gma")` |
-| **Load 3D Model** | `importer.load_mesh("vfs://prefix/path/to/model.mdl")` |
-| **Load Material** | `importer.load_material("vfs://prefix/path/to/material.vmt")` |
-| **Load Terrain** | `importer.load_terrain("vfs://prefix/path/to/map.wrp")` |
-
----
-
-Need help or found a bug? Join the discussion on our [GitHub Issues](https://github.com/9mirx0r/Quebratsk-Engine/issues) page!
+This plugin ships no game content. It reads files you already own, from where you already
+installed them. What you may do with imported assets is governed by each game's own EULA —
+redistributing them in a commercial project generally is not allowed.

@@ -78,3 +78,42 @@ set_target_properties(quebratsk_engine PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${QB_OUTPUT_DIR}"
     RUNTIME_OUTPUT_DIRECTORY "${QB_OUTPUT_DIR}"
 )
+
+# ------------------------------------------------------------------------ tests ----
+#
+# Each suite is a plain executable that prints its checks and exits non-zero on failure.
+# No framework: the point is that `ctest` in CI and a developer running the binary by hand
+# see exactly the same output.
+#
+# These were previously buildable only by copying a hand-written `cl` command line out of
+# a comment at the top of each file — five different command lines, none of them checked
+# by anything. Nothing stopped one from silently rotting.
+option(QUEBRATSK_BUILD_TESTS "Build the parser test suites" ON)
+
+if(QUEBRATSK_BUILD_TESTS)
+    enable_testing()
+
+    function(quebratsk_add_test name)
+        add_executable(${name} "tests/${name}.cpp" ${ARGN})
+        target_include_directories(${name} PRIVATE
+            src
+            src/core/image   # dxt_decoder_test includes "dxt_decoder.h" unqualified
+            ${CMAKE_CURRENT_SOURCE_DIR}
+        )
+        # Even the header-only suites link godot-cpp: the IR types they exercise use
+        # godot::Vector3 and friends.
+        target_link_libraries(${name} PRIVATE godot::cpp)
+        set_target_properties(${name} PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "$<1:${CMAKE_BINARY_DIR}/tests>")
+        add_test(NAME ${name} COMMAND ${name})
+    endfunction()
+
+    quebratsk_add_test(byte_reader_test)
+    quebratsk_add_test(dxt_decoder_test  src/core/image/dxt_decoder.cpp)
+    quebratsk_add_test(anim_decoder_test src/parsers/source1/anim_decoder.cpp)
+    quebratsk_add_test(mdl10_parser_test src/parsers/goldsrc/mdl10_parser.cpp)
+    quebratsk_add_test(source_mdl_test
+        src/parsers/source1/mdl_source_parser.cpp
+        src/parsers/source1/vvd_parser.cpp
+        src/parsers/source1/anim_decoder.cpp)
+endif()
