@@ -204,13 +204,43 @@ Turns a VFS entry into a Godot object. Call `set_vfs()` once before anything els
 ```gdscript
 void                set_vfs(vfs: VFSManager)
 ArrayMesh           load_mesh(vfs_uri: String)
-Node3D              load_model(vfs_uri: String, pose_name: String = "")
+Node3D              load_model(vfs_uri: String, pose_name := "",
+                               animations := PackedStringArray())
 StandardMaterial3D  load_material(vfs_uri: String)
 HeightMapShape3D    load_terrain(vfs_uri: String)
 Texture2D           load_texture(texture_ref: String)
 PackedStringArray   list_poses(vfs_uri: String)
 int                 get_last_error_code()
 ```
+
+**`load_model(uri, pose, animations)`** — `animations` names sequences to bring in as
+playable animation rather than a single frozen frame:
+
+```gdscript
+var poses := importer.list_poses(uri)          # 426 on a Garry's Mod player model
+var npc := importer.load_model(uri, "idle_all_01",
+                               PackedStringArray(["walk_all", "idle_all_01"]))
+var player := npc.get_node("AnimationPlayer")
+player.play("walk_all")
+```
+
+The returned `Skeleton3D` gains an `AnimationPlayer` child holding one `Animation` per name
+that decoded, under the label the game uses. Its `root_node` is the skeleton, so the node
+can be reparented anywhere without the tracks going stale.
+
+Nothing is decoded unless it is named. A sequence is one keyframe per bone per frame — a
+nine-second idle is 280 of them — and a model carries hundreds of sequences, so importing
+them all would cost far more than any caller wants. `list_poses()` is how you find out what
+there is to ask for.
+
+Two things worth knowing:
+
+- **A track whose value never changes is stored as one key.** Most bones hold still through
+  any one sequence. A "ragdoll" or "reference" sequence is a held stance and comes back with
+  a single key on every track, which is correct and not a truncated decode.
+- **The animation's length is what was decoded, not what the header claims.** If a sequence's
+  data cannot be reached part way through, the animation is shorter and the parser says so on
+  stderr, rather than reporting a full duration the model would be frozen through.
 
 **`get_last_error_code()`** — why the last `load_*` call ended as it did. Set on **both**
 the success and the failure paths of every entry point, so it always describes the most

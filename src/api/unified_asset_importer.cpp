@@ -6,8 +6,11 @@
 #include "../parsers/source1/vmt_parser.h"
 #include "../parsers/rv_enfusion/p3d_mlod_parser.h"
 #include "../parsers/rv_enfusion/wrp_parser.h"
+#include "../converters/animation_converter.h"
 #include "../converters/texture_loader.h"
 
+#include <godot_cpp/classes/animation_library.hpp>
+#include <godot_cpp/classes/animation_player.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/memory.hpp>
@@ -39,8 +42,9 @@ void UnifiedAssetImporter::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_material", "vfs_uri"), &UnifiedAssetImporter::load_material);
     ClassDB::bind_method(D_METHOD("load_terrain", "vfs_uri"), &UnifiedAssetImporter::load_terrain);
     ClassDB::bind_method(D_METHOD("load_texture", "texture_ref"), &UnifiedAssetImporter::load_texture);
-    ClassDB::bind_method(D_METHOD("load_model", "vfs_uri", "pose_name"),
-                         &UnifiedAssetImporter::load_model, DEFVAL(String()));
+    ClassDB::bind_method(D_METHOD("load_model", "vfs_uri", "pose_name", "animations"),
+                         &UnifiedAssetImporter::load_model,
+                         DEFVAL(String()), DEFVAL(PackedStringArray()));
     ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
     ClassDB::bind_method(D_METHOD("get_last_error_code"), &UnifiedAssetImporter::get_last_error_code);
     ClassDB::bind_method(D_METHOD("get_last_missing_companions"),
@@ -203,7 +207,8 @@ AssetBundleBytes UnifiedAssetImporter::read_asset_bundle(const String& vfs_uri,
 
 ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundle,
                                                   const std::string& lowercase_uri,
-                                                  bool pose_names_only) {
+                                                  bool pose_names_only,
+                                                  const std::vector<std::string>& animate) {
     ParsedAssetIR out;
     const std::span<const std::byte> data(bundle.primary);
     if (data.empty()) {
@@ -226,6 +231,7 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
             std::span<const std::byte>(bundle.vertices),
             std::span<const std::byte>(bundle.indices),
             std::span<const std::byte>(bundle.animations),
+            animate,
             {},
         };
         src_bundle.include_models.reserve(bundle.include_models.size());
@@ -239,6 +245,7 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
             src1_res.has_value()) {
             out.mesh = std::move(src1_res->mesh_data);
             out.skeleton = std::move(src1_res->skeleton_data);
+            out.animations = std::move(src1_res->animations);
             return out;
         }
     } else if (lowercase_uri.ends_with(".bsp")) {
@@ -311,7 +318,8 @@ PackedStringArray UnifiedAssetImporter::list_poses(const String& vfs_uri) {
     return pose_names;
 }
 
-Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& pose_name) {
+Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& pose_name,
+                                         const PackedStringArray& animations) {
     if (!m_vfs) {
         m_last_error_code = ERR_VFS_NOT_SET;
         UtilityFunctions::printerr("[QuebratskImporter] VFSManager not set!");
@@ -325,8 +333,14 @@ Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& po
         return nullptr;
     }
 
+    std::vector<std::string> animate;
+    animate.reserve(static_cast<size_t>(animations.size()));
+    for (int i = 0; i < animations.size(); ++i) {
+        animate.push_back(animations[i].utf8().get_data());
+    }
+
     const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
-    ParsedAssetIR parsed = parse_asset_ir(bundle, uri_lower);
+    ParsedAssetIR parsed = parse_asset_ir(bundle, uri_lower, /*pose_names_only=*/false, animate);
 
     return build_model_node(parsed, pose_name);
 }
@@ -419,8 +433,45 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
         }
     }
 
+    attach_animations(skeleton, parsed);
+
     m_last_error_code = ERR_OK;
     return skeleton;
+}
+
+void UnifiedAssetImporter::attach_animations(Skeleton3D* skeleton,
+                                             const ParsedAssetIR& parsed) {
+    if (parsed.animations.empty()) return;
+
+    Ref<AnimationLibrary> library;
+    library.instantiate();
+
+    int64_t added = 0;
+    for (const auto& ir_anim : parsed.animations) {
+        // The AnimationPlayer's root is the skeleton itself, so a bone track addresses it
+        // as ":BoneName" — an empty node part means "the root node".
+        Ref<Animation> anim = converters::AnimationConverter::convert(ir_anim, String(),
+                                                                      skeleton);
+        if (anim.is_null() || anim->get_track_count() == 0) continue;
+        if (library->add_animation(String(ir_anim.name.c_str()), anim) == Error::OK) {
+            ++added;
+        }
+    }
+    if (added == 0) return;
+
+    AnimationPlayer* player = memnew(AnimationPlayer);
+    player->set_name("AnimationPlayer");
+    skeleton->add_child(player);
+
+    // Relative to the player, ".." is the Skeleton3D it hangs from. Leaving this at its
+    // default would resolve tracks against whatever the model is later parented to.
+    player->set_root_node(NodePath(".."));
+
+    // The empty library name is what lets an animation be addressed by its own label,
+    // player.play("walk_all_01"), rather than "library_name/walk_all_01".
+    player->add_animation_library("", library);
+
+    UtilityFunctions::print("[QuebratskImporter] ", added, " animation(s) attached");
 }
 
 Ref<StandardMaterial3D> UnifiedAssetImporter::load_material(const String& vfs_uri) {

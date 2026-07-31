@@ -189,7 +189,7 @@ returns nothing.
 Shipping now:
 
 - GoldSrc: archives, maps, models, textures
-- Source 1: VPK and GMA archives, maps, models with skinning and animation poses, VTF/VMT
+- Source 1: VPK and GMA archives, maps, models with skinning, playable animation, VTF/VMT
 - Real Virtuality: PBO archives, WRP terrain
 - The editor plugin, which browses by category and imports without writing code
 

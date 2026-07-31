@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/vfs/vfs_manager.h"
+#include "../core/ir/ir_animation_data.h"
 #include "../core/ir/ir_skeleton_data.h"
 #include "../converters/mesh_converter.h"
 #include "../converters/skeleton_converter.h"
@@ -25,6 +26,10 @@ namespace quebratsk::api {
 struct ParsedAssetIR {
     ir::IRMeshData mesh;
     ir::IRSkeletonData skeleton;
+
+    /// Fully decoded sequences, one per name the caller asked for. Empty otherwise:
+    /// nothing decodes an animation unless it was requested by name.
+    std::vector<ir::IRAnimationData> animations;
 };
 
 /// An asset's bytes plus any companion files it cannot be decoded without.
@@ -104,8 +109,15 @@ public:
     /// label first and then as a substring ("idle_smg1", "crouch"). Left empty, an
     /// idle-like sequence is chosen automatically. Either way the full list of labels is
     /// published on the returned node as the "quebratsk_poses" metadata.
+    ///
+    /// `animations` names sequences to import as playable animation rather than as a
+    /// single frozen frame. Each becomes an Animation on an AnimationPlayer added to the
+    /// returned node, under the label the game uses. Naming sequences costs real time and
+    /// memory — a 60-frame sequence is 60 keyframes per bone — so nothing is decoded
+    /// unless it is asked for, and list_poses() is how a caller learns what to ask for.
     godot::Node3D* load_model(const godot::String& vfs_uri,
-                              const godot::String& pose_name = godot::String());
+                              const godot::String& pose_name = godot::String(),
+                              const godot::PackedStringArray& animations = godot::PackedStringArray());
 
     /// Every animation sequence label the model carries, e.g. "idle_smg1".
     ///
@@ -121,6 +133,13 @@ public:
     /// of re-reading and re-parsing the asset on the main thread.
     godot::Node3D* build_model_node(const ParsedAssetIR& parsed,
                                     const godot::String& pose_name = godot::String());
+
+private:
+    /// Hang an AnimationPlayer carrying every decoded sequence off the skeleton.
+    /// Does nothing when no animations were requested, which is the default.
+    static void attach_animations(godot::Skeleton3D* skeleton, const ParsedAssetIR& parsed);
+
+public:
 
     /// Why the last load_* call failed. Set by every load_* entry point, on both the
     /// success and the failure paths, so it always describes the most recent call.
@@ -153,7 +172,8 @@ public:
     /// must leave it false.
     [[nodiscard]] static ParsedAssetIR parse_asset_ir(const AssetBundleBytes& bundle,
                                                       const std::string& lowercase_uri,
-                                                      bool pose_names_only = false);
+                                                      bool pose_names_only = false,
+                                                      const std::vector<std::string>& animate = {});
 
     [[nodiscard]] vfs::VFSManager* get_vfs() const { return m_vfs; }
 

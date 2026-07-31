@@ -99,6 +99,7 @@ var _picked_name: Label
 var _picked_kind: Label
 var _pose_row: VBoxContainer
 var _pose_picker: OptionButton
+var _animate_toggle: CheckBox
 var _add_button: Button
 var _status: Label
 
@@ -425,6 +426,15 @@ func _build_ui() -> void:
 	_pose_picker.tooltip_text = tr("Which frame of the game's own animations the model stands in")
 	_pose_row.add_child(_pose_picker)
 
+	# A pose is one frame of a sequence; this brings in the whole sequence as something
+	# that plays. It is off by default because it costs real time and memory — a nine
+	# second idle is 280 keyframes per moving bone — and most imports want a stance.
+	_animate_toggle = CheckBox.new()
+	_animate_toggle.text = tr("Bring it in moving")
+	_animate_toggle.tooltip_text = tr("Import the whole sequence as an animation you can play, not just the one frame")
+	_animate_toggle.toggled.connect(_on_animate_toggled)
+	_pose_row.add_child(_animate_toggle)
+
 	var button_row := _row()
 
 	_star_button = Button.new()
@@ -507,7 +517,7 @@ func _refresh_preview() -> void:
 			mi.name = _selected_uri.get_file().get_basename()
 			node = mi
 	else:
-		node = _importer.load_model(_selected_uri, _chosen_pose())
+		node = _importer.load_model(_selected_uri, _chosen_pose(), _chosen_animations())
 
 	if node == null:
 		return
@@ -670,6 +680,26 @@ func _chosen_pose() -> String:
 	if _pose_row.visible and _pose_picker.selected >= 0:
 		return str(_pose_picker.get_item_metadata(_pose_picker.selected))
 	return ""
+
+
+## The sequences to import as playable animation, which is either the chosen one or none.
+##
+## "Whatever the game uses by default" names no sequence, so there is nothing to animate:
+## the toggle needs a pose picked before it means anything.
+func _chosen_animations() -> PackedStringArray:
+	if _animate_toggle == null or not _animate_toggle.button_pressed:
+		return PackedStringArray()
+	var pose := _chosen_pose()
+	if pose.is_empty():
+		return PackedStringArray()
+	return PackedStringArray([pose])
+
+
+func _on_animate_toggled(pressed: bool) -> void:
+	if pressed and _chosen_pose().is_empty():
+		_say(tr("Pick a pose first — that is the sequence that will play."))
+		return
+	_preview_debounce.start()
 
 
 ## Which engine badge to show beside a game in the list.
@@ -1491,7 +1521,7 @@ func _on_add_pressed() -> void:
 			mi.name = _selected_uri.get_file().get_basename()
 			node = mi
 	else:
-		node = _importer.load_model(_selected_uri, _chosen_pose())
+		node = _importer.load_model(_selected_uri, _chosen_pose(), _chosen_animations())
 
 	if node == null:
 		_say(_explain_failure(), true)

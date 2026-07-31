@@ -4,8 +4,11 @@
 #include "../../core/io/byte_reader.h"
 #include "../../core/math/axis_remap.h"
 
+#include <godot_cpp/variant/utility_functions.hpp>
+
 #include <algorithm>
 #include <cstring>
+#include <limits>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -68,6 +71,20 @@ void fill_skeleton(const ByteReader& mdl, const SourceStudioHeader* header,
     }
 }
 
+/// How many mstudioanimvalue_t to hand sample_track() so it can reach `frame`.
+///
+/// The encoding gives no way to know a track's length without decoding it, so this reads a
+/// window and lets sample_track() stop where it needs to. Worst case a run covers a single
+/// frame and costs two entries, a header and a sample, so 2·frame always reaches it. A
+/// fixed 256 was enough only because nothing ever asked past frame 0.
+std::span<const SourceAnimValue> rle_window(const ByteReader& data, size_t offset,
+                                            int32_t frame) {
+    if (offset >= data.size()) return {};
+    const size_t available = (data.size() - offset) / sizeof(SourceAnimValue);
+    const size_t wanted = 256 + static_cast<size_t>(frame < 0 ? 0 : frame) * 2;
+    return data.array_at<SourceAnimValue>(offset, std::min(wanted, available));
+}
+
 /// Walk the linked list of per-bone tracks starting at `start` and overwrite the entries
 /// of `src_pos`/`src_rot` it mentions. Returns true if any bone was touched.
 ///
@@ -84,7 +101,7 @@ void fill_skeleton(const ByteReader& mdl, const SourceStudioHeader* header,
 /// depends on it — but only until the first bone that succeeds, and nothing is stored. The
 /// probe therefore accepts and rejects exactly what the full walk does, which a separate
 /// cheaper test could not promise.
-bool walk_bone_tracks(const ByteReader& data, size_t start,
+bool walk_bone_tracks(const ByteReader& data, size_t start, int32_t frame,
                       std::span<const SourceStudioBone> bones,
                       std::vector<godot::Vector3>* src_pos,
                       std::vector<godot::Quaternion>* src_rot) {
@@ -124,11 +141,8 @@ bool walk_bone_tracks(const ByteReader& data, size_t start,
                     angle[axis] = bone.radrot[axis];
                     if (vp[0].offset[axis] == 0) continue;
                     const size_t track_ofs = payload + static_cast<size_t>(vp[0].offset[axis]);
-                    // A generous window; sample_track stops at the run it needs.
-                    const auto track = data.array_at<SourceAnimValue>(
-                        track_ofs,
-                        std::min<size_t>(256, (data.size() - std::min(track_ofs, data.size())) / 2));
-                    if (auto v = AnimDecoder::sample_track(track, 0); v.has_value()) {
+                    const auto track = rle_window(data, track_ofs, frame);
+                    if (auto v = AnimDecoder::sample_track(track, frame); v.has_value()) {
                         angle[axis] += static_cast<float>(*v) * bone.rot_scale[axis];
                     }
                 }
@@ -157,10 +171,8 @@ bool walk_bone_tracks(const ByteReader& data, size_t start,
                     p[axis] = bone.pos[axis];
                     if (vp[0].offset[axis] == 0) continue;
                     const size_t track_ofs = payload + static_cast<size_t>(vp[0].offset[axis]);
-                    const auto track = data.array_at<SourceAnimValue>(
-                        track_ofs,
-                        std::min<size_t>(256, (data.size() - std::min(track_ofs, data.size())) / 2));
-                    if (auto v = AnimDecoder::sample_track(track, 0); v.has_value()) {
+                    const auto track = rle_window(data, track_ofs, frame);
+                    if (auto v = AnimDecoder::sample_track(track, frame); v.has_value()) {
                         p[axis] += static_cast<float>(*v) * bone.pos_scale[axis];
                     }
                 }
@@ -178,38 +190,61 @@ bool walk_bone_tracks(const ByteReader& data, size_t start,
     return any;
 }
 
-/// Where the track chain for frame 0 of one animation descriptor actually begins.
+/// Where the track chain for one frame of an animation descriptor actually begins.
 struct TrackLocation {
     bool external = false;  // true -> offset is into the .ani, false -> into the .mdl
     size_t offset = 0;
+    int32_t local_frame = 0; // frame index within the section the offset points at
 };
 
-/// Resolve `adesc` to a concrete byte offset, following section and block indirection.
+/// Resolve `adesc` and a frame to a concrete byte offset, following section and block
+/// indirection.
 ///
 /// Two levels of indirection stand between a descriptor and its data. A long animation is
-/// chopped into sections, so frame 0 must be looked up through section 0 rather than the
-/// descriptor. Whatever block that yields, a non-zero one means the bytes live in the
-/// companion .ani at `data_start + anim_index` instead of next to the descriptor.
+/// chopped into fixed-length sections, each with its own chain, so a frame must be looked
+/// up through the section that holds it and then addressed relative to that section's
+/// start. Whatever block that yields, a non-zero one means the bytes live in the companion
+/// .ani at `data_start + anim_index` instead of next to the descriptor.
 std::optional<TrackLocation> locate_tracks(const ByteReader& mdl, size_t adesc_ofs,
                                            const SourceAnimDesc& adesc,
                                            std::span<const SourceAnimBlock> blocks,
-                                           size_t ani_size) {
+                                           size_t ani_size,
+                                           int32_t frame = 0) {
     int32_t block = adesc.anim_block;
     int32_t index = adesc.anim_index;
+    int32_t local_frame = frame;
 
-    if (adesc.section_frames != 0 && adesc.section_index > 0) {
-        // Frame 0 always falls in section 0, so no frame arithmetic is needed here.
-        const auto section = at_relative<SourceAnimSection>(mdl, adesc_ofs, adesc.section_index, 1);
+    if (adesc.section_frames > 0 && adesc.section_index > 0) {
+        const int32_t section_no = frame / adesc.section_frames;
+        local_frame = frame % adesc.section_frames;
+
+        // studiomdl writes numframes/sectionframes + 2 sections: one past the last full
+        // one, plus a single-frame tail. Reading beyond that is reading whatever follows.
+        const int32_t section_count = adesc.num_frames / adesc.section_frames + 2;
+        if (section_no < 0 || section_no >= section_count) return std::nullopt;
+
+        // section_index is relative to the descriptor, and the sections are contiguous.
+        const size_t rel = static_cast<size_t>(adesc.section_index) +
+                           static_cast<size_t>(section_no) * sizeof(SourceAnimSection);
+        if (rel > static_cast<size_t>(std::numeric_limits<int32_t>::max())) return std::nullopt;
+
+        const auto section = at_relative<SourceAnimSection>(mdl, adesc_ofs,
+                                                            static_cast<int32_t>(rel), 1);
         if (!section) return std::nullopt;
         block = section->anim_block;
         index = section->anim_index;
     }
-    if (index <= 0) return std::nullopt;
+    // Zero is a real offset when the data lives in a block: the section simply starts at
+    // the block's first byte. Only inline data can never sit at zero, because offset zero
+    // from the descriptor is the descriptor itself. Rejecting it everywhere cut long
+    // sequences off at whichever section happened to land on a block boundary, and dropped
+    // outright any sequence whose very first section did.
+    if (index < 0 || (index == 0 && block == 0)) return std::nullopt;
 
     if (block == 0) {
         if (adesc_ofs > mdl.size()) return std::nullopt;
         if (static_cast<size_t>(index) > mdl.size() - adesc_ofs) return std::nullopt;
-        return TrackLocation{false, adesc_ofs + static_cast<size_t>(index)};
+        return TrackLocation{false, adesc_ofs + static_cast<size_t>(index), local_frame};
     }
 
     if (block < 0 || static_cast<size_t>(block) >= blocks.size()) return std::nullopt;
@@ -220,10 +255,88 @@ std::optional<TrackLocation> locate_tracks(const ByteReader& mdl, size_t adesc_o
     if (static_cast<size_t>(index) > ani_size - static_cast<size_t>(blk.data_start)) {
         return std::nullopt;
     }
-    return TrackLocation{true, static_cast<size_t>(blk.data_start) + static_cast<size_t>(index)};
+    return TrackLocation{true,
+                         static_cast<size_t>(blk.data_start) + static_cast<size_t>(index),
+                         local_frame};
 }
 
-/// Lift frame 0 of every animation sequence out of the model.
+/// Decode every frame of one sequence into an IRAnimationData.
+///
+/// Frame 0 is what extract_poses() already lifts; this walks the rest. Each frame is
+/// resolved separately because a long animation is split into sections with their own
+/// chains, so the byte offset is not a function of the descriptor alone.
+///
+/// Bones the sequence never mentions are still written, holding their rest transform.
+/// Godot interpolates between the keys it is given, so a track that omits an unanimated
+/// bone would let a neighbouring animation's last value stand — the model would keep an
+/// arm raised through an idle it was never posed by.
+ir::IRAnimationData decode_animation(const ByteReader& mdl, const ByteReader& ani,
+                                     const ir::IRSkeletonData& skel,
+                                     std::span<const SourceStudioBone> bones,
+                                     std::span<const SourceAnimBlock> blocks,
+                                     size_t adesc_ofs, const SourceAnimDesc& adesc,
+                                     const std::string& name, bool looping) {
+    ir::IRAnimationData anim;
+    anim.source_engine = ir::SourceEngine::Source1;
+    anim.name = name;
+    anim.fps = adesc.fps > 0.0f ? adesc.fps : 30.0f;
+    anim.looping = looping;
+
+    const int32_t frames = adesc.num_frames;
+    int32_t decoded = 0;
+
+    anim.bone_tracks.resize(bones.size());
+    for (size_t b = 0; b < bones.size(); ++b) {
+        anim.bone_tracks[b].bone_name = b < skel.bones.size() ? skel.bones[b].name : std::string();
+        anim.bone_tracks[b].keyframes.reserve(static_cast<size_t>(frames));
+    }
+
+    std::vector<godot::Vector3> src_pos(bones.size());
+    std::vector<godot::Quaternion> src_rot(bones.size());
+
+    for (int32_t f = 0; f < frames; ++f) {
+        const auto loc = locate_tracks(mdl, adesc_ofs, adesc, blocks, ani.size(), f);
+        if (!loc.has_value()) break;
+
+        // Reseed every frame: the chain only mentions bones it animates, and leaving the
+        // previous frame's values in place would smear one bone's motion onto another.
+        for (size_t b = 0; b < bones.size(); ++b) {
+            src_pos[b] = godot::Vector3(bones[b].pos[0], bones[b].pos[1], bones[b].pos[2]);
+            src_rot[b] = godot::Quaternion(bones[b].rot[0], bones[b].rot[1],
+                                           bones[b].rot[2], bones[b].rot[3]);
+        }
+
+        const ByteReader& data = loc->external ? ani : mdl;
+        if (!walk_bone_tracks(data, loc->offset, loc->local_frame, bones, &src_pos, &src_rot)) {
+            break;
+        }
+        ++decoded;
+
+        const float t = static_cast<float>(f) / anim.fps;
+        for (size_t b = 0; b < bones.size(); ++b) {
+            ir::IRAnimKeyframe kf;
+            kf.time = t;
+            kf.position = math::source_to_godot(src_pos[b]);
+            kf.rotation = math::source_quat_to_godot(src_rot[b]);
+            anim.bone_tracks[b].keyframes.push_back(kf);
+        }
+    }
+
+    // The duration comes from what was decoded, not from what the header claims. A
+    // sequence whose data runs out part way is a shorter animation, and claiming the full
+    // length would leave the model frozen through frames that were never read.
+    anim.duration = static_cast<float>(decoded > 1 ? decoded - 1 : 0) / anim.fps;
+    if (decoded < frames) {
+        godot::UtilityFunctions::printerr(
+            "[QuebratskParser] '", name.c_str(), "': ", decoded, " of ", frames,
+            " frames decoded; the rest could not be reached");
+    }
+
+    return anim;
+}
+
+/// Lift frame 0 of every animation sequence out of the model, and every frame of the
+/// sequences named in `animate`.
 ///
 /// The chain is: sequence -> blend grid -> animation descriptor -> section -> block ->
 /// a linked list of per-bone tracks. `ani` holds the companion animation-block file and
@@ -232,7 +345,9 @@ void extract_poses(const ByteReader& mdl, const ByteReader& ani,
                    const SourceStudioHeader* header,
                    std::span<const SourceStudioBone> bones,
                    ir::IRSkeletonData& out,
-                   PoseDetail detail) {
+                   PoseDetail detail,
+                   std::span<const std::string> animate = {},
+                   std::vector<ir::IRAnimationData>* animations = nullptr) {
     if (bones.empty()) return;
     if (header->num_local_seq <= 0 || header->local_seq_index <= 0) return;
     if (header->num_local_anim <= 0 || header->local_anim_index <= 0) return;
@@ -282,7 +397,8 @@ void extract_poses(const ByteReader& mdl, const ByteReader& ani,
         if (detail == PoseDetail::NamesOnly) {
             // Seeding the rest transforms and converting them back out is the bulk of the
             // per-sequence cost, and a caller after names alone throws all of it away.
-            if (walk_bone_tracks(track_data, loc->offset, bones, nullptr, nullptr)) {
+            if (walk_bone_tracks(track_data, loc->offset, loc->local_frame,
+                                 bones, nullptr, nullptr)) {
                 out.poses.push_back(std::move(pose));
             }
             continue;
@@ -299,7 +415,8 @@ void extract_poses(const ByteReader& mdl, const ByteReader& ani,
             src_rot.push_back(godot::Quaternion(b.rot[0], b.rot[1], b.rot[2], b.rot[3]));
         }
 
-        const bool any = walk_bone_tracks(track_data, loc->offset, bones, &src_pos, &src_rot);
+        const bool any = walk_bone_tracks(track_data, loc->offset, loc->local_frame,
+                                          bones, &src_pos, &src_rot);
         if (any) {
             pose.positions.reserve(bones.size());
             pose.rotations.reserve(bones.size());
@@ -307,6 +424,17 @@ void extract_poses(const ByteReader& mdl, const ByteReader& ani,
                 pose.positions.push_back(math::source_to_godot(src_pos[b]));
                 pose.rotations.push_back(math::source_quat_to_godot(src_rot[b]));
             }
+
+            // Only sequences the caller asked for: a player model carries 359 of them,
+            // and decoding every frame of all of them would be tens of megabytes of
+            // keyframes for a caller that wanted one walk cycle.
+            if (animations != nullptr && adesc.num_frames > 1 &&
+                std::find(animate.begin(), animate.end(), pose.name) != animate.end()) {
+                animations->push_back(decode_animation(mdl, ani, out, bones, blocks,
+                                                       adesc_ofs, adesc, pose.name,
+                                                       (seq.flags & kSeqLooping) != 0));
+            }
+
             out.poses.push_back(std::move(pose));
         }
     }
@@ -406,7 +534,7 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
             static_cast<size_t>(header->bone_index), static_cast<size_t>(header->num_bones));
         if (!bone_span.empty()) {
             extract_poses(mdl, ByteReader(bundle.ani), header, bone_span,
-                          result.skeleton_data, poses);
+                          result.skeleton_data, poses, bundle.animate, &result.animations);
         }
     }
 
@@ -430,7 +558,11 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
             static_cast<size_t>(inc_hdr[0].num_bones));
         if (inc_bones.empty()) continue;
 
-        extract_poses(inc_mdl, ByteReader(inc.ani), inc_hdr.data(), inc_bones, inc_skel, poses);
+        // Animations borrowed from the shared model are keyed by bone NAME, same as the
+        // poses below, so they need no remapping: a track naming a bone this skeleton does
+        // not have simply resolves to nothing.
+        extract_poses(inc_mdl, ByteReader(inc.ani), inc_hdr.data(), inc_bones, inc_skel,
+                      poses, bundle.animate, &result.animations);
 
         for (const auto& src_pose : inc_skel.poses) {
             ir::IRPose mapped;
