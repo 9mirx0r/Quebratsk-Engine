@@ -122,6 +122,11 @@ in `demo/tests/`. Nothing gets listed here until it works end to end.
 | Source 1 <br/><sub>Half-Life 2, Garry's Mod, CS:S, TF2</sub> | `.vpk` v1 and v2 with side archives, `.gma` | `.mdl` v44 to v49 plus `.vvd` and `.vtx`: geometry, skinning, playable animation, external `.ani`, `includemodel` | `.bsp` (BSP30) | `.vtf` (DXT1/BC1, DXT5/BC3, uncompressed), `.vmt` |
 | Real Virtuality <br/><sub>Arma, DayZ</sub> | `.pbo` | not yet | `.wrp` heightmaps | not yet |
 
+Sounds come out of any mounted game: `.wav` is decoded here, `.mp3` and `.ogg` are handed
+to Godot's own importers untouched. Verified against 9,465 WAV and 338 MP3 files across
+Half-Life 2 and Garry's Mod. Neither game ships an `.ogg`, so that one path is written but
+has not been run against real data.
+
 Not supported: Real Virtuality models (`.p3d`, both MLOD and ODOL) and textures (`.paa`),
 Source 2 (`.vmdl_c`), Bohemia Enfusion (`.pak`, `.xob`), Unity (`.bundle`), and Unreal
 Engine (`.uasset`, `.pak`).
@@ -197,6 +202,8 @@ Shipping now:
 - GoldSrc: archives, maps, models, textures
 - Source 1: VPK and GMA archives, maps, models with skinning, playable animation, VTF/VMT
 - Real Virtuality: PBO archives, WRP terrain
+- Sounds: found, played in the dock, placed as an `AudioStreamPlayer3D` and written back
+  into your project as the audio file they already are
 - The editor plugin, which browses by category and imports without writing code
 
 ### Next
@@ -207,7 +214,6 @@ Finishing what is already half-built, in roughly this order:
 |---|---|
 | Real Virtuality models, `.p3d` MLOD then ODOL | The archive and terrain half already works, so Arma and DayZ are one format away from complete |
 | Real Virtuality textures, `.paa` | DXT decoding is already in the engine, so this is mostly container work |
-| Sounds you can keep | They are found and previewed already; what is missing is placing one in a scene and saving it as a resource |
 | Source 2, `.vmdl_c` and `.vtex_c` (CS2, Half-Life: Alyx) | The VPK v2 reader is already shared with Source 1 |
 
 ### Two engines worth going after next

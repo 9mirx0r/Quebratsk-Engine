@@ -38,9 +38,9 @@ const KINDS := {
 	"png": {"name": "Texture", "icon": "type_texture", "placeable": false},
 	"paa": {"name": "Texture", "icon": "type_texture", "placeable": false},
 	"vmt": {"name": "Material", "icon": "type_material", "placeable": false},
-	"wav": {"name": "Sound", "icon": "type_sound", "placeable": false},
-	"mp3": {"name": "Sound", "icon": "type_sound", "placeable": false},
-	"ogg": {"name": "Sound", "icon": "type_sound", "placeable": false},
+	"wav": {"name": "Sound", "icon": "type_sound", "placeable": true},
+	"mp3": {"name": "Sound", "icon": "type_sound", "placeable": true},
+	"ogg": {"name": "Sound", "icon": "type_sound", "placeable": true},
 }
 
 ## Never listed. These are pieces of another file rather than things in their own right:
@@ -49,6 +49,10 @@ const KINDS := {
 ## "police" returned four rows where the user wanted one, three of which do nothing when
 ## picked.
 const COMPANION_EXTENSIONS := ["vvd", "vtx", "ani", "phy"]
+
+## Sounds, which are placed and saved differently from geometry: there is no mesh to
+## build, and what you want out of one is the audio file itself.
+const SOUND_EXTENSIONS := ["wav", "mp3", "ogg"]
 
 ## What mount_container() can open, for the drag-and-drop filter.
 const _MOUNTABLE := ["vpk", "wad", "gma", "pbo"]
@@ -499,7 +503,7 @@ func _refresh_preview() -> void:
 	if str(kind["name"]) == tr("Texture") or ext_now in ["vtf", "png", "tga", "paa"]:
 		_preview_texture(_selected_uri)
 		return
-	if ext_now == "wav":
+	if SOUND_EXTENSIONS.has(ext_now):
 		_sound_row.visible = true
 		return
 	if not bool(kind["placeable"]):
@@ -546,6 +550,24 @@ func _preview_texture(uri: String) -> bool:
 ## extracted, so the container is parsed here and the samples handed over directly. RIFF
 ## is a chunk list, not a fixed header: the fmt and data chunks are found by walking it,
 ## because real game audio carries LIST and fact chunks in between.
+## Any sound the dock lists, as something Godot can play.
+##
+## Only WAV needs decoding here. Godot ships importers for the other two, and they take the
+## file's own bytes, so handing those straight over is both simpler and lossless.
+func _load_sound(uri: String) -> AudioStream:
+	match uri.get_extension().to_lower():
+		"wav":
+			return _load_wav(uri)
+		"mp3":
+			var mp3 := AudioStreamMP3.new()
+			mp3.data = _vfs.read_file(uri)
+			return mp3 if mp3.data.size() > 0 else null
+		"ogg":
+			var bytes := _vfs.read_file(uri)
+			return AudioStreamOggVorbis.load_from_buffer(bytes) if bytes.size() > 0 else null
+	return null
+
+
 func _load_wav(uri: String) -> AudioStreamWAV:
 	var bytes := _vfs.read_file(uri)
 	if bytes.size() < 44:
@@ -596,7 +618,7 @@ func _on_play_pressed() -> void:
 		_audio.stop()
 		_play_button.text = tr("Play")
 		return
-	var stream := _load_wav(_selected_uri)
+	var stream := _load_sound(_selected_uri)
 	if stream == null:
 		_say(tr("This sound is in a format Quebratsk cannot play yet."), true)
 		return
@@ -1438,6 +1460,15 @@ func _on_save_pressed() -> void:
 	var last := ""
 	for entry in batch:
 		var uri := str(entry)
+
+		if SOUND_EXTENSIONS.has(uri.get_extension().to_lower()):
+			var audio := _save_sound(uri)
+			if not audio.is_empty():
+				written += 1
+				last = audio
+				_remember_recent(uri)
+			continue
+
 		var node := _build_for_scene(uri, batch.size() == 1)
 		if node == null:
 			continue
@@ -1513,6 +1544,8 @@ func _on_add_pressed() -> void:
 		_preview_node = null
 		_preview_frame.visible = false
 		node.position = Vector3.ZERO
+	elif SOUND_EXTENSIONS.has(ext):
+		node = _build_sound_player(_selected_uri)
 	elif ext == "bsp" or ext == "wrp":
 		var mesh: ArrayMesh = _importer.load_mesh(_selected_uri)
 		if mesh != null:
@@ -1595,6 +1628,8 @@ func _add_batch(uris: Array, scene_root: Node) -> void:
 ## multi-selection uses each model's own default.
 func _build_for_scene(uri: String, alone: bool) -> Node3D:
 	var ext := uri.get_extension().to_lower()
+	if SOUND_EXTENSIONS.has(ext):
+		return _build_sound_player(uri)
 	if ext == "bsp" or ext == "wrp":
 		var mesh: ArrayMesh = _importer.load_mesh(uri)
 		if mesh == null:
@@ -1606,6 +1641,38 @@ func _build_for_scene(uri: String, alone: bool) -> Node3D:
 	if not alone:
 		return _importer.load_model(uri, "")
 	return _importer.load_model(uri, _chosen_pose(), _chosen_animations())
+
+
+## A sound as something already positioned in the world.
+##
+## AudioStreamPlayer3D rather than the plain one: a footstep or a door belongs at a place,
+## and a 2D player would have to be swapped out the moment it is attached to anything.
+func _build_sound_player(uri: String) -> Node3D:
+	var stream := _load_sound(uri)
+	if stream == null:
+		return null
+	var player := AudioStreamPlayer3D.new()
+	player.stream = stream
+	player.name = uri.get_file().get_basename().validate_node_name()
+	return player
+
+
+## Write a sound into the project as the file it already is.
+##
+## No decoding and no re-encoding: the bytes go across untouched and Godot imports them with
+## its own importer, which is both lossless and the format the rest of the project expects.
+## Returns the path written, or an empty string.
+func _save_sound(uri: String) -> String:
+	var bytes := _vfs.read_file(uri)
+	if bytes.is_empty():
+		return ""
+	var path := "%s/%s" % [SAVE_DIR, uri.get_file().validate_filename()]
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return ""
+	file.store_buffer(bytes)
+	file.close()
+	return path
 
 
 func _claim_ownership(node: Node, scene_root: Node) -> void:
