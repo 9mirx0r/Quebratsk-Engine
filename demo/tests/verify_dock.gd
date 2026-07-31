@@ -257,6 +257,17 @@ func _check_pick() -> void:
 				   "no AnimationPlayer" if ap == null
 				   else "%s, %.2f s" % [", ".join(ap.get_animation_list()),
 										ap.get_animation(ap.get_animation_list()[0]).get_length()]])
+			# Saving is a second path to the same node, and it used to ignore both the pose
+			# and the animation: it rebuilt the model with neither.
+			var saved: Node3D = _dock._build_for_scene(_dock._selected_uri, true)
+			var saved_ap: AnimationPlayer = null
+			if saved != null:
+				saved_ap = saved.get_node_or_null("AnimationPlayer")
+			print("   the same pick saved as a scene -> %s"
+				% ["no AnimationPlayer" if saved_ap == null
+				   else ", ".join(saved_ap.get_animation_list())])
+			if saved != null:
+				saved.queue_free()
 			_dock._animate_toggle.button_pressed = false
 
 	# A sound is listed but was inert until now: parse the WAV out of the archive and
