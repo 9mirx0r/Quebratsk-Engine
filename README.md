@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.jpg" alt="Quebratsk Engine Subsystem" width="100%" style="border-radius: 8px;"/>
+  <img src="docs/images/logo.jpg" alt="Quebratsk Engine Subsystem" width="100%" style="border-radius: 8px;"/>
 </p>
 
 <h1 align="center">Quebratsk Engine Subsystem</h1>
@@ -25,7 +25,7 @@ New to Godot 4 or GDExtension? Read our step-by-step [Beginner's Guide for Godot
 ## 🎯 Why Quebratsk Engine Exists
 
 <p align="center">
-  <img src="mission_v2.jpg" alt="Why Quebratsk Engine Exists" width="100%" style="border-radius: 8px;"/>
+  <img src="docs/images/mission.jpg" alt="Why Quebratsk Engine Exists" width="100%" style="border-radius: 8px;"/>
 </p>
 
 ### The Problem: Decades of Great Content Trapped in Legacy Formats
@@ -76,7 +76,7 @@ Quebratsk Engine takes the opposite path:
 ## 🗺️ Detailed Technical Roadmap
 
 <p align="center">
-  <img src="roadmap.jpg" alt="Quebratsk Engine Visual Roadmap" width="100%" style="border-radius: 8px;"/>
+  <img src="docs/images/roadmap.jpg" alt="Quebratsk Engine Visual Roadmap" width="100%" style="border-radius: 8px;"/>
 </p>
 
 ### Subsystem Pipeline Architecture

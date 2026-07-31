@@ -1,4 +1,4 @@
-#include "neural_material_translator.h"
+#include "material_heuristics.h"
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <algorithm>
@@ -10,11 +10,11 @@ namespace quebratsk::converters {
 
 using namespace godot;
 
-void NeuralMaterialTranslator::_bind_methods() {
-    ClassDB::bind_static_method("NeuralMaterialTranslator", D_METHOD("translate_material", "material_name", "shader_type", "default_roughness", "default_metallic"), &NeuralMaterialTranslator::translate_material, DEFVAL(0.5f), DEFVAL(0.0f));
+void MaterialHeuristics::_bind_methods() {
+    ClassDB::bind_static_method("MaterialHeuristics", D_METHOD("translate_material", "material_name", "shader_type", "default_roughness", "default_metallic"), &MaterialHeuristics::translate_material, DEFVAL(0.5f), DEFVAL(0.0f));
 }
 
-Ref<StandardMaterial3D> NeuralMaterialTranslator::translate_material(
+Ref<StandardMaterial3D> MaterialHeuristics::translate_material(
     const String& material_name,
     const String& shader_type,
     float default_roughness,

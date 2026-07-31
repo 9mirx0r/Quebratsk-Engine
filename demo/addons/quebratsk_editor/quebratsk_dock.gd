@@ -24,7 +24,11 @@ const MAX_RESULTS := 400
 ## Extension -> what a person would call it, and the editor icon that reads as that thing.
 const KINDS := {
 	"mdl": {"name": "Model", "icon": "MeshInstance3D", "placeable": true},
-	"p3d": {"name": "Model", "icon": "MeshInstance3D", "placeable": true},
+	# Arma and DayZ models are listed so the archive can be explored, but their geometry
+	# is not decoded yet — saying so here beats letting the user press Add and get an
+	# error they cannot act on.
+	"p3d": {"name": "Model", "icon": "MeshInstance3D", "placeable": false,
+		"why": "Arma and DayZ models cannot be imported yet — only their maps and archives."},
 	"bsp": {"name": "Map", "icon": "GridMap", "placeable": true},
 	"wrp": {"name": "Terrain", "icon": "GridMap", "placeable": true},
 	"vtf": {"name": "Texture", "icon": "ImageTexture", "placeable": false},
@@ -699,8 +703,8 @@ func _on_result_selected() -> void:
 		_say("Ready. Press Add to scene.")
 	else:
 		_add_button.disabled = true
-		_say("%ss can be found here, but they are used by models and maps rather than \
-placed on their own." % kind["name"])
+		_say(str(kind.get("why", "%ss can be found here, but they are used by models and \
+maps rather than placed on their own." % kind["name"])))
 
 
 ## Poses live in the .mdl and its .ani, so this skips the vertex data — but it is not

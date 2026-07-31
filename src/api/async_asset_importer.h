@@ -59,6 +59,10 @@ private:
     void _deliver_mesh(int64_t job_id);
     void _deliver_model(int64_t job_id);
 
+    /// Reap finished workers, and block until the running count is under the configured
+    /// cap. Main thread only: called from load_*_async() before spawning.
+    void _reap_finished_workers();
+
     std::vector<std::jthread> _workers;
     std::mutex _pending_mutex;
     std::unordered_map<int64_t, PendingJob> _pending;

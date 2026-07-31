@@ -24,9 +24,6 @@ func _ready() -> void:
 		for game_name in installed_games:
 			print("   - ", game_name, " => ", installed_games[game_name])
 
-	# 3. Test Feature 2: One-Click Performance Presets
-	ImportPresets.apply_preset(ImportPresets.MAX_PERFORMANCE)
-	print("\n⚡ [Import Presets] Applied 'MAX_PERFORMANCE' preset to ProjectSettings.")
 
 	# 4. Test Feature 4: Task Progress Tracker
 	progress_tracker.set_progress("Initializing VFS Memory Layers", 0.5)

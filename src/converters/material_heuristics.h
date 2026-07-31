@@ -9,15 +9,15 @@
 namespace quebratsk::converters {
 
 /// AI / Heuristic Material Translator converting legacy VMT, RVMAT & WAD3 materials into modern PBR StandardMaterial3D
-class NeuralMaterialTranslator : public godot::Object {
-    GDCLASS(NeuralMaterialTranslator, godot::Object)
+class MaterialHeuristics : public godot::Object {
+    GDCLASS(MaterialHeuristics, godot::Object)
 
 protected:
     static void _bind_methods();
 
 public:
-    NeuralMaterialTranslator() = default;
-    ~NeuralMaterialTranslator() override = default;
+    MaterialHeuristics() = default;
+    ~MaterialHeuristics() override = default;
 
     /// Analyzes legacy material parameters and generates PBR StandardMaterial3D with Roughness/Metallic/AO
     static godot::Ref<godot::StandardMaterial3D> translate_material(

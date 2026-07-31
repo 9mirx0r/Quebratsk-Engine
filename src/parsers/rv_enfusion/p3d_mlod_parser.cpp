@@ -19,14 +19,16 @@ std::expected<ParsedP3DModel, P3DParseError> P3DMLODParser::parse(
         return std::unexpected(P3DParseError::InvalidHeader);
     }
 
-    ParsedP3DModel result;
-    result.mesh_data.source_engine = ir::SourceEngine::RealVirtuality;
-    result.mesh_data.name = "BohemiaModel";
-
-    result.skeleton_data.source_engine = ir::SourceEngine::RealVirtuality;
-    result.skeleton_data.name = "BohemiaModel_Skeleton";
-
-    return result;
+    // NOT IMPLEMENTED. Neither MLOD nor ODOL geometry is read.
+    //
+    // This used to return a *successful* ParsedP3DModel named "BohemiaModel" carrying
+    // zero surfaces and zero bones, so every caller saw a valid parse of an empty model
+    // and had no way to tell that nothing had been decoded. It also accepted ODOL, which
+    // is a different container entirely. Report the truth instead: the caller can then
+    // say so, and the format tables can stop claiming Arma and DayZ models import.
+    (void)is_mlod;
+    (void)is_odol;
+    return std::unexpected(P3DParseError::UnsupportedVersion);
 }
 
 } // namespace quebratsk::parsers::rv_enfusion
