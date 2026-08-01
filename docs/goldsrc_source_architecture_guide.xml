@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<architecture_guide project="Quebratsk Engine" version="2.0" target_engine="Godot 4" cpp_standard="C++20">
+  <meta>
+    <title>Guía Estructural de Archivos y Arquitectura de Dependencias en Motores GoldSrc y Source para la Ingesta Directa en Quebratsk Engine</title>
+    <author>Quebratsk Engine Core Architecture Team</author>
+    <target_subsystem>VFSManager &amp; UnifiedAssetImporter</target_subsystem>
+  </meta>
+
+  <!-- SECCIÓN 1: VFS Y SEARCH PATHS -->
+  <section id="vfs_and_search_paths">
+    <title>Arquitectura del Sistema de Archivos Virtuales y Cascada de Búsqueda (Search Paths)</title>
+    <description>
+      La localización e ingesta de activos en los motores GoldSrc y Source no se realiza mediante rutas absolutas en el sistema de archivos del sistema operativo, sino a través de un sistema de archivos virtual (VFS, Virtual File System) estructurado sobre prioridades de búsqueda en cascada (Search Paths). Entender esta arquitectura resulta indispensable para que el subsistema Quebratsk Engine —desarrollado en C++20 para Godot 4 mediante GDExtension— pueda replicar exactamente el comportamiento de carga, sobreescritura y resolución de dependencias sin requerir la conversión manual de activos en herramientas externas.
+    </description>
+
+    <subsection id="goldsrc_steampipe_vfs">
+      <title>Estructura de Búsqueda en GoldSrc (SteamPipe VFS)</title>
+      <details>
+        A raíz de la actualización SteamPipe en 2013 y las iteraciones del 25º aniversario de Half-Life (HL25), el motor GoldSrc migró desde contenedores monolíticos .gcf hacia una jerarquía montada directamente sobre el sistema de archivos del sistema operativo. La pila de búsqueda evalúa los directorios en un orden descendente y rígido; el primer archivo localizado que coincida con la ruta relativa solicitada interrumpe la búsqueda y es cargado en memoria.
+      </details>
+
+      <search_path_priority_table>
+        <entry priority="1" id="GAMEDOWNLOAD" path="_downloads/">Almacena activos personalizados descargados dinámicamente desde servidores multijugador, previniendo la alteración de los archivos base del juego.</entry>
+        <entry priority="2" id="GAME_ADDON" path="addon/">Directorio destinado a modificaciones del usuario y paquetes de contenido personalizado instalados localmente.</entry>
+        <entry priority="3" id="GAME_HD" path="hd/">Contiene los modelos y texturas de alta definición (High Definition Content Pack).</entry>
+        <entry priority="4" id="GAME" path="&lt;mod&gt;/">Directorio activo de la modificación o juego cargado (por ejemplo, cstrike/, czero/, valve/).</entry>
+        <entry priority="5" id="GAMELOCALIZATION" path="&lt;mod&gt;_&lt;idioma&gt;/">Recopila archivos de localización de idioma (traducciones VGUI2 y audios regionalizados).</entry>
+        <entry priority="6" id="GAME_FALLBACK" path="&lt;fallback_dir&gt;/">Directorio secundario de reserva declarado en liblist.gam (por ejemplo, czero retrocede hacia cstrike).</entry>
+        <entry priority="7" id="DEFAULTGAME" path="valve_hd/ / valve/">Directorio base por defecto del motor Half-Life original.</entry>
+        <entry priority="8" id="BASE" path="valve/">Directorio raíz donde reside la instalación principal de Half-Life.</entry>
+        <entry priority="9" id="PLATFORM" path="platform/">Recursos de interfaz gráfica VGUI (fuentes, diálogos de la plataforma Steam).</entry>
+      </search_path_priority_table>
+
+      <manifest_file name="liblist.gam">
+        El archivo de manifiesto principal en GoldSrc es liblist.gam, ubicado en la raíz del mod. Este archivo en texto plano especifica el ejecutable de la biblioteca dinámica (gamedll), la naturaleza del juego (monojugador o multijugador) y las claves de retroceso fallback_dir y gamedir. Cuando el motor requiere cargar un modelo en Counter-Strike: Condition Zero (czero/), el VFS consulta primero czero/, luego la carpeta de reserva cstrike/ definida en liblist.gam, y finalmente valve/.
+      </manifest_file>
+    </subsection>
+
+    <subsection id="source_gameinfo_vfs">
+      <title>Estructura de Búsqueda en Source (GameInfo.txt VFS)</title>
+      <details>
+        En el motor Source, el control del VFS se centraliza en el archivo gameinfo.txt, situado en la raíz del directorio del juego (por ejemplo, hl2/gameinfo.txt o cstrike/gameinfo.txt). Los archivos se leen directamente desde paquetes empaquetados VPK (Valve Pak) o desde el disco no empaquetado mediante la clave SearchPaths:
+      </details>
+      <vfs_mechanisms>
+        <mechanism type="vpk_containers">Archivos divididos en un paquete de índice (_dir.vpk) que almacena las cabeceras e índices, y múltiples archivos de datos paginados (_000.vpk, _001.vpk).</mechanism>
+        <mechanism type="unpacked_directories">Carpetas en disco que sobreescriben cualquier archivo indexado en los paquetes VPK si poseen una prioridad superior en SearchPaths.</mechanism>
+        <mechanism type="shared_engine_content">Montaje en paralelo de los paquetes VPK base de Half-Life 2 (hl2_textures.vpk, hl2_sound_vo_english.vpk, hl2_misc.vpk) bajo el ID de búsqueda GAME.</mechanism>
+      </vfs_mechanisms>
+    </subsection>
+  </section>
+
+  <!-- SECCIÓN 2: MATRIZ DE LOCALIZACIÓN DE RECURSOS -->
+  <section id="asset_location_matrix">
+    <title>Matriz de Localización de Recursos por Juego y Tipo de Activo</title>
+    <description>
+      Para facilitar el mapeo de memoria y la ingesta mediante llamadas sin copia de memoria (zero-copy mmap) en Quebratsk Engine, la siguiente matriz consolida la ubicación física, extensiones y tipos de datos en la familia de títulos basados en GoldSrc y Source.
+    </description>
+
+    <matrix>
+      <game name="Half-Life 1">
+        <asset_type category="Modelos 3D" path="valve/models/" extensions=".mdl">Studio Model v10 (Contiene esqueleto, geometría, animaciones y texturas).</asset_type>
+        <asset_type category="Sonidos de Armas/Efectos" path="valve/sound/" extensions=".wav">Audio PCM sin comprimir a 8/16-bit, mono o estéreo (22050 Hz / 44100 Hz).</asset_type>
+        <asset_type category="Música de Fondo" path="valve/media/" extensions=".mp3">Audios ambientales o de eventos narrativos.</asset_type>
+        <asset_type category="Geometría de Niveles" path="valve/maps/" extensions=".bsp">BSP30 (Árboles BSP, PVS, mapas de luz e iluminación).</asset_type>
+        <asset_type category="Atlas de Texturas" path="valve/" extensions=".wad">WAD3 (Contenedor de texturas de mapa mipmapped).</asset_type>
+        <asset_type category="Sprites / Partículas" path="valve/sprites/" extensions=".spr">Imágenes indexadas 2D/3D con animación por cuadros.</asset_type>
+        <asset_type category="Cinematográficas" path="valve/media/" extensions=".bik, .webm">Video codificado en Bink Video o WebM (HL25).</asset_type>
+      </game>
+
+      <game name="CS 1.6">
+        <asset_type category="Modelos de Armas y Personajes" path="cstrike/models/" extensions=".mdl">Modelos de vista (v_), tercera persona (p_) y mundo (w_).</asset_type>
+        <asset_type category="Efectos de Sonido" path="cstrike/sound/weapons/" extensions=".wav">Sonidos de disparo, recarga, caída de casquillos y pasos.</asset_type>
+        <asset_type category="Interfaz y HUD" path="cstrike/sprites/" extensions=".spr, .txt">Miras, iconos de armas en VGUI y medidores de estado.</asset_type>
+        <asset_type category="Manifiesto de Configuración" path="cstrike/" extensions="liblist.gam">Parámetros del mod, enlaces DLL y directorios de reserva.</asset_type>
+      </game>
+
+      <game name="CZ &amp; CZ:DS">
+        <asset_type category="Modelos de Alta Definición" path="czero/models/" extensions=".mdl">Modelos con mayor densidad poligonal y texturas detalladas.</asset_type>
+        <asset_type category="Escenarios de Campaña" path="czero_hd/maps/" extensions=".bsp">Mapas tácticos de la campaña Deleted Scenes.</asset_type>
+        <asset_type category="Guiones de Misiones" path="czero/events/, czero/" extensions=".lst, .rc">Secuencias cinematográficas y controladores de IA.</asset_type>
+      </game>
+
+      <game name="Half-Life 2">
+        <asset_type category="Modelos y Mallas 3D" path="hl2/models/" extensions=".mdl, .vvd, .vtx, .phy">Formato modular Source (Geometría, LODs y colisión física Havok).</asset_type>
+        <asset_type category="Materiales y Texturas" path="hl2/materials/" extensions=".vmt, .vtf">Valve Material Text (.vmt) y Valve Texture Format (.vtf).</asset_type>
+        <asset_type category="Manifiestos de Audio" path="hl2/scripts/" extensions="game_sounds_*.txt">Mapeo de claves de sonido con archivos físicos y volumen.</asset_type>
+        <asset_type category="Guiones de Armas" path="hl2/scripts/" extensions="weapon_*.txt">Configuración de daño, cadencia, modelos asignados e iconos.</asset_type>
+        <asset_type category="Mapas de Niveles" path="hl2/maps/" extensions=".bsp">Formato BSP v19-21 con paquete ZIP Pakfile embebido.</asset_type>
+      </game>
+
+      <game name="CS: Source">
+        <asset_type category="Archivo Unificado VPK" path="cstrike/" extensions="cstrike_pak.vpk.vpk">Contenedor VPK que engloba modelos, materiales y sonidos.</asset_type>
+        <asset_type category="Modelos de Armas" path="cstrike/models/weapons/" extensions=".mdl, .vvd, .vtx">Modelos armados de vista interna y caída en mapa.</asset_type>
+        <asset_type category="Materiales de Texturas" path="cstrike/materials/models/" extensions=".vmt, .vtf">Shaders VMT con canal Alfa y mapas especulares.</asset_type>
+      </game>
+    </matrix>
+  </section>
+
+  <!-- SECCIÓN 3: ANATOMÍA DE ARCHIVOS Y CADENA DE DEPENDENCIAS -->
+  <section id="file_anatomy_and_dependencies">
+    <title>Anatomía de Archivos y Cadena de Dependencias Subyacentes</title>
+    <description>
+      Un problema recurrente al realizar la ingesta de modelos 3D de Valve en motores modernos radica en la desarticulación de dependencias: importar un archivo .mdl aislado resulta habitualmente en la pérdida de animaciones, efectos sonoros (recargas, disparos) o texturas. La resolución completa requiere comprender la arquitectura de archivos y las dependencias explícitas e implícitas que los vinculan.
+    </description>
+
+    <subsection id="goldsrc_weapon_triptych">
+      <title>El Tríptico de Modelos de Armas en GoldSrc (v_, p_, w_)</title>
+      <details>
+        Para cada arma disponible en el juego (por ejemplo, la AK-47), el motor GoldSrc utiliza tres archivos de modelo .mdl independientes con funciones específicas en la simulación:
+      </details>
+      <models_triptych>
+        <model_type prefix="v_" name="View Model" file="v_ak47.mdl">Modelo renderizado en primera persona. Contiene la geometría del arma de mayor densidad poligonal, los brazos del personaje, las animaciones detalladas de despliegue, disparo, recarga e inspección, así como los eventos de sonido embebidos y destellos de boquilla (muzzleflash).</model_type>
+        <model_type prefix="p_" name="Player Model" file="p_ak47.mdl">Modelo en tercera persona acoplado al esqueleto del personaje multijugador (player.mdl). Posee animaciones simplificadas y geometría optimizada para la representación visual ante otros jugadores.</model_type>
+        <model_type prefix="w_" name="World Model" file="w_ak47.mdl">Modelo del activo depositado en el mapa cuando es soltado o aparece como pickup. Incluye un volumen de colisión de caja (bounding box) simple y la animación básica de flotación o reposo en el suelo.</model_type>
+      </models_triptych>
+      <dependency_chain>
+        La relación entre estos elementos y sus recursos secundarios se articula desde el manifiesto de la entidad de arma. La entidad consulta los tres modelos .mdl; el modelo v_ak47.mdl evalúa sus secuencias de animación, las cuales contienen eventos que disparan de forma directa audios en formato WAV o referencias a sprites de destello, mientras que las mallas poligonales leen sus materiales desde archivos WAD externos o texturas embebidas.
+      </dependency_chain>
+    </subsection>
+
+    <subsection id="goldsrc_animation_events">
+      <title>Eventos de Animación Embebidos en GoldSrc (mstudioevent_t y Evento 5004)</title>
+      <details>
+        Un modelo .mdl de GoldSrc (versión 10) es un contenedor binario que incluye la estructura del esqueleto, las mallas poligonales, las texturas indexadas de 8 bits y los descriptores de secuencias de animación (mstudioseqdesc_t).
+        Las animaciones de recarga, amartillado y desfundado no dependen de código en el motor para emitir sonido. En su lugar, el binario del modelo contiene una matriz de estructuras de eventos mstudioevent_t dentro del propio encabezado del archivo .mdl. La estructura binaria define los siguientes campos:
+      </details>
+      <struct_fields name="mstudioevent_t">
+        <field name="frame" type="int32_t">Entero de 32 bits que determina el cuadro exacto de la animación donde se dispara el evento.</field>
+        <field name="event" type="int32_t">Identificador entero del evento.</field>
+        <field name="type" type="int32_t">Tipo de evento de animación.</field>
+        <field name="options" type="char[64]">Cadena de texto de 64 caracteres que contiene los parámetros del evento, principalmente la ruta relativa del archivo de sonido.</field>
+      </struct_fields>
+      <event_execution>
+        Cuando la secuencia de animación alcanza el cuadro frame, el motor evalúa el entero event:
+        <event_id code="5004" name="Client Sound">Instruye al sistema de audio (Miles Sound System) para ejecutar de inmediato el archivo de sonido especificado en el parámetro options. Por ejemplo, un evento con valor { event 5004 12 "weapons/ak47_clipout.wav" } indica que en el cuadro 12 debe reproducirse dicho archivo .wav desde el directorio sound/.</event_id>
+        <event_id code="5001" name="Muzzle Flash">Activa la emisión de un sprite de destello en el punto de acople (attachment point) del cañón del arma.</event_id>
+        <event_id code="5002" name="Eject Brass">Expulsa un modelo de casquillo en el punto de acople de la recámara.</event_id>
+        Por lo tanto, procesar v_ak47.mdl sin analizar los descriptores de secuencia ni extraer los archivos .wav referenciados en la cadena options del evento 5004 dejará al modelo desprovisto de todo su comportamiento sonoro.
+      </event_execution>
+    </subsection>
+
+    <subsection id="source_dependency_chain">
+      <title>Cadena de Dependencias en el Motor Source (HL2, CS:S)</title>
+      <details>
+        El motor Source desacopló los modelos en múltiples archivos binarios por razones de paginación de memoria y rendimiento de renderizado. Un modelo de Source se compone de:
+      </details>
+      <file_components>
+        <component ext=".mdl">Contiene la estructura de huesos, los nombres de los materiales, la definición de secuencias de animación y las referencias a archivos .ani.</component>
+        <component ext=".vvd" name="Valve Vertex Data">Almacena los vértices, vectores normales, coordenadas UV de textura y pesos de asignación de huesos (bone weights).</component>
+        <component ext=".vtx" name="Valve Triangle Index">Define las tiras de triángulos optimizadas para los procesadores gráficos según el nivel de detalle (LOD).</component>
+        <component ext=".phy" name="Physics Mesh">Almacena las mallas de colisión rígida procesadas por el motor físico Havok.</component>
+        <component ext=".vmt" name="Valve Material Text">Archivo de texto que especifica el shader a utilizar (por ejemplo, VertexLitGeneric), los parámetros especulares, mapas de normales ($bumpmap) y apunta a la textura difusa .vtf.</component>
+        <component ext=".vtf" name="Valve Texture Format">Contiene los datos rasterizados de imagen comprimidos en formatos DXT1, DXT5 o RGBA8888.</component>
+      </file_components>
+    </subsection>
+
+    <subsection id="source_soundscripts">
+      <title>Resolución de Audio en Source mediante Soundscripts</title>
+      <details>
+        A diferencia de GoldSrc, los eventos de animación dentro del .mdl de Source no hacen referencia directa a rutas de archivos .wav. En su lugar, invocan una clave de evento de sonido denominada Soundscript (por ejemplo, AE_CL_PLAYSOUND con la clave "Weapon_AK47.Reload"). La resolución completa sigue una trayectoria en tres pasos:
+      </details>
+      <resolution_steps>
+        <step number="1">El archivo scripts/game_sounds_manifest.txt registra e incluye los manifiestos individuales, como scripts/game_sounds_weapons.txt.</step>
+        <step number="2">El manifiesto asigna la clave "Weapon_AK47.Reload" a parámetros específicos: la clave wave apunta a la ruta física del archivo .wav o .mp3 dentro del VFS (sound/weapons/ak47/ak47_clipout.wav), mientras que las claves pitch y soundlevel controlan la modulación de tono y la atenuación espacial en decibelios.</step>
+        <step number="3">El motor localiza y reproduce el activo de audio correspondiente.</step>
+      </resolution_steps>
+    </subsection>
+  </section>
+
+  <!-- SECCIÓN 4: DISEÑO DEL SUBSISTEMA DE INGESTA PARA QUEBRATSK ENGINE -->
+  <section id="quebratsk_subsystem_design">
+    <title>Diseño del Subsistema de Granularidad y Resolución Automática para Quebratsk Engine</title>
+    <description>
+      Para resolver de manera nativa la ingesta de estos activos dentro de Quebratsk Engine (desarrollado como una GDExtension en C++20 para Godot 4), es necesario implementar un módulo de extracción de dependencias automatizado. Quebratsk Engine utiliza llamadas de mapeo de memoria sin copia (mmap) para leer archivos .pak, .vpk, .wad y .bsp a máxima velocidad.
+    </description>
+
+    <subsection id="coordinate_transform_and_scale">
+      <title>Transformación de Coordenadas y Escala</title>
+      <details>
+        GoldSrc y Source utilizan un sistema de coordenadas diestro (Right-Handed) con eje Z vertical (Z-Up), donde X representa el frente y Y representa la izquierda. Godot 4 utiliza un sistema de coordenadas diestro con eje Y vertical (Y-Up), donde X es la derecha, Y es arriba y Z es hacia atrás.
+        Para transformar la geometría y las jerarquías de huesos desde el espacio del motor Valve al espacio nativo de Godot 4, debe aplicarse la siguiente matriz de transformación T_{Valve -> Godot} junto con el factor de conversión de unidades de escala s (donde 1 Hammer Unit equivale a 0.0254 metros):
+      </details>
+      <math_transformation>
+        <formula>P_Godot = T_{Valve -> Godot} * P_Valve * s</formula>
+        <matrix_definition>
+          |  0  -1   0 |
+          |  0   0   1 |
+          | -1   0   0 |
+        </matrix_definition>
+        <scale_factor unit="Hammer Units to Meters">s = 0.0254</scale_factor>
+        <explanation>
+          Esta matriz invierte los ejes de manera ortogonal y ajusta la escala para que los nodos Skeleton3D y ArrayMesh de Godot coincidan exactamente con el motor de física.
+        </explanation>
+      </math_transformation>
+    </subsection>
+
+    <subsection id="parsing_algorithm">
+      <title>Algoritmo de Parseo y Grafo de Dependencias</title>
+      <details>
+        El proceso de carga en C++20 debe estructurarse mediante un flujo algorítmico secuencial:
+      </details>
+      <algorithm_steps>
+        <step number="1" name="Montaje del VFS">Inicializar las rutas de búsqueda (Search Paths) leyendo liblist.gam o gameinfo.txt para establecer el orden de prioridad de los directorios.</step>
+        <step number="2" name="Mapeo de Memoria">Ejecutar mmap sobre el archivo .mdl principal para acceder a las cabeceras binarias sin realizar operaciones de copia en el heap.</step>
+        <step number="3" name="Inspección de Secuencias de Animación">Iterar sobre el arreglo de estructuras mstudioseqdesc_t e inspeccionar sus mstudioevent_t.</step>
+        <step number="4" name="Extracción de Eventos 5004">Si el ID del evento es 5004, leer la cadena options, anteponer el prefijo sound/ y agregar el archivo .wav resultante al grafo de dependencias de audio.</step>
+        <step number="5" name="Vinculación de Materiales">Leer los nombres de las texturas embebidas o consultar los archivos .wad/.vmt referenciados para instanciar objetos StandardMaterial3D en Godot.</step>
+        <step number="6" name="Construcción del Árbol de Nodos">Generar un nodo raíz Node3D en Godot 4 conteniendo un Skeleton3D, un ArrayMesh con sus correspondientes superficies, un AnimationPlayer con pistas de audio sincronizadas y nodos AudioStreamPlayer3D.</step>
+      </algorithm_steps>
+    </subsection>
+
+    <subsection id="cpp20_pseudocode">
+      <title>Pseudocódigo de Ingesta en C++20 para Quebratsk Engine</title>
+      <code_block language="cpp">
+<![CDATA[
+#include <cstdint>
+#include <cstring>
+#include <string>
+#include <vector>
+
+#pragma pack(push, 1)
+struct studiohdr_t {
+    char id[4];             // FourCC "IDST"
+    int32_t version;        // Versión 10 en GoldSrc
+    char name[64];          // Nombre interno del modelo
+    int32_t length;         // Tamaño del archivo binario
+    float eyeposition[3];    
+    float min[3];            
+    float max[3];            
+    float bbmin[3];          
+    float bbmax[3];          
+    int32_t flags;          
+    int32_t numbones;       
+    int32_t boneindex;      
+    int32_t numseq;         // Número de secuencias de animación
+    int32_t seqindex;       // Desplazamiento al arreglo mstudioseqdesc_t
+};
+
+struct mstudioseqdesc_t {
+    char label[32];         // Nombre de la secuencia (ej. "reload")
+    float fps;              // Cuadros por segundo
+    int32_t flags;          
+    int32_t numevents;      // Cantidad de eventos
+    int32_t eventindex;     // Desplazamiento al arreglo mstudioevent_t
+    int32_t numblends;
+    int32_t animindex;
+};
+
+struct mstudioevent_t {
+    int32_t frame;          // Cuadro exacto de ejecución
+    int32_t event;          // ID del evento (5004 = Sonido de cliente)
+    int32_t type;
+    char options[64];       // Ruta relativa del archivo de audio WAV
+};
+#pragma pack(pop)
+
+struct ModelDependencyGraph {
+    std::string model_path;
+    std::vector<std::string> sound_dependencies;
+    std::vector<std::string> texture_dependencies;
+};
+
+ModelDependencyGraph ParseGoldSrcDependencies(const uint8_t* buffer, size_t size) {
+    ModelDependencyGraph graph;
+    if (size < sizeof(studiohdr_t)) return graph;
+
+    const auto* header = reinterpret_cast<const studiohdr_t*>(buffer);
+
+    if (std::memcmp(header->id, "IDST", 4) != 0 || header->version != 10) {
+        return graph;
+    }
+
+    const auto* sequences = reinterpret_cast<const mstudioseqdesc_t*>(buffer + header->seqindex);
+
+    for (int i = 0; i < header->numseq; ++i) {
+        const auto& seq = sequences[i];
+        if (seq.numevents == 0) continue;
+
+        const auto* events = reinterpret_cast<const mstudioevent_t*>(buffer + seq.eventindex);
+
+        for (int j = 0; j < seq.numevents; ++j) {
+            const auto& evt = events[j];
+            
+            // Evento 5004: Reproducción de sonido de cliente en GoldSrc
+            if (evt.event == 5004) {
+                std::string sound_path(evt.options);
+                if (!sound_path.empty()) {
+                    graph.sound_dependencies.push_back("sound/" + sound_path);
+                }
+            }
+        }
+    }
+
+    return graph;
+}
+]]>
+      </code_block>
+    </subsection>
+  </section>
+
+  <!-- SECCIÓN 5: CONCLUSIONES Y RECOMENDACIONES TÉCNICAS -->
+  <section id="conclusions_and_technical_recommendations">
+    <title>Conclusiones y Recomendaciones Técnicas</title>
+    <description>
+      El desarrollo del subsistema Quebratsk Engine para Godot 4 exige abordar la carga de recursos de los motores de Valve desde la perspectiva de sus sistemas de archivos virtuales y la estructura binaria de sus activos. La pérdida de dependencias al importar modelos se resuelve de forma sistemática al implementar los siguientes principios en la arquitectura del software:
+    </description>
+
+    <recommendations>
+      <recommendation item="1" title="Implementación del VFS de SteamPipe">
+        Quebratsk Engine debe procesar en primer lugar liblist.gam (en GoldSrc) o gameinfo.txt (en Source) para construir la pila de búsqueda ordenada de directorios. Esto garantiza que los activos de reserva (fallbacks) almacenados en carpetas base como cstrike/ o valve/ se resuelvan correctamente.
+      </recommendation>
+      <recommendation item="2" title="Extracción de Eventos 5004">
+        El parser C++20 debe inspeccionar la estructura mstudioevent_t de cada secuencia de animación dentro del archivo .mdl. Los nombres de archivos de audio extraídos de la cadena options del evento 5004 deben ser añadidos al grafo de dependencias para su carga automatizada en nodos AudioStreamPlayer3D.
+      </recommendation>
+      <recommendation item="3" title="Transformación Vectorial Homogénea">
+        Toda la geometría y jerarquías de huesos deben multiplicarse por la matriz de transformación T_{Valve -> Godot} y escalarse por s = 0.0254 durante la fase de mapeo con mmap. Esto asegura que la orientación y las dimensiones de las mallas sean totalmente compatibles con el motor de física de Godot 4.
+      </recommendation>
+      <recommendation item="4" title="Sincronización en AnimationPlayer">
+        Al instanciar las secuencias de animación en Godot 4, el subsistema debe calcular la estampa de tiempo exacta de cada evento de sonido mediante la fórmula t = frame / fps, insertando claves de reproducción de audio en la pista de animación correspondiente de forma transparente.
+      </recommendation>
+    </recommendations>
+  </section>
+</architecture_guide>
