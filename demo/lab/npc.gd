@@ -10,6 +10,7 @@ extends CharacterBody3D
 const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd")
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 const ModelPreset := preload("res://addons/quebratsk_editor/model_preset.gd")
+const SoundCatalogue := preload("res://addons/quebratsk_editor/sound_catalogue.gd")
 
 const SPEED := 3.0
 const GRAVITY := 20.32          # sv_gravity 800, in metres
@@ -38,6 +39,14 @@ var _cooldown := 0.0
 var _dead := false
 var _airborne := 0.0
 
+## Footsteps, on the same clock the player uses: 400 milliseconds walking, 300 running. An
+## enemy you can hear coming is a different enemy from one that arrives in silence, and this
+## is most of what makes a level feel occupied.
+var _step_audio: AudioStreamPlayer3D
+var _steps: Array[AudioStream] = []
+var _next_step := 0.0
+var _last_step := -1
+
 
 func setup(lab: Node3D, target: CharacterBody3D, preset: Dictionary,
 		weapon: Dictionary) -> void:
@@ -60,6 +69,13 @@ func setup(lab: Node3D, target: CharacterBody3D, preset: Dictionary,
 
 	if not weapon.is_empty():
 		_hold(weapon)
+
+	_step_audio = AudioStreamPlayer3D.new()
+	_step_audio.volume_db = -11.0
+	_step_audio.unit_size = 6.0
+	add_child(_step_audio)
+	if lab.has_method("track_sound"):
+		lab.track_sound(_step_audio)
 
 	# Stagger the first shot. Four enemies firing in unison from the instant the level loads
 	# killed the first playtest in under three seconds, before anyone had read the HUD.
@@ -160,7 +176,54 @@ func _physics_process(delta: float) -> void:
 		_fire()
 
 	_play(_stance(walking))
+	_step_sound()
 	move_and_slide()
+
+
+## The same rule as the player's: a step every 400 milliseconds at a walk, and what it sounds
+## like comes from the texture underfoot.
+func _step_sound() -> void:
+	if _dead or not is_on_floor() or _step_audio == null:
+		return
+	var ground := Vector2(velocity.x, velocity.z).length()
+	if ground < 1.0:
+		return
+
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _next_step:
+		return
+	_next_step = now + 0.40
+
+	if _steps.is_empty():
+		_load_steps()
+	if _steps.is_empty():
+		return
+	var pick := randi() % _steps.size()
+	if _steps.size() > 1 and pick == _last_step:
+		pick = (pick + 1) % _steps.size()
+	_last_step = pick
+	_step_audio.stream = _steps[pick]
+	_step_audio.play()
+
+
+## Concrete, without asking what is underfoot.
+##
+## The player reads the texture below it and picks a surface from that; an enemy does not,
+## because the answer costs a ray and a table lookup per step per body and the difference
+## between an enemy walking on tile and on concrete is not what anybody is listening for.
+## Named rather than left to be noticed.
+func _load_steps() -> void:
+	if _lab == null or _lab.vfs == null:
+		return
+	for named in SoundCatalogue.footsteps("step"):
+		var hit: Dictionary = _lab.vfs.find_files("sound/" + str(named),
+			PackedStringArray(["wav"]), PackedStringArray(), PackedStringArray(), 1)
+		var files: PackedStringArray = hit["files"]
+		if files.is_empty():
+			continue
+		var stream: AudioStream = SoundLoader.load_sound(_lab.vfs, str(files[0]))
+		if stream != null:
+			_steps.append(stream)
 
 
 func _stance(walking: bool) -> String:

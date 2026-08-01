@@ -173,6 +173,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The hostages exist.** cs_siege declares four `hostage_entity` and a `func_hostage_rescue`,
+  and no import had ever placed one — the level's own reason to exist was missing from it. They
+  stand where the map puts them, facing where it points them, playing their idle: **four, all
+  animating, soles 2 cm off the floor**.
+
+  They stand and look about, and nothing more. Following you when used is the rest of the
+  entity and belongs with whatever plays a round.
+
+- **Enemies can be heard coming.** Footsteps on the same clock as the player's, through the
+  occlusion bus, so somebody rounding a corner in the next room is a sound before it is a
+  sight. Concrete regardless of what is underfoot: reading the texture costs a ray per step
+  per body, and nobody is listening for whether an enemy is walking on tile.
+
+### Known gaps
+
+- **`.spr` is not decoded.** GoldSrc sprites are their own format and the reader does not
+  handle one: `sprites/bloodspray.spr` comes back undecodable, so blood falls back to a plain
+  red quad. It matters well beyond blood — de_aztec alone places **72 `env_sprite` and 4
+  `env_glow`**, none of which can exist until this is read.
+
+- **Skin families past the first are not built.** A model can carry several complete sets of
+  textures and an entity picks one with `skin`. All four of cs_siege's hostages declare
+  `skin 1`, so they are wearing the wrong clothes.
+
 - **Blood, and holes in the wall.** A GoldSrc decal is an ordinary texture in a `.wad` whose
   name begins with a brace — the brace meaning the palette's last colour is transparent — and
   the engine keeps a table of them, picking one at random per hit.
