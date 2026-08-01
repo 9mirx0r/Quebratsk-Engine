@@ -17,6 +17,7 @@ extends Node3D
 const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd")
+const WeaponManifest := preload("res://addons/quebratsk_editor/weapon_manifest.gd")
 const PlayerScript := preload("res://sandbox/player.gd")
 const NpcScript := preload("res://sandbox/npc.gd")
 
@@ -882,6 +883,9 @@ func _fire_sequence(uri: String) -> String:
 
 ## The same weapon as seen by the other model classes, best first.
 ##
+## Asks the manifest before guessing. It knows that w_ak47 and v_ak47 are one weapon because
+## the game says so, where the name-swapping below only supposes it from the spelling.
+##
 ## Resolved against the asking model rather than searched blindly, so a Counter-Strike world
 ## model finds the Counter-Strike view model and not a same-named one from another game.
 func _same_weapon(uri: String) -> PackedStringArray:
@@ -895,6 +899,14 @@ func _same_weapon(uri: String) -> PackedStringArray:
 		return PackedStringArray()
 
 	var out := PackedStringArray()
+
+	# What the game pairs it with, when it is a weapon the game knows.
+	var declared: String = WeaponManifest.view_model(uri)
+	if not declared.is_empty() and declared.get_file() != file:
+		var found: String = vfs.resolve_reference("/" + declared, uri)
+		if not found.is_empty():
+			out.append(found)
+
 	# The view model first: it is the one with the firing animation and its events. In GoldSrc
 	# the held model (p_) carries none either, for the same reason a w_ does not.
 	for prefix in ["v_", "c_", "w_", "p_"]:
@@ -914,6 +926,18 @@ func _same_weapon(uri: String) -> PackedStringArray:
 ## writes a soundscript entry, "Weapon_AK47.Single", which is not a file at all. Both are
 ## resolved before they arrive here.
 func _weapon_sound(uri: String, fire: String) -> AudioStream:
+	# The game's own answer first. A weapon's firing sound is not a property of its model at
+	# all in Counter-Strike, it is played by game code, so no amount of reading the file can
+	# recover it; the manifest carries what the code says. Everything below is what to do when
+	# the weapon is not one the manifest knows, such as a Half-Life or workshop model.
+	for declared in WeaponManifest.fire_sounds(uri):
+		var found: String = vfs.resolve_reference("/" + str(declared), uri)
+		if found.is_empty():
+			continue
+		var known := SoundLoader.load_sound(vfs, found)
+		if known != null:
+			return known
+
 	var named: PackedStringArray = importer.list_sounds(uri, fire)
 	if named.is_empty():
 		named = importer.list_sounds(uri)   # any sound it makes at all

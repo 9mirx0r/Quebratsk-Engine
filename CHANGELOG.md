@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A weapon knows what it is.** A model does not say which weapon it is: it carries a mesh,
+  a skeleton and some sequences, and everything that makes an AK an AK rather than a shape
+  lives in the game's code. Quebratsk inferred it from filenames, and the rule for firing
+  sounds, `v_famas.mdl` to `weapons/famas-1.wav`, is true and is still a guess.
+
+  `data/cs_weapons.json` carries the answer instead, generated from ReGameDLL_CS by
+  `tools/build_weapon_manifest.py`: **29 weapons** with their view, player and world models,
+  their sounds, their damage, clip size, price, weight and the speed each one allows a player
+  carrying it. Reachable from any of a weapon's faces, so a caller holding `w_ak47.mdl` can
+  ask what it fires without knowing the answer lives on a different file.
+
+  Measured against installed games: **29 of 29 view models and 27 of 27 firing sounds resolve
+  to a real file.** The weapons with no damage or clip are the knife, the C4 and the three
+  grenades, and that absence is the answer rather than a gap.
+
+
 ## [2.1.0] "Volvokjark" - 2026-08-01
 
 The release where Half-Life 1 and Counter-Strike stopped standing still, and where four
