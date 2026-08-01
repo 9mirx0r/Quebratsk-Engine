@@ -2,7 +2,10 @@
 
 ## Before touching a GoldSrc or Source binary format
 
-Read `docs/goldsrc_source_architecture_guide.xml` first. It is normative: struct layouts,
+Read `docs/goldsrc_source_architecture_guide.xml` first. It is normative.
+
+It is the owner's own research and is not distributed with the repository, so it will not be
+in a fresh clone. It covers: struct layouts,
 field offsets, the search path cascade, and how a model names its sounds.
 
 It is not merely advisory because the failure mode here is silent. A struct missing a field

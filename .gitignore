@@ -90,3 +90,7 @@ demo/imported/
 
 # What packaging a release produces. Rebuilt from source every time.
 release_pack/
+
+# The owner's own research. It stays on disk and is used while working here, and it is not
+# theirs to publish for them.
+docs/goldsrc_source_architecture_guide.xml
