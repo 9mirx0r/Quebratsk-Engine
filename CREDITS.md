@@ -90,6 +90,29 @@ Nothing from there is copied into Quebratsk today. `demo/lab/storm_sky.gdshader`
 established before reading the code rather than after, and the answer is worth not looking up
 twice.
 
+## Engine reimplementations, and one that is not read
+
+Two projects reimplement the GoldSrc engine itself rather than its game library, and they are
+not equivalent for our purposes.
+
+**[OGS](https://github.com/BlackPhrase/OGS)** describes itself as a clean reimplementation
+written without using reverse-engineered code. That is readable.
+
+**[reGS](https://github.com/hzqst/GameEngine-reGoldSrc)** is reconstructed from Valve's own
+binaries. Whatever a repository states, code derived from decompiling a proprietary executable
+does not come with a licence that permits reusing it, so it is not read here. Its observable
+behaviour — what the engine does, watched from outside — is fair game the same way the running
+game is.
+
+Neither turned out to be needed for what prompted looking. Ladders, water movement and the
+material a footstep takes from the texture underfoot are all in `pm_shared.c`, which ships in
+Valve's public Half-Life SDK: a cleaner and more authoritative source than either.
+
+And one thing that looked promising and is not. reGS replaces Miles Sound System with FMOD, so
+it cannot supply the original coefficients behind the 29 `env_sound` room types — those were
+Miles', and nobody has them. The table in `room_acoustics.gd` stays derived from the room
+names, which remains the honest answer.
+
 ## Other importers looked at
 
 Read for approach, not copied. None is a dependency.
