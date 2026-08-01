@@ -35,14 +35,44 @@ var _gunshot: AudioStream
 var _audio: AudioStreamPlayer3D
 var _fire := ""
 var _weapon_node: Node3D
+var _moves: Dictionary = {}
+var _body_anim: AnimationPlayer
 
 
 func setup(sandbox: Node3D, camera: Camera3D, skeleton: Skeleton3D = null,
-		head_bone := -1) -> void:
+		head_bone := -1, moves: Dictionary = {}) -> void:
 	_sandbox = sandbox
 	_camera = camera
 	_skeleton = skeleton
 	_head = head_bone
+	_moves = moves
+	if skeleton != null:
+		_body_anim = skeleton.get_node_or_null("AnimationPlayer")
+
+
+## Play the stance that matches what the body is doing.
+##
+## The enemies have done this since they were written and the player never did, so the figure
+## casting the shadow slid around frozen in one pose. It shows in a shadow before it shows
+## anywhere else, which is how it was spotted.
+func _drive_animation() -> void:
+	if _body_anim == null:
+		return
+	var speed := Vector2(velocity.x, velocity.z).length()
+	var role := "idle"
+	if speed > SPEED * 0.6:
+		role = "run"
+	elif speed > 0.4:
+		role = "walk"
+
+	var wanted := str(_moves.get(role, ""))
+	# A model with no walk still has an idle, and standing still beats not moving at all.
+	if wanted.is_empty():
+		wanted = str(_moves.get("idle", ""))
+	if wanted.is_empty() or not _body_anim.has_animation(wanted):
+		return
+	if _body_anim.current_animation != wanted:
+		_body_anim.play(wanted)
 	_audio = AudioStreamPlayer3D.new()
 	# The player's own weapon is at the camera, so at default settings 3D attenuation puts
 	# it right on top of the listener. Pulled well down: this is a gunshot fired next to
@@ -116,6 +146,7 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= GRAVITY * delta
 
 	move_and_slide()
+	_drive_animation()
 
 
 func _shoot() -> void:
