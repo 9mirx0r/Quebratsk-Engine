@@ -54,6 +54,9 @@ func setup(lab: Node3D, target: CharacterBody3D, preset: Dictionary,
 	_audio.volume_db = -10.0
 	_audio.unit_size = 8.0   # audible across a room, not across the level
 	add_child(_audio)
+	# Tracked, so somebody firing on the other side of a wall is heard through the wall.
+	if lab.has_method("track_sound"):
+		lab.track_sound(_audio)
 
 	if not weapon.is_empty():
 		_hold(weapon)

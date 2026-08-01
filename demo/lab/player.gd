@@ -142,6 +142,14 @@ func setup(lab: Node3D, camera: Camera3D, preset: Dictionary, weapon: Dictionary
 			_body_anim = child.get_node_or_null("AnimationPlayer")
 
 	camera.position = _eye_rest
+
+	# Through the room, so a gunshot in a tunnel is a gunshot in a tunnel. Not tracked for
+	# occlusion: these happen at the listener's own head, and nothing can be between you and
+	# your own rifle.
+	for mouth in [_audio, _step_audio, _reload_audio]:
+		if mouth != null:
+			mouth.bus = "Rooms"
+
 	if not weapon.is_empty():
 		_arm(weapon)
 
