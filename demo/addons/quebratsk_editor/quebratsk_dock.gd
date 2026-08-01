@@ -23,6 +23,7 @@ const TRANSLATIONS := "res://addons/quebratsk_editor/i18n/dock.csv"
 ## editor generates, which a fresh clone does not have until it has scanned once.
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd")
+const EntityCatalogue := preload("res://addons/quebratsk_editor/entity_catalogue.gd")
 
 ## list_files() with no prefix returns every indexed entry — a Half-Life 2 plus Garry's
 ## Mod setup is over 100,000. Populating a Tree with that locks the editor.
@@ -1550,6 +1551,36 @@ func _clear_selection() -> void:
 		_sync_star()
 
 
+## Say what a level contains, on the line under its name.
+##
+## A map's own list of entities is the only description of it that exists, and until now it was
+## read and discarded. Someone picking a .bsp saw a filename and a size, which says nothing
+## about whether they are looking at a bomb site or a corridor.
+##
+## The entity catalogue turns classnames into what they are, so this reports "28 Fake
+## Wall/Light, 20 Player 1 start" rather than "28 func_illusionary, 20 info_player_start".
+##
+## Called on selection only. Reading the entities means parsing the whole .bsp, which is far
+## too much to do on every keystroke in the search box.
+func _describe_map(uri: String) -> void:
+	var made_of: Dictionary = EntityCatalogue.summarise(_importer.load_map_entities(uri))
+	if made_of.is_empty():
+		return
+
+	# Most numerous first, since what a level has most of is the best short answer to what it
+	# is. Six is as many as the line holds before it stops being readable.
+	var ranked := []
+	for what in made_of:
+		ranked.append([int(made_of[what]), str(what)])
+	ranked.sort_custom(func(a, b): return a[0] > b[0])
+
+	var said := PackedStringArray()
+	for row in ranked.slice(0, 6):
+		said.append("%d %s" % [row[0], row[1]])
+	_picked_kind.text += "
+" + " · ".join(said)
+
+
 func _on_result_selected() -> void:
 	var item := _results.get_selected()
 	if item == null:
@@ -1572,6 +1603,8 @@ func _on_result_selected() -> void:
 	_pose_row.visible = false
 	if uri.get_extension().to_lower() == "mdl":
 		_load_poses(uri)
+	elif uri.get_extension().to_lower() == "bsp":
+		_describe_map(uri)
 
 	_clear_preview()
 	_preview_debounce.start()

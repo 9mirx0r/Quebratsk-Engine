@@ -33,6 +33,7 @@ func _ready() -> void:
 	_check_search()
 	_check_game_filter()
 	_check_animation_scope()
+	_check_map_description()
 	_check_pick()
 	_check_persistence()
 	print("\n=== DONE ===")
@@ -275,6 +276,43 @@ func _check_animation_scope() -> void:
 			% [scope, wanted.size(), ", ".join(wanted)])
 
 	_dock._animate_toggle.button_pressed = false
+
+
+## Does picking a level say what is in it?
+##
+## A .bsp used to show a filename and a size, which tells you nothing about whether you are
+## looking at a bomb site or a corridor. The map's own entity list is the only description of
+## it that exists and it was being read and discarded.
+func _check_map_description() -> void:
+	print("
+3d. what a level says it contains")
+
+	var hit: Dictionary = _dock._vfs.find_files("maps/", PackedStringArray(["bsp"]),
+		PackedStringArray(), PackedStringArray(), 40)
+	var uri := ""
+	for entry in hit["files"]:
+		if not _dock._importer.load_map_entities(str(entry)).is_empty():
+			uri = str(entry)
+			break
+	if uri.is_empty():
+		print("   no readable map among the results")
+		return
+
+	# Through the real path, so this measures what a person selecting a map would see.
+	_dock._selected_uri = uri
+	_dock._picked_kind.text = "Level"
+	_dock._describe_map(uri)
+
+	var said: String = _dock._picked_kind.text
+	print("   %s" % uri.get_file())
+	for line in said.split("
+"):
+		print("      %s" % line)
+	if said.contains("
+"):
+		print("   the level describes itself")
+	else:
+		print("   ** it said nothing beyond its type **")
 
 
 func _check_search() -> void:
