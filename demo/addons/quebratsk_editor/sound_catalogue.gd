@@ -17,15 +17,53 @@ extends RefCounted
 
 const PATH := "res://addons/quebratsk_editor/data/cs_sounds.json"
 
-## What a surface makes underfoot, by the letter GoldSrc puts at the front of a texture name.
+## What a surface makes underfoot, by the material letter a texture is tagged with.
 ##
-## The engine does not store a material per face. It reads the first character of the texture's
-## name — `CHAR_TEX_METAL` is 'M', vents are 'V', dirt 'D' — which is why a mapper renames a
-## texture to change how the floor sounds. From `PM_MapTextureTypeStepType` and
-## `CBasePlayer::UpdateStepSound`.
+## The letter does not come from the texture's own name, which is what a first attempt assumed
+## and what the measurement caught: cs_siege's textures are called sge_bld1_wl, sge_out_grs
+## and so on, where the S stands for siege, and reading their first character reported that
+## every square metre of the level was standing water.
+##
+## It comes from `sound/materials.txt`, a plain list the game ships — 787 lines in cstrike,
+## 406 in valve — of the form `<letter> <TEXTURE_NAME>`, and only the first twelve characters
+## of the name are compared. Anything unlisted is concrete, which is the engine's default.
+##
+## Letters from `pm_materials.h`, letter to step type from `PM_MapTextureTypeStepType`. Only
+## seven of the twelve lead anywhere: wood, computer, glass, flesh and snow each have a
+## `CHAR_TEX_` constant and none appears in that switch, so the engine's own `default` catches
+## them and they sound like concrete too. That is not an omission here.
 const BY_TEXTURE_LETTER := {
-	"m": "metal", "v": "duct", "d": "dirt", "s": "slosh", "t": "tile",
-	"g": "grate", "w": "wood", "p": "computer", "y": "glass", "n": "snow",
+	"c": "step",     # concrete, and the default for everything unlisted
+	"m": "metal",
+	"d": "dirt",
+	"v": "duct",     # CHAR_TEX_VENT
+	"g": "grate",
+	"t": "tile",
+	"s": "slosh",
+}
+
+## The samples each surface has, from PM_PlayStepSound. Four apiece, except tile, which has
+## five — worth having verbatim rather than assumed, since a missing fifth is a step that
+## never plays.
+const STEP_SAMPLES := {
+	"step":   ["player/pl_step1.wav", "player/pl_step2.wav", "player/pl_step3.wav",
+	           "player/pl_step4.wav"],
+	"metal":  ["player/pl_metal1.wav", "player/pl_metal2.wav", "player/pl_metal3.wav",
+	           "player/pl_metal4.wav"],
+	"dirt":   ["player/pl_dirt1.wav", "player/pl_dirt2.wav", "player/pl_dirt3.wav",
+	           "player/pl_dirt4.wav"],
+	"duct":   ["player/pl_duct1.wav", "player/pl_duct2.wav", "player/pl_duct3.wav",
+	           "player/pl_duct4.wav"],
+	"grate":  ["player/pl_grate1.wav", "player/pl_grate2.wav", "player/pl_grate3.wav",
+	           "player/pl_grate4.wav"],
+	"tile":   ["player/pl_tile1.wav", "player/pl_tile2.wav", "player/pl_tile3.wav",
+	           "player/pl_tile4.wav", "player/pl_tile5.wav"],
+	"slosh":  ["player/pl_slosh1.wav", "player/pl_slosh2.wav", "player/pl_slosh3.wav",
+	           "player/pl_slosh4.wav"],
+	"wade":   ["player/pl_wade1.wav", "player/pl_wade2.wav", "player/pl_wade3.wav",
+	           "player/pl_wade4.wav"],
+	"ladder": ["player/pl_ladder1.wav", "player/pl_ladder2.wav", "player/pl_ladder3.wav",
+	           "player/pl_ladder4.wav"],
 }
 
 static var _groups: Dictionary = {}
@@ -53,23 +91,78 @@ static func groups() -> PackedStringArray:
 ## Falls back to the default concrete step, which is what the engine does for a texture whose
 ## first letter means nothing to it.
 static func footsteps(surface := "") -> PackedStringArray:
-	var all := group("footstep")
 	if surface.is_empty():
 		surface = "step"
-	var wanted := PackedStringArray()
-	for name in all:
-		if str(name).contains("pl_%s" % surface):
-			wanted.append(str(name))
-	if wanted.is_empty() and surface != "step":
-		return footsteps("step")
-	return wanted
+	var named: Array = STEP_SAMPLES.get(surface, [])
+	if named.is_empty():
+		named = STEP_SAMPLES["step"]
+	var out := PackedStringArray()
+	for entry in named:
+		out.append(str(entry))
+	return out
 
 
-## Which surface a texture name implies, by the letter GoldSrc reads off the front of it.
+## Only the first twelve characters of a texture's name are compared, which the file says
+## itself and which matters: several entries differ only past that point.
+const NAME_LENGTH := 12
+
+static var _materials: Dictionary = {}
+static var _materials_read := false
+
+
+## Read sound/materials.txt, both of them.
+##
+## The game's own first and Half-Life's behind it, so a texture Counter-Strike re-tags wins
+## over the entry it inherited.
+static func read_materials(vfs) -> void:
+	if _materials_read or vfs == null:
+		return
+
+	# Behind first, so the game's own overwrite it.
+	for uri in _find_materials(vfs):
+		# Typed explicitly: `:=` cannot infer from the return of an untyped method, and vfs is
+		# untyped here so the module does not depend on the extension being loaded.
+		var bytes: PackedByteArray = vfs.read_file(uri)
+		if bytes.is_empty():
+			continue
+		# Split on a real newline written as an escape, not on one typed into the literal. It
+		# was typed in, which is not a parse error in GDScript and quietly made the whole file
+		# one line beginning with "//" — so every entry was discarded and the table read 0.
+		for raw in bytes.get_string_from_ascii().split("\n", false):
+			var line := raw.strip_edges()
+			if line.is_empty() or line.begins_with("//"):
+				continue
+			var parts := line.split(" ", false)
+			if parts.size() < 2 or parts[0].length() != 1:
+				continue
+			_materials[str(parts[1]).substr(0, NAME_LENGTH).to_lower()] = str(parts[0]).to_lower()
+	# Marked read only once something was actually read, so a call made before the game is
+	# mounted does not lock in an empty table for the rest of the session.
+	if _materials.is_empty():
+		return
+	_materials_read = true
+	print("[sound] %d texture(s) tagged with a material" % _materials.size())
+
+
+static func _find_materials(vfs) -> PackedStringArray:
+	var hit: Dictionary = vfs.find_files("sound/materials.txt", PackedStringArray(["txt"]),
+		PackedStringArray(), PackedStringArray(), 0)
+	var files: PackedStringArray = hit["files"]
+	# Reversed, so whichever the search order put first is applied last and wins.
+	var ordered := PackedStringArray()
+	for i in range(files.size() - 1, -1, -1):
+		ordered.append(str(files[i]))
+	return ordered
+
+
+## Which surface a texture is, from the material list the game ships.
 static func surface_of_texture(texture: String) -> String:
 	if texture.is_empty():
 		return ""
-	return str(BY_TEXTURE_LETTER.get(texture[0].to_lower(), ""))
+	var letter := str(_materials.get(texture.substr(0, NAME_LENGTH).to_lower(), ""))
+	if letter.is_empty():
+		return ""   # unlisted, which the engine treats as concrete
+	return str(BY_TEXTURE_LETTER.get(letter, ""))
 
 
 ## One name from a group, at random, as the game does.

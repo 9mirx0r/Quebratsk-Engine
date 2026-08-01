@@ -17,6 +17,7 @@ extends Node3D
 const ModelPreset := preload("res://addons/quebratsk_editor/model_preset.gd")
 const EntityCatalogue := preload("res://addons/quebratsk_editor/entity_catalogue.gd")
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
+const SoundCatalogue := preload("res://addons/quebratsk_editor/sound_catalogue.gd")
 const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
 const RoomAcoustics := preload("res://addons/quebratsk_editor/room_acoustics.gd")
 const AcousticsScript := preload("res://lab/acoustics.gd")
@@ -96,6 +97,10 @@ func _ready() -> void:
 	if _mount() == 0:
 		_say("Counter-Strike 1.6 is not installed, or its %s folder is missing." % GAME)
 		return
+	# What each texture sounds like underfoot, read once the game is mounted and before
+	# anything walks on it.
+	SoundCatalogue.read_materials(vfs)
+
 	if not _open_map():
 		_say("No map matching '%s' could be read." % MAP)
 		return

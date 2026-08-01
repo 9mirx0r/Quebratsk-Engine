@@ -146,6 +146,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A floor sounds like what it is made of.** Every footstep was concrete, including on metal,
+  grates and in water. The nine sample sets are the game's own, from `PM_PlayStepSound` — four
+  apiece and five for tile — and which one plays comes from `sound/materials.txt`, a list the
+  game ships tagging textures with a material letter: 787 lines in cstrike, 406 in valve, and
+  only the first twelve characters of a name are compared.
+
+  Godot's ray gives a triangle index rather than a texture, so the bridge is the mesh: its
+  surfaces are laid out one after another and each carries the name of the texture it was built
+  from, so counting triangles says which surface a face belongs to.
+
+  cs_siege comes out as one ventilation surface and fifty-eight untagged, which is right — it
+  is a stone fortress and untagged means concrete, the engine's own default. Wading in water
+  takes precedence over whatever is underneath.
+
+  Two wrong turns on the way, both caught by measuring rather than by reading the code back.
+  The letter does **not** come from the texture's own name: cs_siege's are called `sge_bld1_wl`
+  and `sge_out_grs`, where the S is for siege, and reading the first character reported that
+  every square metre of the level was standing water. And the parse produced nothing at all
+  because the newline it splits on had been typed into the string literal rather than written
+  as an escape — which GDScript accepts, and which quietly made the whole file one line
+  beginning with `//`.
+
 - **Ladders and water, on the engine's own rules.** `PM_LadderMove` turns gravity off, flies
   the body along where you are looking and caps it at `MAX_CLIMB_SPEED` — 200 units per second,
   a third of that crouched — and jumping leaves the ladder with a shove away from it. In water,
