@@ -4,6 +4,46 @@
     <title>Guía Estructural de Archivos y Arquitectura de Dependencias en Motores GoldSrc y Source para la Ingesta Directa en Quebratsk Engine</title>
     <author>Quebratsk Engine Core Architecture Team</author>
     <target_subsystem>VFSManager &amp; UnifiedAssetImporter</target_subsystem>
+
+    <status>
+      NORMATIVO. Este documento es la referencia obligatoria antes de tocar formatos GoldSrc
+      o Source en este repositorio. Donde contradiga a la intuicion, gana el documento; donde
+      contradiga al codigo, gana el codigo y hay que corregir el documento en el mismo commit.
+
+      Origen: investigacion asistida, revisada y corregida contra instalaciones reales de
+      Half-Life, Counter-Strike, Condition Zero, Deleted Scenes, Half-Life 2 y Garry's Mod el
+      2026-08-01. Los conceptos de la version original eran correctos; los layouts binarios
+      no. Cada bloque lleva ahora un atributo verified que dice contra que se comprobo.
+
+      La verdad de ultima instancia sobre layouts son los headers con static_assert:
+        src/parsers/goldsrc/structs/mdl10_structs.h
+        src/parsers/source1/structs/anim_structs.h
+      Un offset escrito aca y no afirmado alli no esta verificado.
+    </status>
+
+    <errata>
+      Lo que la primera version afirmaba y era falso, anotado porque el mismo error es facil
+      de repetir:
+
+      1. studiohdr_t saltaba de boneindex a numseq, omitiendo numbonecontrollers,
+         bonecontrollerindex, numhitboxes y hitboxindex. numseq quedaba 16 bytes antes de
+         donde esta, o sea sobre numbonecontrollers. El pseudocodigo iteraba una cantidad
+         inventada desde un offset inventado.
+
+      2. mstudioseqdesc_t omitia activity, actweight y trece campos mas. numevents quedaba en
+         40 en vez de 48, y animindex en 56 en vez de 124.
+
+      3. mstudioevent_t se presentaba como uno solo. Son dos: el de GoldSrc mide 76 bytes y el
+         de Source 80. Leer el de Source a 76 hace que el primer evento de cada secuencia se
+         lea bien y todos los siguientes salgan basura, que es la forma mas cara de fallar.
+
+      4. Se afirmaba que options en el evento de sonido es la ruta del .wav. Cierto en GoldSrc.
+         En Source es el nombre de una entrada de soundscript y no un archivo.
+
+      Una estructura con agujeros es una estructura cuyos campos posteriores estan todos
+      corridos, y nada en el resultado lo delata: se leen numeros plausibles de lugares
+      equivocados.
+    </errata>
   </meta>
 
   <!-- SECCIÓN 1: VFS Y SEARCH PATHS -->
@@ -124,15 +164,49 @@
         Un modelo .mdl de GoldSrc (versión 10) es un contenedor binario que incluye la estructura del esqueleto, las mallas poligonales, las texturas indexadas de 8 bits y los descriptores de secuencias de animación (mstudioseqdesc_t).
         Las animaciones de recarga, amartillado y desfundado no dependen de código en el motor para emitir sonido. En su lugar, el binario del modelo contiene una matriz de estructuras de eventos mstudioevent_t dentro del propio encabezado del archivo .mdl. La estructura binaria define los siguientes campos:
       </details>
-      <struct_fields name="mstudioevent_t">
-        <field name="frame" type="int32_t">Entero de 32 bits que determina el cuadro exacto de la animación donde se dispara el evento.</field>
-        <field name="event" type="int32_t">Identificador entero del evento.</field>
-        <field name="type" type="int32_t">Tipo de evento de animación.</field>
-        <field name="options" type="char[64]">Cadena de texto de 64 caracteres que contiene los parámetros del evento, principalmente la ruta relativa del archivo de sonido.</field>
+      <struct_fields name="mstudioevent_t" engine="GoldSrc" size_bytes="76"
+          verified="static_assert en mdl10_structs.h, leido de v_*.mdl de Half-Life y CS 1.6">
+        <field name="frame" type="int32_t" offset="0">Cuadro exacto en el que se dispara. Es un numero de cuadro, no una fraccion de la secuencia.</field>
+        <field name="event" type="int32_t" offset="4">Identificador del evento. GoldSrc no tiene eventos con nombre, asi que este numero es lo unico que distingue un disparo de un fogonazo.</field>
+        <field name="type" type="int32_t" offset="8">Sin usar en la practica; los headers posteriores lo marcan como reservado.</field>
+        <field name="options" type="char[64]" offset="12">Para eventos de sonido, la ruta relativa a sound/. No garantiza terminador nulo: acotar la lectura a 64.</field>
+      </struct_fields>
+
+      <struct_fields name="mstudioevent_t" engine="Source (MDL v44-v49)" size_bytes="80"
+          verified="static_assert en anim_structs.h, leido de v_357.mdl y c_357.mdl de HL2">
+        <warning>
+          NO es la misma estructura que la de GoldSrc, pese al nombre. Empieza con un float y
+          lleva cuatro bytes de mas al final. Leerla a 76 bytes deja bien el primer evento de
+          cada secuencia y convierte en basura todos los demas, de modo que un arma cuyo
+          disparo es su segundo evento parece un arma sin sonido.
+        </warning>
+        <field name="cycle" type="float" offset="0">Momento dentro de la secuencia, de 0 a 1. No es un numero de cuadro.</field>
+        <field name="event" type="int32_t" offset="4">Id numerico cuando type no trae el bit de evento con nombre.</field>
+        <field name="type" type="int32_t" offset="8">0 = el evento es un id numerico. Bit 1&lt;&lt;10 = el evento tiene nombre y se lee por name_index.</field>
+        <field name="options" type="char[64]" offset="12">Para eventos de sonido, el nombre de una ENTRADA DE SOUNDSCRIPT, no un archivo.</field>
+        <field name="name_index" type="int32_t" offset="76">Desplazamiento relativo a esta misma estructura hacia el nombre del evento, por ejemplo AE_CL_PLAYSOUND.</field>
       </struct_fields>
       <event_execution>
         Cuando la secuencia de animación alcanza el cuadro frame, el motor evalúa el entero event:
-        <event_id code="5004" name="Client Sound">Instruye al sistema de audio (Miles Sound System) para ejecutar de inmediato el archivo de sonido especificado en el parámetro options. Por ejemplo, un evento con valor { event 5004 12 "weapons/ak47_clipout.wav" } indica que en el cuadro 12 debe reproducirse dicho archivo .wav desde el directorio sound/.</event_id>
+        <event_id code="5004" name="Client Sound">Reproduce el sonido nombrado en options. En GoldSrc ese nombre es la ruta relativa a sound/: { event 5004 12 "weapons/ak47_clipout.wav" } suena sound/weapons/ak47_clipout.wav en el cuadro 12.</event_id>
+        <event_id code="1004" name="Script Sound">Equivalente del lado del servidor. Vale lo mismo para options.</event_id>
+        <event_id code="1008" name="Script Sound Voice">Igual, por el canal de voz.</event_id>
+        <resolution_warning>
+          En Source, options NO es una ruta. Es el nombre de una entrada de soundscript, por
+          ejemplo Weapon_357.Single, que el juego resuelve leyendo scripts/game_sounds_*.txt.
+          Esos scripts si vienen con los juegos, como texto KeyValues dentro de las VPK, y hay
+          que leerlos para llegar al archivo. Una entrada puede listar varias tomas bajo
+          rndwave, y cada ruta puede empezar con un caracter de bandera de reproduccion
+          ()  *  #  ^  @  &lt;  &gt;) que no forma parte del nombre del archivo y hay que quitar.
+
+          Ademas, un modelo de mundo (w_*.mdl) no tiene secuencias en absoluto, asi que no
+          nombra ningun sonido. El disparo vive en el modelo de vista (v_*.mdl) del mismo arma.
+
+          En GoldSrc, un options que empieza con ! no es un archivo sino una FRASE definida en
+          sound/sentences.txt. Quebratsk todavia no lee sentences.txt: de 253 sonidos
+          declarados por ocho mapas de Condition Zero, resolvieron 238, y cuatro de los quince
+          restantes eran frases.
+        </resolution_warning>
         <event_id code="5001" name="Muzzle Flash">Activa la emisión de un sprite de destello en el punto de acople (attachment point) del cañón del arma.</event_id>
         <event_id code="5002" name="Eject Brass">Expulsa un modelo de casquillo en el punto de acople de la recámara.</event_id>
         Por lo tanto, procesar v_ak47.mdl sin analizar los descriptores de secuencia ni extraer los archivos .wav referenciados en la cadena options del evento 5004 dejará al modelo desprovisto de todo su comportamiento sonoro.
@@ -180,17 +254,59 @@
         GoldSrc y Source utilizan un sistema de coordenadas diestro (Right-Handed) con eje Z vertical (Z-Up), donde X representa el frente y Y representa la izquierda. Godot 4 utiliza un sistema de coordenadas diestro con eje Y vertical (Y-Up), donde X es la derecha, Y es arriba y Z es hacia atrás.
         Para transformar la geometría y las jerarquías de huesos desde el espacio del motor Valve al espacio nativo de Godot 4, debe aplicarse la siguiente matriz de transformación T_{Valve -> Godot} junto con el factor de conversión de unidades de escala s (donde 1 Hammer Unit equivale a 0.0254 metros):
       </details>
-      <math_transformation>
+      <math_transformation verified="parcial: la escala si, la orientacion es una eleccion abierta">
         <formula>P_Godot = T_{Valve -> Godot} * P_Valve * s</formula>
-        <matrix_definition>
-          |  0  -1   0 |
-          |  0   0   1 |
-          | -1   0   0 |
-        </matrix_definition>
-        <scale_factor unit="Hammer Units to Meters">s = 0.0254</scale_factor>
-        <explanation>
-          Esta matriz invierte los ejes de manera ortogonal y ajusta la escala para que los nodos Skeleton3D y ArrayMesh de Godot coincidan exactamente con el motor de física.
-        </explanation>
+
+        <scale_factor unit="Hammer Units to Meters" verified="si">
+          s = 0.0254. Una unidad Hammer es una pulgada. Definido en
+          src/core/math/unit_scale.h como kHammerUnitsToMeters.
+        </scale_factor>
+
+        <implemented name="lo que Quebratsk hace hoy" source="src/core/math/axis_remap.h">
+          <mapping>P_Godot = (x, z, -y)</mapping>
+          <matrix_definition>
+            |  1   0   0 |
+            |  0   0   1 |
+            |  0  -1   0 |
+          </matrix_definition>
+          <determinant>+1</determinant>
+          <notes>
+            Manda el arriba de Valve (Z) al arriba de Godot (Y), y el frente de Valve (X) al
+            +X de Godot. Determinante positivo, o sea que PRESERVA la orientacion: el winding
+            de los triangulos ya sale bien y no hay que invertirlo. Combinarla con una
+            inversion de winding deja toda la geometria del reves bajo backface culling.
+          </notes>
+        </implemented>
+
+        <conventional name="la convencion mas habitual">
+          <mapping>P_Godot = (-y, z, -x)</mapping>
+          <matrix_definition>
+            |  0  -1   0 |
+            |  0   0   1 |
+            | -1   0   0 |
+          </matrix_definition>
+          <determinant>+1</determinant>
+          <notes>
+            Manda el frente de Valve al -Z de Godot, que es lo que las herramientas de Godot
+            asumen como frente.
+          </notes>
+        </conventional>
+
+        <discrepancy status="abierta" opened="2026-08-01">
+          Las dos son ortogonales y las dos tienen determinante +1, asi que ninguna invierte el
+          winding. Difieren en una rotacion de 90 grados sobre el eje vertical: no es que una
+          este mal, es que eligen distinto que direccion horizontal es el frente.
+
+          Como el motor entero usa la misma transformacion para geometria, huesos y origenes de
+          entidades, el resultado es internamente consistente y un mapa calza con sus entidades
+          de cualquiera de las dos formas. Lo que cambia es hacia donde mira un modelo importado
+          respecto de lo que Godot considera adelante.
+
+          NO cambiar sin decidirlo explicitamente: rotaria 90 grados toda importacion existente
+          y toda escena ya guardada en res://imported/. Mientras la discrepancia siga abierta,
+          lo implementado es lo normativo y este documento describe la alternativa, no la
+          prescribe.
+        </discrepancy>
       </math_transformation>
     </subsection>
 
@@ -230,27 +346,68 @@ struct studiohdr_t {
     float bbmin[3];          
     float bbmax[3];          
     int32_t flags;          
-    int32_t numbones;       
-    int32_t boneindex;      
-    int32_t numseq;         // Número de secuencias de animación
-    int32_t seqindex;       // Desplazamiento al arreglo mstudioseqdesc_t
+    int32_t numbones;             // 140
+    int32_t boneindex;            // 144
+    int32_t numbonecontrollers;   // 148  <-- omitido en la primera version de esta guia
+    int32_t bonecontrollerindex;  // 152  <--
+    int32_t numhitboxes;          // 156  <--
+    int32_t hitboxindex;          // 160  <--
+    int32_t numseq;               // 164  numero de secuencias de animacion
+    int32_t seqindex;             // 168  offset al arreglo mstudioseqdesc_t
+    int32_t numseqgroups;         // 172  1 = todo aqui, >1 = hay archivos laterales
+    int32_t seqgroupindex;        // 176
+    int32_t numtextures;          // 180  0 = las texturas estan en <nombre>T.mdl
+    int32_t textureindex;         // 184
+    // ... el header sigue; la lista completa esta en mdl10_structs.h
 };
 
+// 176 bytes. Los campos que un parser no use igual van escritos: una estructura con agujeros
+// es una estructura cuyos campos posteriores estan todos corridos.
 struct mstudioseqdesc_t {
-    char label[32];         // Nombre de la secuencia (ej. "reload")
-    float fps;              // Cuadros por segundo
-    int32_t flags;          
-    int32_t numevents;      // Cantidad de eventos
-    int32_t eventindex;     // Desplazamiento al arreglo mstudioevent_t
-    int32_t numblends;
-    int32_t animindex;
+    char label[32];               // 0    nombre de la secuencia, "reload"
+    float fps;                    // 32
+    int32_t flags;                // 36   bit 0 = STUDIO_LOOPING
+    int32_t activity;             // 40
+    int32_t actweight;            // 44
+    int32_t numevents;            // 48
+    int32_t eventindex;           // 52   offset ABSOLUTO en el archivo
+    int32_t numframes;            // 56
+    int32_t numpivots;            // 60
+    int32_t pivotindex;           // 64
+    int32_t motiontype;           // 68
+    int32_t motionbone;           // 72
+    float linearmovement[3];      // 76
+    int32_t automoveposindex;     // 88
+    int32_t automoveangleindex;   // 92
+    float bbmin[3];               // 96
+    float bbmax[3];               // 108
+    int32_t numblends;            // 120
+    int32_t animindex;            // 124  offset ABSOLUTO, cuando seqgroup es 0
+    int32_t blendtype[2];         // 128
+    float blendstart[2];          // 136
+    float blendend[2];            // 144
+    int32_t blendparent;          // 152
+    int32_t seqgroup;             // 156  0 = las pistas estan aqui, >0 = en <nombre>NN.mdl
+    int32_t entrynode;            // 160
+    int32_t exitnode;             // 164
+    int32_t nodeflags;            // 168
+    int32_t nextseq;              // 172
 };
 
+// 76 bytes. El de Source es OTRA estructura, de 80; ver la seccion de eventos.
 struct mstudioevent_t {
-    int32_t frame;          // Cuadro exacto de ejecución
-    int32_t event;          // ID del evento (5004 = Sonido de cliente)
-    int32_t type;
-    char options[64];       // Ruta relativa del archivo de audio WAV
+    int32_t frame;          // 0   cuadro exacto de ejecucion
+    int32_t event;          // 4   5004 = sonido de cliente
+    int32_t type;           // 8   sin usar
+    char options[64];       // 12  ruta relativa a sound/, sin terminador garantizado
+};
+
+// 104 bytes. Uno por archivo entre los que el modelo reparte sus animaciones.
+struct mstudioseqgroup_t {
+    char label[32];
+    char name[64];          // la ruta que escribio el compilador, obsoleta si lo renombraron
+    int32_t unused;
+    int32_t unused2;
 };
 #pragma pack(pop)
 
@@ -270,24 +427,47 @@ ModelDependencyGraph ParseGoldSrcDependencies(const uint8_t* buffer, size_t size
         return graph;
     }
 
+    // Todo offset viene de un archivo que puede estar truncado o mal formado. Se comprueba por
+    // resta y division, nunca por suma: offset + n * sizeof desborda en silencio y la
+    // comprobacion pasa justo cuando no deberia.
+    auto fits = [size](int32_t offset, int32_t count, size_t stride) {
+        if (offset < 0 || count < 0) return false;
+        if (static_cast<size_t>(offset) > size) return false;
+        if (count != 0 && stride > (size - static_cast<size_t>(offset))
+                                       / static_cast<size_t>(count)) {
+            return false;
+        }
+        return true;
+    };
+
+    if (header->numseq <= 0 || header->seqindex <= 0) return graph;
+    if (!fits(header->seqindex, header->numseq, sizeof(mstudioseqdesc_t))) return graph;
+
     const auto* sequences = reinterpret_cast<const mstudioseqdesc_t*>(buffer + header->seqindex);
 
     for (int i = 0; i < header->numseq; ++i) {
         const auto& seq = sequences[i];
-        if (seq.numevents == 0) continue;
+        if (seq.numevents <= 0 || seq.eventindex <= 0) continue;
+        if (!fits(seq.eventindex, seq.numevents, sizeof(mstudioevent_t))) continue;
 
         const auto* events = reinterpret_cast<const mstudioevent_t*>(buffer + seq.eventindex);
 
         for (int j = 0; j < seq.numevents; ++j) {
             const auto& evt = events[j];
-            
-            // Evento 5004: Reproducción de sonido de cliente en GoldSrc
-            if (evt.event == 5004) {
-                std::string sound_path(evt.options);
-                if (!sound_path.empty()) {
-                    graph.sound_dependencies.push_back("sound/" + sound_path);
-                }
-            }
+
+            // Los tres ids que significan "hace ruido". GoldSrc no tiene eventos con nombre,
+            // asi que el numero es lo unico que distingue un disparo de un fogonazo o de un
+            // casquillo cayendo.
+            if (evt.event != 5004 && evt.event != 1004 && evt.event != 1008) continue;
+
+            // options es char[64] y no garantiza terminador: acotar el escaneo a su tamano.
+            const size_t len = ::strnlen(evt.options, sizeof(evt.options));
+            if (len == 0) continue;
+
+            std::string name(evt.options, len);
+            // Un ! al frente marca una frase de sound/sentences.txt, que no es un archivo.
+            if (name[0] == '!') continue;
+            graph.sound_dependencies.push_back("sound/" + name);
         }
     }
 
