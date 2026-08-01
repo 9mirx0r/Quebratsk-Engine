@@ -6,6 +6,7 @@
 #include "structs/mdl10_structs.h"
 
 #include <expected>
+#include <map>
 #include <span>
 #include <string>
 #include <vector>
@@ -40,6 +41,12 @@ public:
     /// Every sequence's label and sound events are read either way; only the bone tracks are
     /// conditional, because those are what cost anything.
     ///
+    /// `body_choices` picks which version of a part to build, by the part's own name:
+    /// `{"scope": 1}` on a .357 gives the one with the laser sight. A part not named here
+    /// keeps its first version, which is what the game shows by default. Names are matched
+    /// case-insensitively, and an index past the end is ignored rather than clamped, since
+    /// silently building the wrong piece is worse than building the usual one.
+    ///
     /// `sequence_groups` are the sidecar animation files, index 0 holding group 1. A model
     /// that spreads its sequences across several files keeps only the first group in itself;
     /// without the rest, most of a Half-Life player model's stances resolve to nothing.
@@ -47,7 +54,8 @@ public:
         std::span<const std::byte> mdl_bytes,
         std::span<const std::byte> texture_mdl_bytes = {},
         const std::vector<std::string>& animate = {},
-        const std::vector<std::span<const std::byte>>& sequence_groups = {}
+        const std::vector<std::span<const std::byte>>& sequence_groups = {},
+        const std::map<std::string, int32_t>& body_choices = {}
     );
 
     /// How many files this model spreads its animations across, itself included.

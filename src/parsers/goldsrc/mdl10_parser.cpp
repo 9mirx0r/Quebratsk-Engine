@@ -6,6 +6,7 @@
 #include <godot_cpp/variant/transform3d.hpp>
 
 #include <algorithm>
+#include <map>
 #include <cstring>
 #include <string>
 #include <unordered_map>
@@ -329,7 +330,8 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
     std::span<const std::byte> mdl_bytes,
     std::span<const std::byte> texture_mdl_bytes,
     const std::vector<std::string>& animate,
-    const std::vector<std::span<const std::byte>>& sequence_groups
+    const std::vector<std::span<const std::byte>>& sequence_groups,
+    const std::map<std::string, int32_t>& body_choices
 ) {
     const ByteReader mdl(mdl_bytes);
 
@@ -488,13 +490,29 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
     for (int32_t bp = 0; bp < header->num_bodyparts; ++bp) {
         const auto& body = bodyparts[bp];
 
+        const std::string part_name(body.name, strnlen(body.name, sizeof(body.name)));
+
+        // Which version of this part to build. Unnamed parts and unknown names keep the first,
+        // which is what the game shows unless something asks otherwise.
+        int32_t wanted = 0;
+        {
+            std::string key = part_name;
+            std::transform(key.begin(), key.end(), key.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (const auto it = body_choices.find(key); it != body_choices.end()) {
+                // Out of range is ignored rather than clamped: building a piece nobody asked
+                // for is worse than building the usual one.
+                if (it->second >= 0 && it->second < body.num_models) wanted = it->second;
+            }
+        }
+
         // Record what this part could have been before building one of them. A model that
         // silently drops three of its four heads is not obviously wrong from the outside,
         // and this is the only place that knows they existed.
         if (body.num_models > 1 && body.model_index > 0) {
             ir::IRBodyGroup group;
-            group.name = std::string(body.name, strnlen(body.name, sizeof(body.name)));
-            group.chosen = 0;
+            group.name = part_name;
+            group.chosen = wanted;
 
             const auto choices = mdl.array_at<StudioModel>(
                 static_cast<size_t>(body.model_index), static_cast<size_t>(body.num_models));
@@ -507,15 +525,16 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
             }
         }
 
-        // Only the first model of each body part is imported: the remaining ones are
-        // alternates selected at runtime by the "body" value (e.g. weapon variants),
-        // and importing all of them would stack overlapping geometry.
-        if (body.num_models <= 0 || body.model_index <= 0 ||
-            mdl.array_at<StudioModel>(static_cast<size_t>(body.model_index), 1).empty()) {
-            continue;
-        }
+        // One model per body part, because the alternates are versions of the same thing and
+        // building them all stacks a scope on top of no scope. Which one comes from
+        // body_choices, defaulting to the first, which is what the game shows.
+        if (body.num_models <= 0 || body.model_index <= 0) continue;
 
-        const auto* model = mdl.array_at<StudioModel>(static_cast<size_t>(body.model_index), 1).data();
+        const auto choices = mdl.array_at<StudioModel>(
+            static_cast<size_t>(body.model_index), static_cast<size_t>(body.num_models));
+        if (choices.empty() || static_cast<size_t>(wanted) >= choices.size()) continue;
+
+        const auto* model = &choices[static_cast<size_t>(wanted)];
 
         if (model->num_verts <= 0 || model->vert_index <= 0) continue;
         const auto vert_span = mdl.array_at<float>(static_cast<size_t>(model->vert_index),

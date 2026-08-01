@@ -279,14 +279,18 @@ Turns a VFS entry into a Godot object. Call `set_vfs()` once before anything els
 void                set_vfs(vfs: VFSManager)
 ArrayMesh           load_mesh(vfs_uri: String)
 Node3D              load_model(vfs_uri: String, pose_name := "",
-                               animations := PackedStringArray())
+                               animations := PackedStringArray(),
+                               body_choices := {})
 Node3D              load_map(vfs_uri: String)
 Node3D              load_character(vfs_uri: String, pose_name := "",
-                                   animations := PackedStringArray())
+                                   animations := PackedStringArray(),
+                                   body_choices := {})
 StandardMaterial3D  load_material(vfs_uri: String)
 HeightMapShape3D    load_terrain(vfs_uri: String)
 Texture2D           load_texture(texture_ref: String)
 PackedStringArray   list_poses(vfs_uri: String)
+Array               list_body_groups(vfs_uri: String)
+Array               list_attachments(vfs_uri: String)
 PackedStringArray   list_sounds(vfs_uri: String, sequence := "")
 PackedStringArray   resolve_sound(name: String, origin_uri := "")
 int                 get_last_error_code()
@@ -311,6 +315,36 @@ Nothing is decoded unless it is named. A sequence is one keyframe per bone per f
 nine-second idle is 280 of them — and a model carries hundreds of sequences, so importing
 them all would cost far more than any caller wants. `list_poses()` is how you find out what
 there is to ask for.
+
+**`list_body_groups(uri)` and `body_choices`** — a model can have parts that come in several
+versions, and only one is built, which is what the game shows at any given moment. A .357 has
+a *scope* that is either blank or a laser sight; a pistol has a silencer; a scientist has four
+heads. Ask what the parts are, then ask for one:
+
+```gdscript
+for part in importer.list_body_groups(uri):
+    print(part["name"], part["options"])   # "scope"  ["blank", "python_lasersight"]
+
+var revolver := importer.load_model(uri, "", PackedStringArray(), {"scope": 1})
+```
+
+Each entry is `{ "name": String, "options": PackedStringArray, "chosen": int }`. A part left
+out of `body_choices` keeps version 0, so `{}` behaves exactly as it always did. Names are
+matched case-insensitively, and an index past the end is ignored rather than clamped —
+building a piece nobody asked for is worse than building the usual one.
+
+Measured on the stock games, the laser sight is 98 extra vertices on CS 1.6's `v_357.mdl`,
+174 on Condition Zero's, and the silencer is 59 on `v_9mmhandgun.mdl`. Small pieces, which is
+exactly why an importer that drops them silently is hard to notice.
+
+**`list_attachments(uri)`** — the named points on the skeleton a game hangs things from: a
+muzzle flash, a shell leaving the breech, the tip of a barrel. Nothing else in a `.mdl`
+records where a weapon's effects belong. Each entry is `{ "name": String, "bone": int,
+"position": Vector3 }`, the position in that bone's own space and already in Godot's axes.
+
+GoldSrc usually leaves the name field empty and identifies attachments by index, so most come
+back as `attachment_0`, `attachment_1`. That is the file read correctly, not a gap. Of forty
+stock weapon and player models, thirty carry attachment points.
 
 Two things worth knowing:
 

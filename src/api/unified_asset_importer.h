@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <span>
 #include <memory>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -123,9 +124,15 @@ public:
     /// returned node, under the label the game uses. Naming sequences costs real time and
     /// memory — a 60-frame sequence is 60 keyframes per bone — so nothing is decoded
     /// unless it is asked for, and list_poses() is how a caller learns what to ask for.
+    ///
+    /// `body_choices` picks a version for a part that has several, keyed by the part's own
+    /// name: `{"scope": 1}` on a .357 builds the one with the laser sight. A part left out
+    /// keeps the version the game shows by default, so `{}` behaves exactly as before.
+    /// list_body_groups() is how a caller learns the names and how many versions there are.
     godot::Node3D* load_model(const godot::String& vfs_uri,
                               const godot::String& pose_name = godot::String(),
-                              const godot::PackedStringArray& animations = godot::PackedStringArray());
+                              const godot::PackedStringArray& animations = godot::PackedStringArray(),
+                              const godot::Dictionary& body_choices = godot::Dictionary());
 
     /// Load a model as something that can move under its own power.
     ///
@@ -138,7 +145,8 @@ public:
     /// anything meant to walk: a StaticBody3D is an obstacle, not a mover.
     godot::Node3D* load_character(const godot::String& vfs_uri,
                                   const godot::String& pose_name = godot::String(),
-                                  const godot::PackedStringArray& animations = godot::PackedStringArray());
+                                  const godot::PackedStringArray& animations = godot::PackedStringArray(),
+                                  const godot::Dictionary& body_choices = godot::Dictionary());
 
     /// Everything the map says is in it, beyond its geometry.
     ///
@@ -283,7 +291,8 @@ public:
     [[nodiscard]] static ParsedAssetIR parse_asset_ir(const AssetBundleBytes& bundle,
                                                       const std::string& lowercase_uri,
                                                       bool pose_names_only = false,
-                                                      const std::vector<std::string>& animate = {});
+                                                      const std::vector<std::string>& animate = {},
+                                                      const std::map<std::string, int32_t>& body_choices = {});
 
     [[nodiscard]] vfs::VFSManager* get_vfs() const { return m_vfs; }
 

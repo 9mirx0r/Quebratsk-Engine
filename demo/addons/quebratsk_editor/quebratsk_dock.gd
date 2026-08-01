@@ -113,6 +113,8 @@ var _picked_name: Label
 var _picked_kind: Label
 var _pose_row: VBoxContainer
 var _pose_picker: OptionButton
+var _parts_row: VBoxContainer
+var _part_pickers: Array[OptionButton] = []
 var _animate_toggle: CheckBox
 var _animate_scope: OptionButton
 var _add_button: Button
@@ -510,6 +512,12 @@ func _build_ui() -> void:
 	_animate_scope.item_selected.connect(func(_i: int) -> void: _preview_debounce.start())
 	_pose_row.add_child(_animate_scope)
 
+	# Parts that come in more than one version. Nothing appears here for a model with
+	# nothing to choose, which is most of them, so the row costs an ordinary import nothing.
+	_parts_row = VBoxContainer.new()
+	_parts_row.visible = false
+	picked.add_child(_parts_row)
+
 	var button_row := _row()
 
 	_star_button = Button.new()
@@ -592,7 +600,8 @@ func _refresh_preview() -> void:
 			mi.name = _selected_uri.get_file().get_basename()
 			node = mi
 	else:
-		node = _importer.load_model(_selected_uri, _chosen_pose(), _chosen_animations())
+		node = _importer.load_model(_selected_uri, _chosen_pose(), _chosen_animations(),
+			_chosen_body_parts())
 
 	if node == null:
 		return
@@ -1601,8 +1610,10 @@ func _on_result_selected() -> void:
 		String.humanize_size(_vfs.get_file_size(uri)), _game_of(uri), where]
 
 	_pose_row.visible = false
+	_parts_row.visible = false
 	if uri.get_extension().to_lower() == "mdl":
 		_load_poses(uri)
+		_load_body_parts(uri)
 	elif uri.get_extension().to_lower() == "bsp":
 		_describe_map(uri)
 
@@ -1648,6 +1659,60 @@ func _load_poses(uri: String) -> void:
 
 func _on_pose_chosen(_index: int) -> void:
 	_preview_debounce.start()
+
+
+## The parts of this model that come in several versions, one dropdown each.
+##
+## A .357 has a scope that is either blank or a laser sight, and a pistol has a silencer. The
+## game shows one at a time and so does the import, but until this row existed there was no
+## way to find out the other version was in the file, let alone ask for it.
+func _load_body_parts(uri: String) -> void:
+	for picker in _part_pickers:
+		picker.queue_free()
+	_part_pickers.clear()
+	for child in _parts_row.get_children():
+		child.queue_free()
+
+	var parts: Array = _importer.list_body_groups(uri)
+	if parts.is_empty():
+		return
+
+	var heading := Label.new()
+	heading.text = tr("Parts with more than one version")
+	heading.add_theme_font_size_override("font_size", 11)
+	_parts_row.add_child(heading)
+
+	for part in parts:
+		var described: Dictionary = part
+		var options: PackedStringArray = described["options"]
+		if options.size() < 2:
+			continue
+
+		var picker := OptionButton.new()
+		picker.tooltip_text = tr("Which version of '%s' to build") % str(described["name"])
+		for i in range(options.size()):
+			# The model's own names, with the part's name in front so a bare "blank" in a
+			# list of dropdowns still says what it is blank of.
+			picker.add_item("%s: %s" % [str(described["name"]), options[i]])
+			picker.set_item_metadata(i, i)
+		picker.select(int(described["chosen"]))
+		picker.set_meta("part_name", str(described["name"]))
+		picker.item_selected.connect(func(_i: int) -> void: _preview_debounce.start())
+		_parts_row.add_child(picker)
+		_part_pickers.append(picker)
+
+	_parts_row.visible = not _part_pickers.is_empty()
+
+
+## What the dropdowns currently say, in the shape load_model() wants.
+func _chosen_body_parts() -> Dictionary:
+	var out := {}
+	if not _parts_row.visible:
+		return out
+	for picker in _part_pickers:
+		if picker.selected >= 0:
+			out[str(picker.get_meta("part_name"))] = int(picker.get_item_metadata(picker.selected))
+	return out
 
 
 # ----------------------------------------------------------------------- import ----
@@ -1770,7 +1835,8 @@ func _on_add_pressed() -> void:
 			mi.name = _selected_uri.get_file().get_basename()
 			node = mi
 	else:
-		node = _importer.load_model(_selected_uri, _chosen_pose(), _chosen_animations())
+		node = _importer.load_model(_selected_uri, _chosen_pose(), _chosen_animations(),
+			_chosen_body_parts())
 
 	if node == null:
 		_say(_explain_failure(), true)
@@ -1856,7 +1922,8 @@ func _build_for_scene(uri: String, alone: bool) -> Node3D:
 		return mi
 	if not alone:
 		return _importer.load_model(uri, "")
-	return _importer.load_model(uri, _chosen_pose(), _chosen_animations())
+	return _importer.load_model(uri, _chosen_pose(), _chosen_animations(),
+		_chosen_body_parts())
 
 
 ## A sound as something already positioned in the world.
