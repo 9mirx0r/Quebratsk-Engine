@@ -90,12 +90,9 @@ void sky() {
 		base = mix(base, base * 2.2 + flash_colour * 0.25, flash);
 	}
 
-	// Above the horizon only.
+	// Above the horizon only. Written as a weight rather than an early exit because the sky
+	// processor function is not allowed to return.
 	float above = smoothstep(cloud_horizon, cloud_horizon + cloud_blend, dir.y);
-	if (above <= 0.001) {
-		COLOR = base;
-		return;
-	}
 
 	// Projected onto a plane far overhead rather than onto the sphere, so cloud stretches
 	// toward the horizon the way a real ceiling does instead of wrapping evenly around.

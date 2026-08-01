@@ -52,6 +52,8 @@ var _thunder_zones: Array[AABB] = []
 var _thunder_ready := 0.0
 var _thunder_interval := 0.0
 var _triggered_sounds := {}
+var _water_shader: Shader
+var _storm_sky: Sky
 var _built := {}
 var _rng := RandomNumberGenerator.new()
 
@@ -222,6 +224,12 @@ func _apply_sky(entities: Array) -> void:
 			print("[lab] %s" % str(line))
 		return
 
+	# Moving cloud over the painted backdrop, and a flash that lights the whole sky from
+	# inside rather than merely brightening it.
+	_storm_sky = SkyLoader.make_storm_sky(report_name, sky)
+	if _storm_sky != null:
+		sky = _storm_sky
+
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_SKY
 	environment.sky = sky
@@ -250,6 +258,7 @@ func _build_weather(entities: Array, map: Node3D) -> void:
 	_weather.name = "Weather"
 	add_child(_weather)
 
+	_weather.set_storm_sky(_storm_sky)
 	if _weather.build_sun(entities) == null:
 		print("[lab] %s declares no light_environment, so it has no sun" % _map_uri.get_file())
 
@@ -259,15 +268,12 @@ func _build_weather(entities: Array, map: Node3D) -> void:
 		if child is MeshInstance3D:
 			extent = (child as MeshInstance3D).get_aabb()
 			break
-	# env_rain is a brush entity too, and its volume is where the rain belongs. Without it
-	# the rain fell through ceilings, because the only box available was the whole level.
-	var rain_box := extent
-	for e in entities:
-		var entity: Dictionary = e
-		if str(entity.get("classname", "")) == "env_rain" and entity.has("bounds"):
-			rain_box = entity["bounds"] as AABB
-			break
-	_weather.build_rain(entities, rain_box)
+	# env_rain's own brush is NOT where the rain falls, which cost a round trip to find out.
+	# Measured on de_aztec it is 1.63 m on a side - sixty-four units, a marker cube. In
+	# Counter-Strike env_rain is a switch meaning "it rains on this level", not a volume
+	# describing where. Reading its bounds and believing them turned the weather into a
+	# column of water over the player's head.
+	_weather.build_rain(entities, extent)
 	_build_water(entities)
 
 	# Where walking sets the storm off. A trigger_multiple targeting a multi_manager that
@@ -331,23 +337,31 @@ func _build_water(entities: Array) -> void:
 		plane.subdivide_depth = 24
 		surface.mesh = plane
 
-		var material := StandardMaterial3D.new()
-		material.albedo_color = Color(0.10, 0.20, 0.22, 0.72)
-		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		material.metallic = 0.35
-		material.roughness = 0.08
-		material.cull_mode = BaseMaterial3D.CULL_DISABLED
-		surface.material_override = material
+		surface.material_override = _water_material()
 
-		# At the top of the box, which is where a body of water's surface is.
+		# Just above the top of the box, which is where a body of water's surface is. The
+		# millimetre is to stay off the level's own water face: two coplanar surfaces flicker
+		# against each other, which is the white shards that appeared over the first attempt.
 		surface.position = Vector3(box.position.x + box.size.x * 0.5,
-			box.position.y + box.size.y, box.position.z + box.size.z * 0.5)
+			box.position.y + box.size.y + 0.01, box.position.z + box.size.z * 0.5)
 		add_child(surface)
 		pools += 1
 
 	if pools > 0:
 		_built["water"] = "%d pool(s)" % pools
 		print("[lab] %s: %d body/bodies of water" % [_map_uri.get_file(), pools])
+
+
+## One material for every pool, so five surfaces are one shader and one set of parameters.
+func _water_material() -> ShaderMaterial:
+	if _water_shader == null:
+		_water_shader = load("res://lab/water.gdshader")
+	var material := ShaderMaterial.new()
+	material.shader = _water_shader
+	# Rain roughens a surface and breaks up what it reflects. A mirror-flat pool in a
+	# downpour is the single thing that gives away water that was not thought about.
+	material.set_shader_parameter("agitation", 0.7)
+	return material
 
 
 ## Does what this trigger points at end up playing a sound?

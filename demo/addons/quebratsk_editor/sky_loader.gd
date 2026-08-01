@@ -136,14 +136,15 @@ static func load_sky(vfs: VFSManager, entities: Array, report: Array = [],
 ## res://assets/skyboxes/<map>/<map>_panorama.png. Twice as wide as it is tall: longitude runs
 ## the full width and latitude the full height, so the top row is straight up and the bottom
 ## row straight down.
-static func _load_panorama(map: String) -> Texture2D:
+static func _load_panorama(map: String, variant := "") -> Texture2D:
 	if map.is_empty():
 		return null
 	# Largest first. A panorama tends to arrive in a couple of sizes and the big one is the
 	# reason to have made it; the smaller is there for a machine that cannot hold it.
 	for size in ["_8k", "_4k", ""]:
 		for ext in [".png", ".jpg"]:
-			var path := "%s/%s/%s_panorama%s%s" % [OVERRIDE_FOLDER, map, map, size, ext]
+			var path := "%s/%s/%s_panorama%s%s%s" % [OVERRIDE_FOLDER, map, map, variant,
+				size, ext]
 			if not FileAccess.file_exists(path):
 				continue
 			var bytes := FileAccess.get_file_as_bytes(path)
@@ -209,3 +210,44 @@ static func _load_face(vfs: VFSManager, name: String, suffix: String) -> Image:
 		if err == OK and image.get_width() > 0:
 			return image
 	return null
+
+
+## A sky whose weather moves, built on top of a painted one.
+##
+## The panorama underneath is a photograph and better than anything generated: its ridges, its
+## mist and the break on the horizon are the half of a sky that never needs to change. What a
+## photograph cannot do is change, so cloud is computed over it and a discharge lights it.
+##
+## Returns null when there is no panorama to build on, because procedural mountains are a far
+## larger job than procedural cloud for a far smaller return.
+##
+## Nothing about this is a restoration. A map declares a sky by name and this is not it, so it
+## is something a project chooses rather than something an import does on its own.
+static func make_storm_sky(map: String, painted: Sky) -> Sky:
+	var panorama := _load_panorama(map)
+	if panorama == null:
+		return null
+
+	var shader: Shader = load("res://lab/storm_sky.gdshader")
+	if shader == null:
+		return painted
+
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("panorama", panorama)
+
+	# The same scene lit from within by a discharge, registered pixel for pixel with the
+	# first. Cross-fading between two photographs of one sky is what makes a flash read as
+	# the storm lighting up rather than as the sky being swapped for another.
+	var flash := _load_panorama(map, "_flash")
+	if flash != null:
+		material.set_shader_parameter("panorama_flash", flash)
+		material.set_shader_parameter("has_flash_panorama", true)
+
+	var sky := Sky.new()
+	sky.sky_material = material
+	# The sky is a backdrop here, not a light source; the level carries its own lightmaps.
+	# Realtime accepts one radiance size and complains about any other.
+	sky.process_mode = Sky.PROCESS_MODE_REALTIME
+	sky.radiance_size = Sky.RADIANCE_SIZE_256
+	return sky

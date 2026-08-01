@@ -37,6 +37,7 @@ var _rain: GPUParticles3D
 var _flash := 0.0
 var _second_at := -1.0
 var _thunder: AudioStreamPlayer3D
+var _storm_material: ShaderMaterial
 
 signal struck
 
@@ -81,12 +82,16 @@ func build_sun(entities: Array) -> DirectionalLight3D:
 	return null
 
 
-## Rain, inside the volume the map put it in.
+## Rain over the whole level, which is what env_rain declares.
 ##
-## env_rain is a brush entity: the mapper drew a box and the engine fills it. The box itself is
-## a model reference this importer does not resolve yet, so the volume is taken from the map's
-## own extent above the player instead, and that difference is worth knowing rather than
-## hiding — indoor parts of the level will get rain they should not.
+## env_rain is a switch and not a volume: its own brush is a sixty-four unit marker cube, and
+## treating that as the emission box put a column of water over the player. What it means is
+## that this level has weather, so the rain covers the map and follows whoever is looking at
+## it — which is what every rain effect since Quake does, because a level three hundred metres
+## across would otherwise need a million drops.
+##
+## Indoor parts of the level get rain they should not. Naming it rather than hiding it: doing
+## better means asking the level whether there is sky overhead, which is a raycast per drop.
 func build_rain(entities: Array, over: AABB) -> void:
 	var declared := false
 	for e in entities:
@@ -110,7 +115,10 @@ func build_rain(entities: Array, over: AABB) -> void:
 
 	var process := ParticleProcessMaterial.new()
 	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	process.emission_box_extents = Vector3(over.size.x * 0.5, 1.0, over.size.z * 0.5)
+	# Wide enough to be weather rather than a shower, and capped so an enormous level does
+	# not spread three thousand drops so thin that none of them land near you.
+	var reach: float = clampf(maxf(over.size.x, over.size.z) * 0.5, 20.0, 45.0)
+	process.emission_box_extents = Vector3(reach, 1.0, reach)
 	process.direction = Vector3(0, -1, 0)
 	process.spread = 2.0
 	process.initial_velocity_min = 14.0
@@ -129,14 +137,25 @@ func build_rain(entities: Array, over: AABB) -> void:
 	# Local to the player, so a level three hundred metres across does not need a million
 	# drops to look wet. It follows you, which is what every rain effect since Quake does.
 	_rain.local_coords = false
-	_rain.visibility_aabb = AABB(-over.size * 0.5, over.size)
+	_rain.visibility_aabb = AABB(Vector3(-reach, -40.0, -reach),
+		Vector3(reach * 2.0, 60.0, reach * 2.0))
 	add_child(_rain)
 
 
 ## Keep the rain over whoever is looking at it.
 func follow(who: Node3D) -> void:
 	if _rain != null and who != null:
-		_rain.global_position = who.global_position + Vector3(0, 18.0, 0)
+		# Snapped to a grid rather than glued to the player. A world-space emitter that moves
+		# every frame lays its drops along the path it travelled, which is the diagonal streak
+		# of water that appeared when this followed exactly.
+		var at := who.global_position + Vector3(0, 22.0, 0)
+		_rain.global_position = Vector3(snappedf(at.x, 8.0), at.y, snappedf(at.z, 8.0))
+
+
+## The sky whose clouds move, so a strike can light them from inside.
+func set_storm_sky(sky: Sky) -> void:
+	if sky != null and sky.sky_material is ShaderMaterial:
+		_storm_material = sky.sky_material as ShaderMaterial
 
 
 func set_environment(environment: Environment) -> void:
@@ -178,5 +197,10 @@ func _process(delta: float) -> void:
 
 	if _sun != null:
 		_sun.light_energy = _sun_energy * (1.0 + lit * FLASH_GAIN)
-	if _environment != null:
+	if _storm_material != null:
+		# The sky itself, not its exposure. With the lit panorama loaded this cross-fades to
+		# a photograph of the same storm discharging, which is a different thing from turning
+		# the brightness up on the first one.
+		_storm_material.set_shader_parameter("flash", lit)
+	elif _environment != null:
 		_environment.background_energy_multiplier = _sky_energy * (1.0 + lit * 2.0)
