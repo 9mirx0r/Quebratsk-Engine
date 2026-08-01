@@ -210,25 +210,8 @@ than any other check in this project.
 
 ## Contributing
 
-Contributions are welcome. Two things are worth knowing before you start, because
-they are unusual.
-
-### Read the format guide first
-
-[`docs/goldsrc_source_architecture_guide.xml`](docs/goldsrc_source_architecture_guide.xml)
-is normative: struct layouts, field offsets, the search path cascade, how a model
-names its sounds, the player's own physics constants.
-
-The failure mode in this domain is silent. A struct missing a field is a struct
-whose later fields are all shifted, and nothing about the result looks wrong;
-plausible numbers get read from the wrong places. Three defects fixed in a single
-day were exactly that, and one of them left the first event of every animation
-correct while turning every one after it into noise.
-
-Where the guide and the code disagree, the code wins and the guide is corrected in
-the same commit. Any offset not carried by a `static_assert` in
-`src/parsers/*/structs/` is not verified. Add the assert rather than trusting the
-prose.
+Contributions are welcome. One thing is worth knowing before you start, because it is
+unusual.
 
 ### Measure it against a real game
 
@@ -306,7 +289,6 @@ easier aesthetics to reproduce with assets of your own.
 | [CHANGELOG.md](CHANGELOG.md) | What changed, with the measurement that proved it |
 | [docs/API.md](docs/API.md) | Every class and method, for scripting against it |
 | [docs/TUTORIAL.md](docs/TUTORIAL.md) | Longer walkthroughs |
-| [docs/goldsrc_source_architecture_guide.xml](docs/goldsrc_source_architecture_guide.xml) | The formats, normative |
 | [CREDITS.md](CREDITS.md) | Who answered what |
 | [CLAUDE.md](CLAUDE.md) | How to work in this repository |
 
