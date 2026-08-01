@@ -169,6 +169,8 @@ inline constexpr int32_t kEventScriptSound = 1004;
 inline constexpr int32_t kEventScriptSoundVoice = 1008;
 
 static_assert(sizeof(SourceEvent) == 80, "SourceEvent size mismatch");
+static_assert(offsetof(SourceEvent, options) == 12, "SourceEvent options offset drift");
+static_assert(offsetof(SourceEvent, name_index) == 76, "SourceEvent name_index offset drift");
 static_assert(sizeof(SourceSeqDesc) == 212, "SourceSeqDesc size mismatch");
 static_assert(sizeof(SourceAnimDesc) == 100, "SourceAnimDesc size mismatch");
 static_assert(sizeof(SourceBoneAnim) == 4, "SourceBoneAnim size mismatch");

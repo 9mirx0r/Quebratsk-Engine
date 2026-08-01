@@ -229,6 +229,9 @@ static_assert(sizeof(StudioSeqHeader) == 76, "StudioSeqHeader size mismatch");
 static_assert(sizeof(StudioEvent) == 76, "StudioEvent size mismatch");
 static_assert(sizeof(StudioAnim) == 12, "StudioAnim size mismatch");
 static_assert(sizeof(StudioAnimValue) == 2, "StudioAnimValue size mismatch");
+static_assert(offsetof(StudioSeqDesc, num_events) == 48, "num_events offset drift");
+static_assert(offsetof(StudioSeqDesc, event_index) == 52, "event_index offset drift");
+static_assert(offsetof(StudioSeqDesc, num_frames) == 56, "num_frames offset drift");
 static_assert(offsetof(StudioSeqDesc, anim_index) == 124, "anim_index offset drift");
 static_assert(offsetof(StudioSeqDesc, seq_group) == 156, "seq_group offset drift");
 
@@ -237,6 +240,10 @@ static_assert(offsetof(StudioSeqDesc, seq_group) == 156, "seq_group offset drift
 // offsets the parser actually indexes by instead.
 static_assert(offsetof(StudioHeader, num_bones) == 140, "num_bones offset drift");
 static_assert(offsetof(StudioHeader, bone_index) == 144, "bone_index offset drift");
+static_assert(offsetof(StudioHeader, num_seq) == 164, "num_seq offset drift");
+static_assert(offsetof(StudioHeader, seq_index) == 168, "seq_index offset drift");
+static_assert(offsetof(StudioHeader, num_seq_groups) == 172, "num_seq_groups offset drift");
+static_assert(offsetof(StudioHeader, seq_group_index) == 176, "seq_group_index offset drift");
 static_assert(offsetof(StudioHeader, num_textures) == 180, "num_textures offset drift");
 static_assert(offsetof(StudioHeader, texture_index) == 184, "texture_index offset drift");
 static_assert(offsetof(StudioHeader, num_skin_ref) == 192, "num_skin_ref offset drift");
