@@ -1,5 +1,6 @@
 #pragma once
 
+#include "game_manifest.h"
 #include "memory_mapped_file.h"
 #include "vfs_uri.h"
 #include "decompressors/lzss_decompressor.h"
@@ -14,6 +15,7 @@
 #include <span>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace quebratsk::vfs {
@@ -62,6 +64,21 @@ struct MountedContainer {
 
     /// A tree of loose files rather than an archive. Nothing to memory-map or unmap.
     bool is_directory = false;
+
+    /// The game directory this archive belongs to, as an absolute lowercase path. Empty
+    /// when the file sits outside any game, such as a map bundle in Downloads.
+    ///
+    /// This is what lets a lookup answer with the file the asking asset was built against
+    /// rather than with a same-named file from whichever other game is also mounted. It is
+    /// a path and not a name because two different games can be called the same thing.
+    std::string game_id;
+
+    /// The game folder's own name, for anything a person reads.
+    std::string game_name;
+
+    /// When this mount happened, counting from zero. Two archives of equal standing are
+    /// separated by this, so a lookup that could go either way always goes the same way.
+    size_t order = 0;
 };
 
 class VFSManager : public godot::Node {
@@ -146,10 +163,36 @@ public:
     /// get_raw_span() and the single place that knows how to handle both cases.
     [[nodiscard]] std::vector<std::byte> read_owned(const std::string& vfs_uri_str) const;
 
-    /// First indexed URI ending with `lowercase_suffix`, or an empty string.
+    /// The best indexed URI ending with `lowercase_suffix`, or an empty string.
+    ///
     /// Legacy material references are path fragments without a mount prefix
-    /// ("metal/metalwall001a"), so they can only be resolved by suffix search.
-    [[nodiscard]] std::string find_by_suffix(const std::string& lowercase_suffix) const;
+    /// ("metal/metalwall001a"), so they can only be resolved by suffix search. With several
+    /// games mounted, many files answer to the same fragment, and which one is right depends
+    /// entirely on who is asking.
+    ///
+    /// `origin_uri` is the asset doing the asking. Given one, the search runs in the order
+    /// its game declares: its own archive first, then its game, then the games that game
+    /// falls back to, then everything else. Without one, the order is still fixed, by when
+    /// each archive was mounted. Neither is what this used to do, which was to return
+    /// whichever entry the hash table reached first.
+    [[nodiscard]] std::string find_by_suffix(const std::string& lowercase_suffix,
+                                             const std::string& origin_uri = {}) const;
+
+    /// The game folder a mounted asset belongs to, lowercase, or an empty string.
+    [[nodiscard]] std::string game_of(const std::string& vfs_uri) const;
+
+    /// GDScript face of game_of().
+    godot::String get_game_of(const godot::String& vfs_uri) const;
+
+    /// GDScript face of find_by_suffix(): resolve a bare reference on behalf of an asset.
+    ///
+    /// Exposed because it is the one lookup whose answer depends on who is asking, which
+    /// makes it the one worth being able to inspect from outside.
+    godot::String resolve_reference(const godot::String& fragment,
+                                    const godot::String& origin_uri = godot::String()) const;
+
+    /// What each mounted game falls back to, as { game_id: PackedStringArray }.
+    godot::Dictionary get_game_search_order() const;
 
 private:
     void index_wad3(size_t container_idx);
@@ -164,8 +207,29 @@ private:
     /// Returns the index it landed at.
     size_t place_container(MountedContainer&& container);
 
+    /// Work out which game a container belongs to and remember what that game searches.
+    /// Called for every mount, including the side archives a VPK brings with it.
+    void adopt_game(MountedContainer& container);
+
+    /// The games a lookup should consult, best first, for an asset from `container_index`.
+    /// Requires m_mutex.
+    [[nodiscard]] std::vector<std::string> search_order(size_t container_index) const;
+
     std::vector<MountedContainer> m_containers;
     std::unordered_map<std::string, VFSEntry> m_index;
+
+    /// What each game falls back to, read from its own manifest, in the order it declares.
+    std::unordered_map<std::string, std::vector<std::string>> m_game_fallbacks;
+
+    /// Which game owns a given directory, as { directory, display name }. Reading a
+    /// manifest touches the disk and a VPK mounts a dozen side archives out of one folder,
+    /// so the answer is kept.
+    std::unordered_map<std::string, std::pair<std::string, std::string>> m_game_of_dir;
+
+    /// The readable name of each game directory, for anything a person looks at.
+    std::unordered_map<std::string, std::string> m_game_names;
+
+    size_t m_mount_counter = 0;
     mutable std::mutex m_mutex;
 };
 

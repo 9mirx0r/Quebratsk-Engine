@@ -29,6 +29,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A lookup answered with whatever the hash table reached first.** A model names its textures
+  as bare fragments, "metal/metalwall001a", which only a search can resolve, and with a dozen
+  games mounted many files answer to the same fragment. The search returned the first entry
+  the bucket layout happened to yield, so which game a Counter-Strike model was dressed from
+  was decided by the hash. Nothing about the result looked wrong from the outside.
+
+  Every Valve game ships a manifest saying which other games it draws on, and those are now
+  read: `liblist.gam` for GoldSrc, `gameinfo.txt` for Source. A lookup runs in the asking
+  asset's own archive first, then its game, then the games that game falls back to, then
+  everything else, with the mount order as a final tie-break so an answer never depends on
+  chance. Eight games were found on the test machine with their chains intact, among them
+  `cstrike` to `valve` and `ep2` to `episodic` to `hl2`. Of **281 lookups for paths that
+  exist in more than one game, 281 now answer from the asking game.**
+
+  Two things the manifests do not say outright had to be handled. Counter-Strike 1.6 declares
+  no fallback at all, because GoldSrc takes the base game as given, so a GoldSrc mod falls
+  back to `valve` unless it says otherwise. And Counter-Strike 1.6 and Counter-Strike Source
+  both live in a folder called `cstrike`, so a game is identified by its directory rather than
+  by its name; identifying by name made the two one game that could read each other's files.
+
 - **Source animation events were read at the wrong stride.** `mstudioevent_t` is 80 bytes,
   not 76: the trailing name index is easy to miss and missing it is not harmless. The first
   event of a sequence still read correctly and every one after it was garbage, so a weapon

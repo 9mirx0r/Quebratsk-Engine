@@ -81,7 +81,7 @@ Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
         const std::string bare = has_extension(key) ? key.substr(0, key.find_last_of('.')) : key;
         for (const auto& dir : _search_paths) {
             for (const char* ext : {".vmt", ".vtf"}) {
-                resolved_uri = _vfs->find_by_suffix("/" + dir + bare + ext);
+                resolved_uri = _vfs->find_by_suffix("/" + dir + bare + ext, _origin);
                 if (!resolved_uri.empty()) break;
             }
             if (!resolved_uri.empty()) break;
@@ -99,7 +99,7 @@ Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
         }
     } else if (resolved_uri.empty()) {
         for (const auto& candidate : build_candidates(key)) {
-            resolved_uri = _vfs->find_by_suffix(candidate);
+            resolved_uri = _vfs->find_by_suffix(candidate, _origin);
             if (!resolved_uri.empty()) break;
         }
     }

@@ -37,6 +37,15 @@ public:
     /// model ends up wearing another model's texture, or none.
     void set_search_paths(const std::vector<std::string>& paths) { _search_paths = paths; }
 
+    /// The asset whose textures these are, as a VFS URI.
+    ///
+    /// A bare reference like "metal/metalwall001a" is answered by a search, and with several
+    /// games mounted many files answer to it. Knowing who is asking is what makes the search
+    /// look in that model's own archive first, then its game, then the games its game falls
+    /// back to. Without it the answer is merely consistent, not correct: a Counter-Strike
+    /// model can end up wearing a Half-Life 2 texture that happens to share a name.
+    void set_origin(const std::string& vfs_uri) { _origin = vfs_uri; }
+
     /// Material references that were looked for and not found, in the order they came up.
     /// A model that renders flat and grey has this list to explain why.
     [[nodiscard]] const std::vector<std::string>& missing() const { return _missing; }
@@ -45,6 +54,7 @@ public:
 
 private:
     vfs::VFSManager* _vfs = nullptr;
+    std::string _origin;
     std::vector<std::string> _search_paths;
     std::vector<std::string> _missing;
 };

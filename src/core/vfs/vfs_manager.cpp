@@ -33,6 +33,10 @@ void VFSManager::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_file_size", "vfs_uri"), &VFSManager::get_file_size);
     ClassDB::bind_method(D_METHOD("get_mounts_info"), &VFSManager::get_mounts_info);
     ClassDB::bind_method(D_METHOD("scan_game_directory", "real_dir"), &VFSManager::scan_game_directory);
+    ClassDB::bind_method(D_METHOD("get_game_of", "vfs_uri"), &VFSManager::get_game_of);
+    ClassDB::bind_method(D_METHOD("resolve_reference", "fragment", "origin_uri"),
+                         &VFSManager::resolve_reference, DEFVAL(String()));
+    ClassDB::bind_method(D_METHOD("get_game_search_order"), &VFSManager::get_game_search_order);
 }
 
 /// A path as it is filed in the index: lowercase, forward slashes.
@@ -148,8 +152,60 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
     return true;
 }
 
+void VFSManager::adopt_game(MountedContainer& container) {
+    if (container.real_path.empty()) return;
+
+    std::error_code ec;
+    std::filesystem::path dir(container.real_path);
+    if (std::filesystem::is_regular_file(dir, ec)) dir = dir.parent_path();
+    const std::string key = dir.string();
+
+    if (const auto cached = m_game_of_dir.find(key); cached != m_game_of_dir.end()) {
+        container.game_id = cached->second.first;
+        container.game_name = cached->second.second;
+        return;
+    }
+
+    std::string id;
+    std::string name;
+    if (auto manifest = find_owning_game(container.real_path); manifest.has_value()) {
+        id = manifest->id;
+        name = manifest->name;
+        // First manifest wins. The same game can be reached down two paths, and its own
+        // declaration is the one that counts either way.
+        m_game_fallbacks.try_emplace(id, manifest->fallbacks);
+        m_game_names.try_emplace(id, name);
+    }
+    m_game_of_dir.emplace(key, std::make_pair(id, name));
+    container.game_id = std::move(id);
+    container.game_name = std::move(name);
+}
+
+std::vector<std::string> VFSManager::search_order(size_t container_index) const {
+    std::vector<std::string> order;
+    if (container_index >= m_containers.size()) return order;
+
+    const std::string& game = m_containers[container_index].game_id;
+    if (game.empty()) return order;
+
+    order.push_back(game);
+    if (const auto it = m_game_fallbacks.find(game); it != m_game_fallbacks.end()) {
+        order.insert(order.end(), it->second.begin(), it->second.end());
+    }
+    return order;
+}
+
+std::string VFSManager::game_of(const std::string& vfs_uri) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto it = m_index.find(to_lower(vfs_uri));
+    if (it == m_index.end() || it->second.container_index >= m_containers.size()) return {};
+    return m_containers[it->second.container_index].game_id;
+}
+
 size_t VFSManager::place_container(MountedContainer&& container) {
     container.occupied = true;
+    container.order = m_mount_counter++;
+    adopt_game(container);
 
     // Reuse a slot freed by unmount() instead of growing forever. Existing entries
     // reference containers by index, so slots are recycled, never erased.
@@ -757,16 +813,98 @@ std::optional<std::span<const std::byte>> VFSManager::get_raw_span(const std::st
     return mapped_bytes.subspan(entry.offset, entry.disk_size);
 }
 
-std::string VFSManager::find_by_suffix(const std::string& lowercase_suffix) const {
+std::string VFSManager::find_by_suffix(const std::string& lowercase_suffix,
+                                       const std::string& origin_uri) const {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (lowercase_suffix.empty()) return {};
 
-    for (const auto& [uri, entry] : m_index) {
-        if (uri.size() >= lowercase_suffix.size() && uri.ends_with(lowercase_suffix)) {
-            return uri;
+    constexpr size_t kNoContainer = static_cast<size_t>(-1);
+    size_t origin_container = kNoContainer;
+    std::vector<std::string> order;
+
+    if (!origin_uri.empty()) {
+        if (const auto it = m_index.find(to_lower(origin_uri)); it != m_index.end()) {
+            origin_container = it->second.container_index;
+            order = search_order(origin_container);
         }
     }
-    return {};
+
+    // Lower is better: the asking asset's own archive, then its game, then each game its
+    // game falls back to, then anything else. With no origin every candidate scores the
+    // same and the mount order decides, which is still an answer that does not change.
+    auto rank_of = [&](const VFSEntry& entry) -> size_t {
+        if (entry.container_index == origin_container) return 0;
+        if (entry.container_index >= m_containers.size()) return order.size() + 2;
+
+        const std::string& game = m_containers[entry.container_index].game_id;
+        for (size_t i = 0; i < order.size(); ++i) {
+            if (order[i] == game) return i + 1;
+        }
+        return order.size() + 1;
+    };
+
+    const std::string* best = nullptr;
+    size_t best_rank = 0;
+    size_t best_order = 0;
+
+    for (const auto& [uri, entry] : m_index) {
+        if (!uri.ends_with(lowercase_suffix)) continue;
+
+        const size_t rank = rank_of(entry);
+        // Nothing can beat the asking asset's own archive, so the rest of the index does
+        // not need looking at. This is the common case and it is what keeps a full scan
+        // from being the price of every texture in a model.
+        if (rank == 0) return uri;
+
+        const size_t mount_order = entry.container_index < m_containers.size()
+                                       ? m_containers[entry.container_index].order
+                                       : static_cast<size_t>(-1);
+
+        const bool better = best == nullptr || rank < best_rank
+                         || (rank == best_rank && mount_order < best_order)
+                         || (rank == best_rank && mount_order == best_order && uri < *best);
+        if (better) {
+            best = &uri;
+            best_rank = rank;
+            best_order = mount_order;
+        }
+    }
+    return best != nullptr ? *best : std::string{};
+}
+
+String VFSManager::get_game_of(const String& vfs_uri) const {
+    return String(game_of(vfs_uri.utf8().get_data()).c_str());
+}
+
+String VFSManager::resolve_reference(const String& fragment, const String& origin_uri) const {
+    return String(find_by_suffix(to_lower(fragment.utf8().get_data()),
+                                 origin_uri.utf8().get_data()).c_str());
+}
+
+Dictionary VFSManager::get_game_search_order() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    Dictionary out;
+
+    // Keyed by directory, because that is the identity; the readable name comes alongside,
+    // since two entries here can legitimately share one.
+    for (const auto& [game, fallbacks] : m_game_fallbacks) {
+        PackedStringArray chain;
+        for (const auto& f : fallbacks) {
+            // A fallback need not be a game in its own right: garrysmod draws on a
+            // "sourceengine" folder that ships no manifest, so its own name is all there is.
+            const auto named = m_game_names.find(f);
+            const std::string label = named != m_game_names.end()
+                                          ? named->second
+                                          : f.substr(f.find_last_of('/') + 1);
+            chain.push_back(String(label.c_str()));
+        }
+        Dictionary entry;
+        const auto named = m_game_names.find(game);
+        entry["name"] = String((named != m_game_names.end() ? named->second : game).c_str());
+        entry["falls_back_to"] = chain;
+        out[String(game.c_str())] = entry;
+    }
+    return out;
 }
 
 std::vector<std::byte> VFSManager::read_owned(const std::string& vfs_uri_str) const {

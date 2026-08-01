@@ -28,7 +28,12 @@ public:
     ///
     /// A soundscript entry often lists several takes under rndwave for variety, so this
     /// returns all of them and lets the caller pick. Empty when nothing resolves.
-    [[nodiscard]] std::vector<std::string> resolve(const std::string& event_name);
+    ///
+    /// `origin_uri` is the model that named the sound. A weapon and its gunshot ship in the
+    /// same game, so knowing which model asked is what stops a Counter-Strike rifle from
+    /// being answered with a Half-Life 2 file of the same name.
+    [[nodiscard]] std::vector<std::string> resolve(const std::string& event_name,
+                                                  const std::string& origin_uri = {});
 
     /// Names that were looked up and led nowhere, in the order they came up.
     [[nodiscard]] const std::vector<std::string>& missing() const { return _missing; }
@@ -39,7 +44,7 @@ private:
     void build_index();
 
     /// The VFS URI for a wave path as a soundscript writes it, or an empty string.
-    [[nodiscard]] std::string locate_wave(std::string wave) const;
+    [[nodiscard]] std::string locate_wave(std::string wave, const std::string& origin_uri) const;
 
     vfs::VFSManager* _vfs = nullptr;
     bool _indexed = false;
