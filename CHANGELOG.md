@@ -33,9 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now hangs from the right hand's bone through a `BoneAttachment3D`, and a model with no such
   bone says so instead of carrying a rifle in the sky.
 
-- **Characters stood in a T-pose while walking.** Measured in a running scene, all four bodies
-  now report an animation playing — `run`, `walk`, `walk`, `idle1` — and feet between 2 mm and
-  10 cm off the ground, the 10 cm being a foot lifted mid-stride.
+- **Characters snapped to a T-pose after moving.** Not a missing animation — an ended one.
+  `jump` is two seconds long and does not loop, so when it finished `current_animation` went
+  empty, the AnimationMixer stopped writing to the skeleton, and the model reverted to its bind
+  pose. And `jump` was being chosen constantly, because walking over the ridges of a real map
+  loses floor contact for a frame at a time and every one of those started it again.
+
+  Two fixes: a stance is replayed when nothing is playing and not only when the name changes,
+  and the feet may leave the ground for 0.12 s before it counts as being in the air.
+
+  The first measurement of this missed it entirely. A single snapshot found all four bodies
+  animating and reported the problem solved; the T-pose is a transition, and it took sampling
+  **360 physics ticks** to see. Now: **0 frames with nothing playing**, on every body.
 
 - **Automatic weapons fired one shot per click.** Firing was tied to the mouse button going
   down rather than being held, which turns an AK into a semi-automatic. The rate is governed by

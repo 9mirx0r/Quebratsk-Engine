@@ -53,6 +53,9 @@ const STEP_WALK := 220.0 * UNIT
 const STEP_RUN := 300.0 * UNIT
 const STEP_SILENT := 100.0 * UNIT
 
+## How long the feet may leave the ground before it counts as being in the air.
+const COYOTE := 0.12
+
 const LOOK := 0.0022
 const RANGE := 80.0
 const DAMAGE := 34
@@ -65,6 +68,7 @@ var _pitch := 0.0
 var _speed := SPEED
 var _eye_rest := Vector3(0, EYE, 0)
 var _bob_time := 0.0
+var _airborne := 0.0
 
 var _stances := {}
 var _body_anim: AnimationPlayer
@@ -244,7 +248,11 @@ func _drive_animation() -> void:
 	var wanted := AnimationSets.best(_stances, _stance())
 	if wanted.is_empty() or not _body_anim.has_animation(wanted):
 		return
-	if _body_anim.current_animation != wanted:
+	# `is_playing()` as well as the name. A stance that does not loop — jump is two seconds
+	# and ends, die ends by design — leaves current_animation empty when it finishes, the
+	# mixer stops writing to the skeleton, and the model snaps back to its bind pose. That is
+	# the T-pose that appeared after a movement: not a missing animation, an ended one.
+	if _body_anim.current_animation != wanted or not _body_anim.is_playing():
 		_body_anim.play(wanted)
 
 
@@ -255,7 +263,14 @@ func _drive_animation() -> void:
 ## gaitsequence. Only the legs are chosen here, because one AnimationPlayer plays one
 ## sequence — a limitation worth naming rather than leaving to be discovered.
 func _stance() -> String:
+	# A moment off the ground is not a jump. Walking over the ridges and stairs of a real map
+	# loses floor contact for a frame at a time, and treating each of those as a jump started
+	# a two second animation several times a second.
 	if not is_on_floor():
+		_airborne += get_physics_process_delta_time()
+	else:
+		_airborne = 0.0
+	if _airborne > COYOTE:
 		return "jump"
 	var ground := Vector2(velocity.x, velocity.z).length()
 	var moving := ground > _speed * 0.12
