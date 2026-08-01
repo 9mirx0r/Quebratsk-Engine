@@ -59,6 +59,8 @@ bool is_non_visible_texture(const std::string& name) {
 
 } // namespace
 
+
+
 std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     std::span<const std::byte> bsp_bytes
 ) {
@@ -343,21 +345,18 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     size_t num_clipnodes = clipnode_lump.size() / sizeof(BSPClipNode);
 
     map_data.collision_data.source_engine = ir::SourceEngine::GoldSrc;
-    for (size_t c = 0; c < num_clipnodes; ++c) {
-        const auto& node = bsp_clipnodes[c];
-        // Comparing the plane's start offset against the lump size allowed a read that
-        // began inside the lump and ran up to 19 bytes past its end. Compare the index
-        // against the element count instead.
-        if (node.plane_index >= 0 && static_cast<size_t>(node.plane_index) < num_planes) {
-            const auto& plane = bsp_planes[node.plane_index];
-            godot::Vector3 normal_raw(plane.normal[0], plane.normal[1], plane.normal[2]);
-            
-            ir::IRCollisionData::ClipPlane cp;
-            cp.normal = math::transform_normal_zup_to_yup(normal_raw);
-            cp.distance = static_cast<float>(plane.distance * math::kHammerUnitsToMeters);
-            map_data.collision_data.clip_planes.push_back(cp);
-        }
-    }
+
+    // Lump 14 and the clipnode tree are read no further for now. See the note above the
+    // clipnode collection: an attempt to rebuild the hulls from this tree is recorded in the
+    // commit history and was reverted, because it cost 18 to 38 seconds per map against the
+    // 200 milliseconds the visible-surface collider takes, and produced no regions at all.
+    //
+    // The two faults are known. Descending the front child pushed the plane unnegated, which
+    // describes the region behind it rather than in front, so no leaf ever closed. And
+    // computing a region's corners by intersecting every triple of its bounding planes is
+    // cubic in a plane count that grows with tree depth: thirty levels deep across thousands
+    // of leaves is millions of triples per map. The way out is to clip a large box by each
+    // plane in turn, which is linear in the planes and in the faces they cut.
 
     return map_data;
 }

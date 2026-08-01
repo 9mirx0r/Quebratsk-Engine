@@ -74,10 +74,37 @@ struct BSPMipTexLumpHeader {
 };
 #pragma pack(pop)
 
+/// dmodel_t (64 bytes). Lump 14. One per brush model: the world is model 0 and every door,
+/// lift and rotating fan is one of the rest.
+///
+/// `head_nodes` is why this struct matters. Index 0 is the visible BSP tree, and 1 to 3 are
+/// the roots of the three clipnode trees, one per player size. Without reading this there is
+/// no way to know where a hull begins, which is why the clipnodes were being read as an
+/// unordered pile of planes.
+struct BSPModel {
+    float mins[3];
+    float maxs[3];
+    float origin[3];
+    int32_t head_nodes[4];   // 0 = visible tree, 1..3 = the collision hulls
+    int32_t num_vis_leafs;
+    int32_t first_face;
+    int32_t num_faces;
+};
+
+static_assert(sizeof(BSPModel) == 64, "BSPModel size mismatch");
 static_assert(sizeof(BSP30Header) == 124, "BSP30Header size mismatch");
 static_assert(sizeof(BSPVertex) == 12, "BSPVertex size mismatch");
 static_assert(sizeof(BSPFace) == 20, "BSPFace size mismatch");
 static_assert(sizeof(BSPClipNode) == 8, "BSPClipNode size mismatch");
+
+/// A clipnode child below zero is a content type rather than another node, and only one of
+/// them stops a player.
+inline constexpr int16_t kContentsEmpty = -1;
+inline constexpr int16_t kContentsSolid = -2;
+
+/// Which clipnode tree describes a standing player. Hull 2 is for large monsters and hull 3
+/// for crouching, and neither is what a level is walked through with.
+inline constexpr int kHullStanding = 1;
 static_assert(sizeof(BSPPlane) == 20, "BSPPlane size mismatch");
 static_assert(sizeof(BSPEdge) == 4, "BSPEdge size mismatch");
 static_assert(sizeof(BSPTexInfo) == 40, "BSPTexInfo size mismatch");
