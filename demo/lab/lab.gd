@@ -672,5 +672,5 @@ func _refresh_hud() -> void:
 		lines.append("%-10s %s" % [key, str(_built[key])])
 	lines.append("")
 	lines.append("WASD move · mouse look · click shoot · R reload")
-	lines.append("Space jump · Ctrl crouch · Shift walk · Esc cursor")
+	lines.append("Space jump · Ctrl crouch · Shift walk · V noclip · Esc cursor")
 	_hud.text = "\n".join(lines)
