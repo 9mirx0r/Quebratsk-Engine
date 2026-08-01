@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The maps row claimed Source, which was never true.** It listed BSP30 for both GoldSrc
+  and Source 1. Half-Life 2 and Garry's Mod maps are VBSP version 19 and 20, and all 81 of
+  them decode to nothing. GoldSrc's 150 do work, and now come in with collision.
+
 - **The `.wrp` row in the supported table now says what it actually covers.** It claimed
   Arma and DayZ terrain. DayZ's `chernarusplus.wrp` and `enoch.wrp` are OPRW version 29, and
   the reader recognises the magic and then decodes nothing from them. Older Arma terrain may
@@ -41,6 +45,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   this project calls supported.
 
 ### Added
+
+- **Imported things are solid.** A map arrived as geometry and nothing else, so you walked
+  straight through it; a model was equally intangible. `load_map()` returns a
+  `MeshInstance3D` carrying a `StaticBody3D` with a trimesh collider, which is the same
+  structure Godot's own "Create Trimesh Static Body" produces, so anyone who opens the node
+  later finds something they recognise. Models get a capsule sized from their bounds, since a
+  trimesh collider on a skinned mesh would stay frozen in the rest pose while the mesh
+  animates away from it.
+
+  Verified with physics rather than by reading the tree: a ball dropped from 15.6 m above
+  `as_oilrig.bsp` comes to rest at y=10.33 on a 16,309-triangle collider. A player model
+  produces a capsule 1.79 m tall and 0.55 m across, centred at hip height.
+
+- **Category icons and a backdrop behind the 3D preview**, plus the checkerboard stand-in
+  every engine here uses for a texture it could not read. Cosmetic.
 
 - **A game to search in.** With more than one game mounted, "police" returned hits from all
   of them mixed together and the origin column only told you where something came from once
