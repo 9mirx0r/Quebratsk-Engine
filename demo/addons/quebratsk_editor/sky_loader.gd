@@ -139,15 +139,20 @@ static func load_sky(vfs: VFSManager, entities: Array, report: Array = [],
 static func _load_panorama(map: String) -> Texture2D:
 	if map.is_empty():
 		return null
-	for ext in [".png", ".jpg"]:
-		var path := "%s/%s/%s_panorama%s" % [OVERRIDE_FOLDER, map, map, ext]
-		if not FileAccess.file_exists(path):
-			continue
-		var bytes := FileAccess.get_file_as_bytes(path)
-		var image := Image.new()
-		var err := image.load_png_from_buffer(bytes) if ext == ".png" 			else image.load_jpg_from_buffer(bytes)
-		if err == OK and image.get_width() > 0:
-			return ImageTexture.create_from_image(image)
+	# Largest first. A panorama tends to arrive in a couple of sizes and the big one is the
+	# reason to have made it; the smaller is there for a machine that cannot hold it.
+	for size in ["_8k", "_4k", ""]:
+		for ext in [".png", ".jpg"]:
+			var path := "%s/%s/%s_panorama%s%s" % [OVERRIDE_FOLDER, map, map, size, ext]
+			if not FileAccess.file_exists(path):
+				continue
+			var bytes := FileAccess.get_file_as_bytes(path)
+			var image := Image.new()
+			var err := image.load_png_from_buffer(bytes) if ext == ".png" 				else image.load_jpg_from_buffer(bytes)
+			if err == OK and image.get_width() > 0:
+				print("[sky] panorama %s (%dx%d)"
+					% [path.get_file(), image.get_width(), image.get_height()])
+				return ImageTexture.create_from_image(image)
 	return null
 
 
