@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://l5l25pvc4cdv"]
+
+[ext_resource type="Script" path="res://tests/verify_animation_set.gd" id="1_veranset"]
+
+[node name="VerifyAnimationSet" type="Node"]
+script = ExtResource("1_veranset")

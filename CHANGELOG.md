@@ -48,6 +48,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   animation plays, and carry a right hand bone an arm's length away.** Both naming
   conventions are handled, `ValveBiped.Bip01_Head1` and `Bip01 Head`.
 
+- **A model can be brought in able to do more than one thing.** The dock imported one
+  sequence, so a character arrived able to stand still or able to walk, never both, and
+  anyone wanting idle, walk and run had to import the same model three times and reconcile
+  three scenes afterwards. The engine could always do more; nothing asked it to.
+
+  "Bring it in moving" now offers the usual moves as well as the single chosen one: idle,
+  walk, run, crouch, jump, shoot, reload and die, found by name out of the hundreds a model
+  carries. A Condition Zero player model has 494 sequences and almost all of them are
+  situational. Across six models, **38 roles were recognised, all 38 imported, and all 38
+  move a bone.** No sequence is allowed to stand for two roles, since one file imported
+  under two names looks like a model that can both walk and run when it can only do one.
+
+  The naming knowledge lives in one place shared by the dock and the sandbox, which is what
+  keeps them from disagreeing the first time one learns a convention the other has not.
+
 - **A saved scene weighs what it should.** Everything an import builds lives only in memory,
   so packing it wrote all of it into the scene file: a model with two 1024-pixel textures came
   out as a **six megabyte .tscn**, most of it one image spelled out as text. Fifty models would

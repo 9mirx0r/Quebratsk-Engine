@@ -32,6 +32,7 @@ func _ready() -> void:
 	_check_add()
 	_check_search()
 	_check_game_filter()
+	_check_animation_scope()
 	_check_pick()
 	_check_persistence()
 	print("\n=== DONE ===")
@@ -232,6 +233,48 @@ func _check_game_filter() -> void:
 		% [narrowed, checked, clean])
 	if checked > 0 and clean < checked:
 		print("   ** the filter leaks between games **")
+
+
+## Does "the usual moves" actually bring in more than one?
+##
+## The dock could import one sequence, so a character arrived able to stand still or able to
+## walk, never both. The engine could always do more; nothing in the dock asked it to.
+func _check_animation_scope() -> void:
+	print("
+3c. bringing in a set of animations")
+
+	_dock._search.text = "player"
+	_dock._refresh_results()
+	var row: TreeItem = _dock._results.get_root().get_first_child()
+	var uri := ""
+	while row != null:
+		var candidate := str(row.get_metadata(0))
+		if candidate.ends_with(".mdl") and _dock._importer.list_poses(candidate).size() >= 20:
+			uri = candidate
+			break
+		row = row.get_next()
+	if uri.is_empty():
+		print("   no model with enough sequences among the results")
+		return
+
+	# Through the real path: the pose list is what the single-sequence choice draws on, and
+	# setting the URI alone leaves it empty, which reads as the choice returning nothing.
+	_dock._selected_uri = uri
+	_dock._load_poses(uri)
+	_dock._animate_toggle.button_pressed = true
+
+	for scope in [_dock.SCOPE_ONE, _dock.SCOPE_USUAL]:
+		for i in _dock._animate_scope.item_count:
+			if str(_dock._animate_scope.get_item_metadata(i)) == scope:
+				_dock._animate_scope.select(i)
+		# The single-sequence choice needs a pose named; the set finds its own.
+		if scope == _dock.SCOPE_ONE and _dock._pose_picker.item_count > 1:
+			_dock._pose_picker.select(1)
+		var wanted: PackedStringArray = _dock._chosen_animations()
+		print("   %-24s asks for %d sequence(s): %s"
+			% [scope, wanted.size(), ", ".join(wanted)])
+
+	_dock._animate_toggle.button_pressed = false
 
 
 func _check_search() -> void:
