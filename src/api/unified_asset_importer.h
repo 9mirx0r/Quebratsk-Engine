@@ -182,6 +182,18 @@ public:
     godot::PackedStringArray list_sounds(const godot::String& vfs_uri,
                                          const godot::String& sequence = godot::String());
 
+    /// VFS URIs for a sound named the way a game names it, or an empty array.
+    ///
+    /// A map's ambient_generic entities name their sound the same way a model's events do,
+    /// which is to say inconsistently: a path relative to sound/ in one game, a soundscript
+    /// entry in another. This is the same resolution list_sounds() applies, exposed on its
+    /// own so a caller holding a name from anywhere can use it.
+    ///
+    /// `origin_uri` is the asset that named it, so the search runs in that asset's game
+    /// first. A map and the sounds it plays ship together.
+    godot::PackedStringArray resolve_sound(const godot::String& name,
+                                           const godot::String& origin_uri = godot::String());
+
     /// Every animation sequence label the model carries, e.g. "idle_smg1".
     ///
     /// Skips the .vvd and .vtx entirely — poses live in the .mdl and its .ani, so the

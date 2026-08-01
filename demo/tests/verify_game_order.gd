@@ -80,8 +80,15 @@ func _report_contested() -> void:
 			var game := _vfs.get_game_of(uri)
 			if game.is_empty():
 				continue
-			# Strip "vfs://<mount>/" to get the path as a reference would name it.
+			# The path as a reference would name it, which means without the mount and
+			# without the game folder. A loose GoldSrc file is indexed as
+			# "cstrike/models/player/..." and its Condition Zero twin as "czero/models/...",
+			# so leaving the game in front means no two copies ever look like the same path
+			# and nothing is ever found to be contested.
 			var tail := uri.substr(uri.find("/", 6) + 1)
+			var folder := game.get_file() + "/"
+			if tail.begins_with(folder):
+				tail = tail.substr(folder.length())
 			if not seen.has(tail):
 				seen[tail] = {}
 			(seen[tail] as Dictionary)[game] = uri

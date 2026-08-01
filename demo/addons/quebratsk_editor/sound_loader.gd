@@ -12,10 +12,14 @@ class_name QuebratskSoundLoader
 ## file's own bytes, so handing those straight over is simpler and lossless.
 
 
-static func load_sound(vfs: VFSManager, uri: String) -> AudioStream:
+## `looping` is for sounds meant to run for as long as a scene is open, which a map's
+## ambience is and a gunshot is not. It has to be asked for rather than read from the file:
+## these WAVs carry loop points in a "cue " chunk that the games honour by convention, and a
+## great many that plainly loop in game do not have one.
+static func load_sound(vfs: VFSManager, uri: String, looping := false) -> AudioStream:
 	match uri.get_extension().to_lower():
 		"wav":
-			return load_wav(vfs, uri)
+			return load_wav(vfs, uri, looping)
 		"mp3":
 			var mp3 := AudioStreamMP3.new()
 			mp3.data = vfs.read_file(uri)
@@ -32,7 +36,7 @@ static func load_sound(vfs: VFSManager, uri: String) -> AudioStream:
 ## extracted, so the container is parsed here and the samples handed over directly. RIFF is
 ## a chunk list, not a fixed header: the fmt and data chunks are found by walking it,
 ## because LIST and fact chunks sit between them in plenty of real files.
-static func load_wav(vfs: VFSManager, uri: String) -> AudioStreamWAV:
+static func load_wav(vfs: VFSManager, uri: String, looping := false) -> AudioStreamWAV:
 	var bytes := vfs.read_file(uri)
 	if bytes.size() < 44:
 		return null
@@ -84,4 +88,12 @@ static func load_wav(vfs: VFSManager, uri: String) -> AudioStreamWAV:
 	stream.mix_rate = rate
 	stream.stereo = channels >= 2
 	stream.data = samples
+
+	if looping:
+		# The whole sample. loop_end is in frames, and a frame is one sample per channel, so
+		# leaving it at zero would loop a fraction of a second of a stereo file.
+		var bytes_per_frame: int = channels * (1 if bits == 8 else 2)
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		stream.loop_begin = 0
+		stream.loop_end = samples.size() / maxi(bytes_per_frame, 1)
 	return stream

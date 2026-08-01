@@ -3,6 +3,7 @@
 #include "../io/keyvalues.h"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
@@ -147,6 +148,18 @@ std::optional<GameManifest> read_game_manifest(const std::string& dir) {
     std::error_code ec;
     const std::filesystem::path base(dir);
 
+    // A folder with one of these names is content, whatever it happens to contain. Valve
+    // ships a stray liblist.gam inside scripts/ in more than one game, and without this a
+    // directory called "scripts" becomes a game of its own, taking every soundscript out of
+    // the search order of the game that ships it.
+    static const std::array<const char*, 8> kContentFolders = {
+        "scripts", "models", "sound", "maps", "materials", "sprites", "gfx", "media",
+    };
+    const std::string own_name = to_lower(base.filename().string());
+    for (const char* reserved : kContentFolders) {
+        if (own_name == reserved) return std::nullopt;
+    }
+
     // gameinfo.txt first: a Source game that also ships a liblist.gam for legacy tools would
     // otherwise be read through the poorer of its two manifests.
     for (const char* name : {"gameinfo.txt", "liblist.gam"}) {
@@ -170,17 +183,24 @@ std::optional<GameManifest> find_owning_game(const std::string& real_path) {
     // tree is already a directory.
     if (std::filesystem::is_regular_file(dir, ec)) dir = dir.parent_path();
 
-    // A few levels is enough for every layout these games use, and a bound is what stops the
-    // walk from climbing out to the drive root on a path that has no manifest anywhere.
-    for (int level = 0; level < 5 && !dir.empty(); ++level) {
+    // The OUTERMOST manifest wins, not the first one found on the way up. Valve leaves a
+    // liblist.gam inside hl2/scripts and inside sourceengine/scripts, neither of which is a
+    // game: taking the innermost made "scripts" a game of its own, and put every soundscript
+    // outside the search order of the game that ships it.
+    //
+    // A bound is what stops the walk from climbing out to the drive root on a path that has
+    // no manifest anywhere. Eight levels covers a workshop addon buried in subfolders, and
+    // the answer is cached per directory, so the extra steps are paid once.
+    std::optional<GameManifest> best;
+    for (int level = 0; level < 8 && !dir.empty(); ++level) {
         if (auto manifest = read_game_manifest(dir.string()); manifest.has_value()) {
-            return manifest;
+            best = std::move(manifest);
         }
         const std::filesystem::path parent = dir.parent_path();
         if (parent == dir) break;
         dir = parent;
     }
-    return std::nullopt;
+    return best;
 }
 
 } // namespace quebratsk::vfs

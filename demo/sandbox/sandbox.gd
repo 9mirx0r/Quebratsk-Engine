@@ -175,9 +175,102 @@ func _load_random_map() -> bool:
 		add_child(map)
 		_built["map"] = uri.get_file()
 		_read_spawns(uri)
+		_place_ambient_sounds(uri)
 		_apply_sky(uri)
 		return true
 	return false
+
+
+## Give the map back the sounds it declares.
+##
+## A level is not only a shape. It says where the generator hums, where the wind blows, where
+## water runs, as ambient_generic entities carrying a sound name and a position. Every import
+## until now read those off disk and threw them away, which is why an imported map was a place
+## with nothing happening in it.
+##
+## Half the work is knowing which of them to start. A map uses the same entity for ambience
+## and for one-shot dialogue a script fires later, and the difference is a spawnflag rather
+## than anything about the sound.
+func _place_ambient_sounds(uri: String) -> void:
+	# What the entity keys mean. These are Half-Life's, and Source kept them.
+	const PLAY_EVERYWHERE := 1   # no attenuation, the sound fills the level
+	const START_SILENT := 16     # a cue something else triggers, not ambience
+	const NOT_LOOPED := 32
+	# The radius a mapper who set nothing gets, in Hammer units.
+	const DEFAULT_RADIUS := 1250.0
+	const UNITS_TO_METRES := 0.0254
+
+	var root := Node3D.new()
+	root.name = "MapAmbience"
+	add_child(root)
+
+	var playing := 0
+	var cues := 0
+	var absent := 0
+
+	for e in importer.load_map_entities(uri):
+		var entity: Dictionary = e
+		if str(entity.get("classname", "")) != "ambient_generic":
+			continue
+		var message := str(entity.get("message", ""))
+		if message.is_empty():
+			continue
+
+		var flags := int(entity.get("spawnflags", 0))
+		# Dialogue and machinery that starts on a trigger. The tram ride announcer at the
+		# start of Half-Life is one of these, and looping it the moment a level opens is
+		# worse than leaving it out.
+		if flags & START_SILENT:
+			cues += 1
+			continue
+
+		var files: PackedStringArray = importer.resolve_sound(message, uri)
+		if files.is_empty():
+			absent += 1
+			continue
+
+		var looping := (flags & NOT_LOOPED) == 0
+		var stream: AudioStream = SoundLoader.load_sound(vfs, str(files[0]), looping)
+		if stream == null:
+			absent += 1
+			continue
+
+		var node := AudioStreamPlayer3D.new()
+		node.stream = stream
+		node.position = entity.get("position", Vector3.ZERO)
+		node.autoplay = true
+
+		# "health" is the volume, 0 to 10, which is a Half-Life quirk rather than a mistake:
+		# the entity reuses a field every entity has instead of declaring its own.
+		var loudness: float = clampf(float(entity.get("health", 10)) / 10.0, 0.0, 1.0)
+		node.volume_db = linear_to_db(maxf(loudness, 0.001))
+
+		# 100 is normal. Mappers detune a hum by a few percent so two of them side by side do
+		# not phase against each other.
+		var pitch: float = float(entity.get("pitch", 100)) / 100.0
+		node.pitch_scale = clampf(pitch, 0.1, 4.0)
+
+		if flags & PLAY_EVERYWHERE:
+			node.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
+			node.max_distance = 0.0
+		else:
+			var radius: float = float(entity.get("radius", DEFAULT_RADIUS)) * UNITS_TO_METRES
+			node.max_distance = radius
+			# Nominal volume out to a quarter of the radius, fading over the rest, so a sound
+			# is audible around its source rather than only on top of it.
+			node.unit_size = maxf(radius * 0.25, 1.0)
+
+		root.add_child(node)
+		playing += 1
+
+	if playing == 0 and cues == 0 and absent == 0:
+		root.queue_free()
+		print("[sandbox] %s declares no ambient sound" % uri.get_file())
+		return
+
+	print("[sandbox] %s ambience: %d playing, %d waiting on a trigger, %d not found"
+		% [uri.get_file(), playing, cues, absent])
+	_built["ambience"] = "%d sound(s)" % playing
 
 
 ## Put the map's own sky behind it.
