@@ -233,15 +233,21 @@ int main() {
 
     if (s.positions.size() == 3) {
         std::printf("Bone-local -> model space:\n");
-        // v0 on bone 0 (identity): (10,20,30) -> godot (x*k, z*k, -y*k)
-        check("v0.x", s.positions[0].x,  10.0f * kScale);
+        // v0 on bone 0 (identity): (10,20,30) -> godot (-y*k, z*k, -x*k)
+        //
+        // These expectations used to read (x*k, z*k, -y*k), which is the mapping the engine
+        // had and which was wrong: it sent Valve's forward to Godot's right, so every model
+        // stood ninety degrees off. The test asserted the defect was correct, which is why it
+        // never caught it and why a screenshot of an NPC aiming sideways had to.
+        check("v0.x", s.positions[0].x, -20.0f * kScale);
         check("v0.y", s.positions[0].y,  30.0f * kScale);
-        check("v0.z", s.positions[0].z, -20.0f * kScale);
-        // v1 on bone 1, whose rest transform translates +100 on X.
-        // A parser that ignored the hierarchy would leave this at the origin.
-        check("v1.x (bone hierarchy)", s.positions[1].x, 100.0f * kScale);
+        check("v0.z", s.positions[0].z, -10.0f * kScale);
+        // v1 on bone 1, whose rest transform translates +100 on Valve's X, which is forward,
+        // and therefore -100 on Godot's Z. A parser that ignored the hierarchy would leave
+        // this at the origin.
+        check("v1.x (bone hierarchy)", s.positions[1].x, 0.0f);
         check("v1.y", s.positions[1].y, 0.0f);
-        check("v1.z", s.positions[1].z, 0.0f);
+        check("v1.z", s.positions[1].z, -100.0f * kScale);
         // v2 on bone 0 at local origin
         check("v2.x", s.positions[2].x, 0.0f);
     }
@@ -297,8 +303,9 @@ int main() {
         if (global.size() == 2) {
             check("bone0 global origin.x", global[0].origin.x, 0.0);
             // bone1 is a child translated +100 source units on X -> 100 * 0.0254 metres.
-            check("bone1 global origin.x", global[1].origin.x, 100.0f * kScale);
+            check("bone1 global origin.x", global[1].origin.x, 0.0f);
             check("bone1 global origin.y", global[1].origin.y, 0.0);
+            check("bone1 global origin.z", global[1].origin.z, -100.0f * kScale);
 
             // Round trip: global_rest * inverse(global_rest) must be identity, which is
             // what the runtime does when it applies the bind pose.
