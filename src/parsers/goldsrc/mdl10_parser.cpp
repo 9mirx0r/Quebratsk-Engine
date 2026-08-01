@@ -375,6 +375,27 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
 
         read_sequences(mdl, *header, bones, result.skeleton_data, result.animations, animate,
                        sequence_groups);
+
+        // Attachment points, which are only meaningful once the bones they hang from exist.
+        if (header->num_attachments > 0 && header->attachment_index > 0) {
+            const auto points = mdl.array_at<StudioAttachment>(
+                static_cast<size_t>(header->attachment_index),
+                static_cast<size_t>(header->num_attachments));
+
+            for (const StudioAttachment& point : points) {
+                if (point.bone < 0 || point.bone >= header->num_bones) continue;
+
+                ir::IRMeshData::Attachment attachment;
+                attachment.name = std::string(point.name, strnlen(point.name, sizeof(point.name)));
+                if (attachment.name.empty()) {
+                    attachment.name = "attachment_" + std::to_string(result.mesh_data.attachments.size());
+                }
+                attachment.bone_index = point.bone;
+                attachment.position = math::source_to_godot(
+                    godot::Vector3(point.origin[0], point.origin[1], point.origin[2]));
+                result.mesh_data.attachments.push_back(std::move(attachment));
+            }
+        }
         }
     }
 
@@ -466,6 +487,25 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
 
     for (int32_t bp = 0; bp < header->num_bodyparts; ++bp) {
         const auto& body = bodyparts[bp];
+
+        // Record what this part could have been before building one of them. A model that
+        // silently drops three of its four heads is not obviously wrong from the outside,
+        // and this is the only place that knows they existed.
+        if (body.num_models > 1 && body.model_index > 0) {
+            ir::IRBodyGroup group;
+            group.name = std::string(body.name, strnlen(body.name, sizeof(body.name)));
+            group.chosen = 0;
+
+            const auto choices = mdl.array_at<StudioModel>(
+                static_cast<size_t>(body.model_index), static_cast<size_t>(body.num_models));
+            for (const StudioModel& choice : choices) {
+                group.options.emplace_back(choice.name,
+                                           strnlen(choice.name, sizeof(choice.name)));
+            }
+            if (!group.options.empty()) {
+                result.mesh_data.body_groups.push_back(std::move(group));
+            }
+        }
 
         // Only the first model of each body part is imported: the remaining ones are
         // alternates selected at runtime by the "body" value (e.g. weapon variants),

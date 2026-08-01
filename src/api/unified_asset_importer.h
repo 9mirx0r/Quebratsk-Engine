@@ -167,6 +167,23 @@ public:
     /// map was building the MeshInstance3D by hand and none of them added a body.
     godot::Node3D* load_map(const godot::String& vfs_uri);
 
+    /// The parts of a model that come in several versions, and what each could be.
+    ///
+    /// A Half-Life scientist has four heads and a weapon has a magazine that can be present or
+    /// absent. Only one version of each part is built, which is what the game does, but a
+    /// caller that does not know the alternatives exist cannot ask for them.
+    ///
+    /// Returns an Array of Dictionaries: { "name": String, "options": PackedStringArray,
+    /// "chosen": int }. Empty for a model with nothing to choose, which is most props.
+    godot::Array list_body_groups(const godot::String& vfs_uri);
+
+    /// Named points on a model's skeleton: a muzzle, a shell ejection port, the tip of a
+    /// barrel. Nothing else in the file records where a weapon's effects belong.
+    ///
+    /// Returns an Array of Dictionaries: { "name": String, "bone": int, "position": Vector3 },
+    /// the position being in that bone's own space and already in Godot's axes.
+    godot::Array list_attachments(const godot::String& vfs_uri);
+
     /// VFS URIs of the sounds a named sequence plays, in order.
     ///
     /// A weapon's firing animation names its own gunshot, a footstep animation names the

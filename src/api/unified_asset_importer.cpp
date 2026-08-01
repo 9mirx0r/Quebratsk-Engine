@@ -63,6 +63,10 @@ void UnifiedAssetImporter::_bind_methods() {
     ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
     ClassDB::bind_method(D_METHOD("list_sounds", "vfs_uri", "sequence"),
                          &UnifiedAssetImporter::list_sounds, DEFVAL(String()));
+    ClassDB::bind_method(D_METHOD("list_body_groups", "vfs_uri"),
+                         &UnifiedAssetImporter::list_body_groups);
+    ClassDB::bind_method(D_METHOD("list_attachments", "vfs_uri"),
+                         &UnifiedAssetImporter::list_attachments);
     ClassDB::bind_method(D_METHOD("resolve_sound", "name", "origin_uri"),
                          &UnifiedAssetImporter::resolve_sound, DEFVAL(String()));
     ClassDB::bind_method(D_METHOD("get_last_error_code"), &UnifiedAssetImporter::get_last_error_code);
@@ -411,6 +415,62 @@ PackedStringArray UnifiedAssetImporter::list_sounds(const String& vfs_uri,
                                    "\", which is not on this machine");
     }
 
+    m_last_error_code = ERR_OK;
+    return out;
+}
+
+Array UnifiedAssetImporter::list_body_groups(const String& vfs_uri) {
+    Array out;
+    if (!m_vfs) {
+        m_last_error_code = ERR_VFS_NOT_SET;
+        return out;
+    }
+    // Body groups live in the bodypart table, which is read whether or not geometry is built,
+    // so this costs a parse and not a mesh.
+    const AssetBundleBytes bundle = read_asset_bundle(vfs_uri, /*with_geometry=*/false);
+    if (bundle.empty()) {
+        m_last_error_code = ERR_ASSET_UNREADABLE;
+        return out;
+    }
+
+    const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
+    const ParsedAssetIR ir = parse_asset_ir(bundle, uri_lower, /*pose_names_only=*/true);
+
+    for (const auto& group : ir.mesh.body_groups) {
+        Dictionary entry;
+        entry["name"] = String(group.name.c_str());
+        entry["chosen"] = group.chosen;
+        PackedStringArray options;
+        for (const auto& option : group.options) options.push_back(String(option.c_str()));
+        entry["options"] = options;
+        out.push_back(entry);
+    }
+    m_last_error_code = ERR_OK;
+    return out;
+}
+
+Array UnifiedAssetImporter::list_attachments(const String& vfs_uri) {
+    Array out;
+    if (!m_vfs) {
+        m_last_error_code = ERR_VFS_NOT_SET;
+        return out;
+    }
+    const AssetBundleBytes bundle = read_asset_bundle(vfs_uri, /*with_geometry=*/false);
+    if (bundle.empty()) {
+        m_last_error_code = ERR_ASSET_UNREADABLE;
+        return out;
+    }
+
+    const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
+    const ParsedAssetIR ir = parse_asset_ir(bundle, uri_lower, /*pose_names_only=*/true);
+
+    for (const auto& attachment : ir.mesh.attachments) {
+        Dictionary entry;
+        entry["name"] = String(attachment.name.c_str());
+        entry["bone"] = attachment.bone_index;
+        entry["position"] = attachment.position;
+        out.push_back(entry);
+    }
     m_last_error_code = ERR_OK;
     return out;
 }
