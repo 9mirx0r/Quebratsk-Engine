@@ -9,7 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The sandbox is gone; there is a lab.** `demo/sandbox/` had grown to thirteen hundred lines
+  of patches on patches, and its two scripts were where most of this session's defects lived.
+  `demo/lab/` replaces it in about six hundred, because what it used to work out for itself now
+  comes from `res://presets`: which of a model's 111 sequences is walking, what a weapon sounds
+  like, how fast it lets you move.
+
+  It opens **de_aztec**, not de_dust2. Of the 25 maps Counter-Strike ships, exactly five
+  declare no sound at all and de_dust2 is one of them — so testing on it meant the ambient
+  sound path was never once exercised and its silence read as a defect. Measured across every
+  map: de_torn declares 100 `ambient_generic`, de_piranesi 96, cs_backalley 48, cs_italy an
+  opera and some chickens, de_aztec rain and thunder.
+
+  On de_aztec the lab reports **5 ambient sounds playing**, 34 spawn points, and every body
+  standing on the floor with an animation running.
+
 ### Fixed
+
+- **Weapons floated above people's heads.** An enemy's weapon was positioned by hand relative
+  to the body, and a GoldSrc body's origin is the centre of its hull rather than its hands. It
+  now hangs from the right hand's bone through a `BoneAttachment3D`, and a model with no such
+  bone says so instead of carrying a rifle in the sky.
+
+- **Characters stood in a T-pose while walking.** Measured in a running scene, all four bodies
+  now report an animation playing — `run`, `walk`, `walk`, `idle1` — and feet between 2 mm and
+  10 cm off the ground, the 10 cm being a foot lifted mid-stride.
+
+- **Automatic weapons fired one shot per click.** Firing was tied to the mouse button going
+  down rather than being held, which turns an AK into a semi-automatic. The rate is governed by
+  the weapon's own cycle time from the game's tables. Which weapons are genuinely
+  semi-automatic is in the game's code and is not read yet; until it is, everything holds.
 
 - **Characters floated above the floor, and the collider was a metre too tall.** Measured on a
   running scene: a 1.8 m person had a **2.67 m capsule** and stood with its feet **1.14 m above
