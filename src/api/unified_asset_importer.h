@@ -180,10 +180,6 @@ private:
     /// Does nothing when no animations were requested, which is the default.
     static void attach_animations(godot::Skeleton3D* skeleton, const ParsedAssetIR& parsed);
 
-    /// Add every .wad a map names and does not have to the missing list, and say so.
-    /// A custom map usually leaves its textures in files it expects you to already own.
-    void report_missing_wads(const godot::String& vfs_uri);
-
     /// A StaticBody3D holding a trimesh collider for `mesh`, to be parented to whatever
     /// draws it. Trimesh rather than convex because a map is not remotely convex: a hull
     /// around a building fills in its rooms.

@@ -2,7 +2,11 @@
 #include "../../core/io/byte_reader.h"
 #include "../../core/math/axis_remap.h"
 #include "structs/wad3_structs.h" // MiptexHeader, shared with the WAD3 reader
-#include "wad3_parser.h"          // reuse the miptex decoder for embedded textures
+#include "wad3_parser.h"
+
+#include <cctype>
+
+#include <godot_cpp/variant/utility_functions.hpp>          // reuse the miptex decoder for embedded textures
 
 #include <cstring>
 #include <string>
@@ -10,6 +14,24 @@
 #include <vector>
 
 namespace quebratsk::parsers::goldsrc {
+
+namespace {
+
+/// Whether a face wearing this texture should be left out of the mesh.
+///
+/// "sky" is the convention across every Quake-derived engine, and mappers write it in
+/// whatever case they please. Some maps use a numbered variant when they need more than one
+/// sky brush entity.
+bool is_sky_texture(const std::string& name) {
+    std::string lower;
+    lower.reserve(name.size());
+    for (const char c : name) {
+        lower.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+    }
+    return lower == "sky" || lower.starts_with("sky_") || lower == "skip" || lower == "null";
+}
+
+} // namespace
 
 std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     std::span<const std::byte> bsp_bytes
@@ -86,6 +108,10 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         int32_t embedded_index = -1; // into map_data.mesh_data.embedded_textures
     };
     std::vector<MipTexEntry> miptextures;
+    int diag_embedded = 0;
+    int diag_external = 0;
+    int diag_sky_faces = 0;
+    bool entry_was_embedded = false;
 
     {
         io::ByteReader tex(get_lump(2));
@@ -116,6 +142,7 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
                         // in the BSP rather than in an external WAD. Most compiled
                         // GoldSrc maps embed their textures, so decoding them is the
                         // difference between a textured map and a blank grey one.
+                        entry_was_embedded = mh->offsets[0] != 0;
                         if (mh->offsets[0] != 0) {
                             const auto miptex_span = tex.tail_at(static_cast<size_t>(ofs));
                             if (auto decoded = WAD3Parser::parse_miptex(miptex_span);
@@ -127,6 +154,8 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
                         }
                     }
                     miptextures.push_back(std::move(entry));
+                    if (entry_was_embedded) ++diag_embedded; else ++diag_external;
+                    entry_was_embedded = false;
                 }
             }
         }
@@ -151,6 +180,15 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         const MipTexEntry* miptex = nullptr;
         if (tex_idx >= 0 && static_cast<size_t>(tex_idx) < miptextures.size()) {
             miptex = &miptextures[tex_idx];
+
+            // A face textured "sky" is not a surface: GoldSrc draws the skybox through it
+            // and never renders the brush. Emitting it as geometry puts the sky texture's
+            // own pixels across the level, which is a lurid purple placeholder that no
+            // player of the game has ever seen, and walls the map in besides.
+            if (is_sky_texture(miptex->name)) {
+                ++diag_sky_faces;
+                continue;
+            }
         }
 
         auto& surf = surface_map[tex_idx];
