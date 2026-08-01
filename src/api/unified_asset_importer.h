@@ -160,6 +160,17 @@ public:
     /// map was building the MeshInstance3D by hand and none of them added a body.
     godot::Node3D* load_map(const godot::String& vfs_uri);
 
+    /// The sounds a named sequence plays, in order.
+    ///
+    /// A weapon's firing animation names its own gunshot, a footstep animation names the
+    /// footstep. This is the only place in these files that ties an action to a noise: a
+    /// .mdl says nothing else about it, so any other way of choosing a sound for a weapon
+    /// is choosing one at random.
+    ///
+    /// Pass an empty `sequence` to get every sound the model can make.
+    godot::PackedStringArray list_sounds(const godot::String& vfs_uri,
+                                         const godot::String& sequence = godot::String());
+
     /// Every animation sequence label the model carries, e.g. "idle_smg1".
     ///
     /// Skips the .vvd and .vtx entirely — poses live in the .mdl and its .ani, so the

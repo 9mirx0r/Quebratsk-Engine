@@ -25,7 +25,14 @@ const ENEMY_COUNT := 4
 
 ## Name a map here to always load that one, or leave it empty to take a readable map at
 ## random. Matched loosely, so "de_dust" finds de_dust2 as well.
-const FORCE_MAP := "de_survivor"
+const FORCE_MAP := "de_caminito"
+
+## Folders to mount besides the installed games: a downloaded map, an extracted mod, a
+## folder of your own work. A custom map arrives as a bundle with its textures, its skybox
+## and its sounds beside it, and mounting the whole thing is what makes those reachable.
+const EXTRA_FOLDERS := [
+	"C:/Users/emir/Downloads/de_caminito",
+]
 
 var vfs: VFSManager
 var importer: UnifiedAssetImporter
@@ -88,6 +95,23 @@ func _mount_installed_games() -> int:
 		# .bsp files beside the game rather than inside a .wad.
 		vfs.mount_directory("g%d_loose" % mounted, root)
 		mounted += 1
+	for folder in EXTRA_FOLDERS:
+		if not DirAccess.dir_exists_absolute(str(folder)):
+			continue
+		# The archives first, then the loose tree. Mounting only the tree indexes a .wad as
+		# a single file rather than opening it, so every texture inside stays unreachable:
+		# de_caminito came out with 68 of its 123 surfaces textured for exactly that reason,
+		# while reporting all five of its .wad files present.
+		var scan: Dictionary = vfs.scan_game_directory(str(folder))
+		var archives := 0
+		for archive in scan.get("archives", []):
+			if vfs.mount_container("extra%d_%d" % [mounted, archives], str(archive)):
+				archives += 1
+		var found: int = vfs.mount_directory("extra%d" % mounted, str(folder))
+		print("[sandbox] mounted %s: %d archive(s), %d loose file(s)"
+			% [str(folder).get_file(), archives, found])
+		mounted += 1
+
 	mounted += _mount_workshop(mounted)
 	_built["games"] = games.keys()
 	return mounted

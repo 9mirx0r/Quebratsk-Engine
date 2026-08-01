@@ -21,6 +21,17 @@ func _ready() -> void:
 	add_child(_importer)
 	_importer.set_vfs(_vfs)
 
+	# A downloaded map arrives as a bundle: the .bsp plus the .wad files its textures live
+	# in, its skybox and its sounds. Mounting the folder is what makes all of that reachable.
+	var bundle := "C:/Users/emir/Downloads/de_caminito"
+	var bundle_scan: Dictionary = _vfs.scan_game_directory(bundle)
+	var b := 0
+	for archive in bundle_scan.get("archives", []):
+		if _vfs.mount_container("dlw%d" % b, str(archive)):
+			b += 1
+	_vfs.mount_directory("dl", bundle)
+	print("bundle: %d archive(s) opened" % b)
+
 	var games: Dictionary = SteamLibraryDetector.detect_installed_games()
 	var n := 0
 	for title in games:
@@ -34,7 +45,7 @@ func _ready() -> void:
 
 	print("\n=== MAP TEXTURE VERIFICATION ===")
 
-	var hit: Dictionary = _vfs.find_files("de_survivor", PackedStringArray(["bsp"]),
+	var hit: Dictionary = _vfs.find_files("de_caminito", PackedStringArray(["bsp"]),
 		PackedStringArray(), PackedStringArray(), 0)
 
 	var checked := 0

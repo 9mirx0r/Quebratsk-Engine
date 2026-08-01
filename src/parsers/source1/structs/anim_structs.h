@@ -57,6 +57,19 @@ struct SourceSeqDesc {
     int32_t unused[7];
 };
 
+/// mstudioevent_t (76 bytes). Offsets inside a sequence, one per thing that happens while
+/// it plays: a footstep, a shell ejecting, a gunshot.
+///
+/// `options` is where a sound event keeps the name of the sound it plays. That name is the
+/// only place in any of these files that ties a weapon to the noise it makes: a .mdl does
+/// not otherwise say, and the game's own scripts are not shipped in a form worth parsing.
+struct SourceEvent {
+    float cycle;        // when in the sequence, 0 to 1
+    int32_t event;      // the event id, whose meaning depends on `type`
+    int32_t type;       // which family of event ids this is from
+    char options[64];   // a sound name for sound events, other things for others
+};
+
 /// mstudioanimdesc_t (100 bytes). Offsets inside are relative to this struct.
 struct SourceAnimDesc {
     int32_t base_ptr;
@@ -140,6 +153,7 @@ inline constexpr uint8_t kAnimRawRot2 = 0x20; // SourceQuat64 follows
 /// what tells an idle to repeat rather than play once and freeze on its last frame.
 inline constexpr int32_t kSeqLooping = 0x0001;
 
+static_assert(sizeof(SourceEvent) == 76, "SourceEvent size mismatch");
 static_assert(sizeof(SourceSeqDesc) == 212, "SourceSeqDesc size mismatch");
 static_assert(sizeof(SourceAnimDesc) == 100, "SourceAnimDesc size mismatch");
 static_assert(sizeof(SourceBoneAnim) == 4, "SourceBoneAnim size mismatch");
