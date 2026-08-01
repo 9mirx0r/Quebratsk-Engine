@@ -33,6 +33,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   scripts ship as plain KeyValues text inside the VPKs and are now read as well: **15,145
   entries from 450 script files**, with every name the sampled models asked for resolving.
 
+- **A first-person view with a body under it.** The player was a capsule with a camera on
+  top, so looking down showed nothing and the weapon was pinned to the camera at a fixed
+  offset, which is what made it look pasted onto the screen. The player is now a real
+  character model, the view sits where that model's own head bone is, and the weapon hangs
+  off its right hand. Looking down shows the legs and arms that are actually standing there.
+
+  The camera follows the head bone's position but keeps its own aim. Parenting it to the bone
+  would hand it that bone's orientation, which in these models points wherever the artist
+  left it, and every nod of the walk cycle would end up steering the crosshair.
+
+  Measured across eight character models rather than judged from a screenshot: **8 of 8 have
+  a head bone findable by name, place it in the top fifth of the figure, move it while the
+  animation plays, and carry a right hand bone an arm's length away.** Both naming
+  conventions are handled, `ValveBiped.Bip01_Head1` and `Bip01 Head`.
+
+- **A world model borrows the sound of the weapon it is.** A `w_` model is the shape a gun
+  has in someone's hand and carries no sequences at all, so it names no sound. The firing
+  sound lives on the view model of the same weapon, and that is where it is read from now:
+  `w_smg_mp5.mdl` plays what `v_smg_mp5.mdl` says it plays. The twin is resolved against the
+  asking model, so a Counter-Strike world model finds the Counter-Strike view model.
+
 ### Fixed
 
 - **A lookup answered with whatever the hash table reached first.** A model names its textures
