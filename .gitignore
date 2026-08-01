@@ -87,3 +87,6 @@ demo/bin/~*.dll
 # What the dock writes when someone presses Save. Generated from games on the machine,
 # reproducible from them, and not something to carry in the repository.
 demo/imported/
+
+# What packaging a release produces. Rebuilt from source every time.
+release_pack/
