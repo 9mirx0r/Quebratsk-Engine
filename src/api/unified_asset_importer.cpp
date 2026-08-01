@@ -11,6 +11,7 @@
 
 #include <godot_cpp/classes/animation_library.hpp>
 #include <godot_cpp/classes/capsule_shape3d.hpp>
+#include <godot_cpp/classes/character_body3d.hpp>
 #include <godot_cpp/classes/collision_shape3d.hpp>
 #include <godot_cpp/classes/concave_polygon_shape3d.hpp>
 #include <godot_cpp/classes/static_body3d.hpp>
@@ -50,6 +51,9 @@ void UnifiedAssetImporter::_bind_methods() {
                          &UnifiedAssetImporter::load_model,
                          DEFVAL(String()), DEFVAL(PackedStringArray()));
     ClassDB::bind_method(D_METHOD("load_map", "vfs_uri"), &UnifiedAssetImporter::load_map);
+    ClassDB::bind_method(D_METHOD("load_character", "vfs_uri", "pose_name", "animations"),
+                         &UnifiedAssetImporter::load_character,
+                         DEFVAL(String()), DEFVAL(PackedStringArray()));
     ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
     ClassDB::bind_method(D_METHOD("get_last_error_code"), &UnifiedAssetImporter::get_last_error_code);
     ClassDB::bind_method(D_METHOD("get_last_missing_companions"),
@@ -474,9 +478,11 @@ StaticBody3D* UnifiedAssetImporter::capsule_body(const AABB& bounds) {
 
     Ref<CapsuleShape3D> shape;
     shape.instantiate();
-    // Radius from the wider of the two ground axes, so a figure standing side-on is not
-    // sliced in half by its own collider.
-    const float radius = std::max(std::max(size.x, size.z) * 0.5f, 0.05f);
+    // The narrower ground axis, not the wider one. A model's rest pose has its arms out, so
+    // the wide axis is its wingspan: taking that gave a person a 1.1 m thick capsule, which
+    // lands on a floor perfectly well and then cannot fit through anything, including the
+    // gap it is standing in. Front to back is the measurement that describes a body.
+    const float radius = std::max(std::min(size.x, size.z) * 0.5f, 0.05f);
     shape->set_radius(radius);
     // A Godot capsule's height includes its two hemispherical caps, so a shorter model than
     // twice the radius has no cylindrical part left and the height cannot go below that.
@@ -491,6 +497,53 @@ StaticBody3D* UnifiedAssetImporter::capsule_body(const AABB& bounds) {
     // Centred on the mesh rather than on the origin: a character's origin is at its feet.
     collider->set_position(bounds.position + size * 0.5f);
     body->add_child(collider);
+    return body;
+}
+
+Node3D* UnifiedAssetImporter::load_character(const String& vfs_uri, const String& pose_name,
+                                             const PackedStringArray& animations) {
+    Node3D* model = load_model(vfs_uri, pose_name, animations);
+    if (model == nullptr) return nullptr;
+
+    Skeleton3D* skeleton = Object::cast_to<Skeleton3D>(model);
+    if (skeleton == nullptr) {
+        // No bones, so there is no character here. Handing back a CharacterBody3D wrapped
+        // around a crate would be a promise the asset cannot keep.
+        UtilityFunctions::printerr("[QuebratskImporter] Not a skinned model, so not a "
+                                   "character: ", vfs_uri);
+        return model;
+    }
+
+    // The capsule moves to the root. Leaving it on the skeleton would give the character a
+    // static obstacle riding inside its own body, which is exactly the shape that makes a
+    // mover collide with itself and refuse to go anywhere.
+    StaticBody3D* rider = Object::cast_to<StaticBody3D>(skeleton->get_node_or_null("StaticBody3D"));
+    Ref<Shape3D> shape;
+    Vector3 shape_offset;
+    if (rider != nullptr) {
+        if (auto* collider = Object::cast_to<CollisionShape3D>(
+                rider->get_node_or_null("CollisionShape3D"))) {
+            shape = collider->get_shape();
+            shape_offset = collider->get_position();
+        }
+        skeleton->remove_child(rider);
+        memdelete(rider);
+    }
+
+    CharacterBody3D* body = memnew(CharacterBody3D);
+    body->set_name(skeleton->get_name());
+    skeleton->set_name("Skeleton3D");
+
+    if (shape.is_valid()) {
+        CollisionShape3D* collider = memnew(CollisionShape3D);
+        collider->set_name("CollisionShape3D");
+        collider->set_shape(shape);
+        collider->set_position(shape_offset);
+        body->add_child(collider);
+    }
+    body->add_child(skeleton);
+
+    m_last_error_code = ERR_OK;
     return body;
 }
 

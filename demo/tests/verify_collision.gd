@@ -45,6 +45,7 @@ func _ready() -> void:
 	await _check_map()
 	await _check_prop()
 	await _check_character()
+	await _check_character_walks()
 	print("\n=== DONE ===")
 	get_tree().quit()
 
@@ -215,3 +216,151 @@ func _check_character() -> void:
 		node.queue_free()
 		return
 	print("   no player model found")
+
+
+## A character has to land on a map and then be able to move along it.
+##
+## A CharacterBody3D that exists proves neither. It can be built around no shape at all, or
+## around a capsule left inside a static body it then collides with and cannot escape, which
+## is the failure that looks most like success: the node is right, the collider is right,
+## and it will not move a centimetre.
+func _check_character_walks() -> void:
+	print("
+4. A character that lands on a map and walks along it")
+
+	var maps: Dictionary = _vfs.find_files("as_oilrig", PackedStringArray(["bsp"]),
+		PackedStringArray(), PackedStringArray(), 1)
+	# Several candidates, not the first: a model whose .vvd is in an archive that is not
+	# mounted fails to load for reasons that have nothing to do with what is being checked.
+	var models: Dictionary = _vfs.find_files("models/player/", PackedStringArray(["mdl"]),
+		PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 12)
+	if (maps["files"] as PackedStringArray).is_empty() or (models["files"] as PackedStringArray).is_empty():
+		print("   needs one GoldSrc map and one player model; not both are here")
+		return
+
+	var map: Node3D = _importer.load_map(str(maps["files"][0]))
+	if map == null:
+		print("   the map did not load")
+		return
+	add_child(map)
+
+	# A character is 1.79 m tall. If the map is not tens of metres across, the two were not
+	# converted to the same units and nothing else in this check will make sense.
+	var box: AABB = (map as MeshInstance3D).get_aabb()
+	print("   map spans %.1f x %.1f x %.1f m, from y=%.1f to y=%.1f"
+		% [box.size.x, box.size.y, box.size.z, box.position.y, box.end.y])
+
+	var who: Node3D = null
+	var chosen := ""
+	for entry in models["files"]:
+		who = _importer.load_character(str(entry))
+		if who != null:
+			chosen = str(entry)
+			break
+	if who == null:
+		print("   no player model loaded at all, last error %d  ** FAILED **"
+			% _importer.get_last_error_code())
+		map.queue_free()
+		return
+	var body := who as CharacterBody3D
+	if body == null:
+		print("   got a %s, not a CharacterBody3D  ** FAILED **" % who.get_class())
+		who.queue_free()
+		map.queue_free()
+		return
+
+	var col: CollisionShape3D = body.get_node_or_null("CollisionShape3D")
+	var skel: Skeleton3D = body.get_node_or_null("Skeleton3D")
+	var trapped: bool = skel != null and skel.get_node_or_null("StaticBody3D") != null
+	print("   %s -> CharacterBody3D, collider=%s, skeleton=%s, static body left inside=%s"
+		% [chosen.get_file(),
+		   "none" if col == null or col.shape == null else col.shape.get_class(),
+		   "none" if skel == null else "%d bones" % skel.get_bone_count(),
+		   "yes  ** it would fight itself **" if trapped else "no"])
+
+	# Find a floor inside the level rather than dropping from above it. A GoldSrc BSP is a
+	# sealed box: anything released over the top lands on the outer shell, stands on it
+	# perfectly well, and is walled in on every side. Which is what was happening.
+	add_child(body)
+	var spawn := _floor_inside(box)
+	if spawn == Vector3.INF:
+		print("   found no floor inside the level to stand on")
+		body.queue_free()
+		map.queue_free()
+		return
+	body.position = spawn
+	print("   standing inside the level at %s" % str(spawn.round()))
+
+	var landed := false
+	for i in 240:
+		await get_tree().physics_frame
+		body.velocity.y -= 9.8 * get_physics_process_delta_time()
+		body.move_and_slide()
+		if body.is_on_floor():
+			landed = true
+			break
+	if not landed:
+		print("   it never landed  ** FELL THROUGH **")
+		body.queue_free()
+		map.queue_free()
+		return
+
+	var landing := body.position
+	print("   landed at y=%.2f" % landing.y)
+
+	# Then try to walk it, in four directions rather than one. The origin of a map is not
+	# an open field: being blocked heading north says nothing about whether the character can
+	# move at all, which is the actual question.
+	var best := 0.0
+	var best_dir := ""
+	for pair in [[Vector3(2, 0, 0), "+x"], [Vector3(-2, 0, 0), "-x"],
+			[Vector3(0, 0, 2), "+z"], [Vector3(0, 0, -2), "-z"]]:
+		body.position = landing
+		body.velocity = Vector3.ZERO
+		for i in 60:
+			await get_tree().physics_frame
+			var push: Vector3 = pair[0]
+			body.velocity = Vector3(push.x, body.velocity.y - 9.8 * get_physics_process_delta_time(), push.z)
+			body.move_and_slide()
+		var moved: float = Vector2(body.position.x - landing.x, body.position.z - landing.z).length()
+		if moved > best:
+			best = moved
+			best_dir = str(pair[1])
+
+	print("   walked for one second: furthest %.2f m, heading %s%s"
+		% [best, best_dir if best_dir != "" else "nowhere",
+		   "" if best > 0.5 else "   ** it cannot move in any direction **"])
+	if best <= 0.5:
+		print("      on wall=%s, on floor=%s, %d contact(s)"
+			% [body.is_on_wall(), body.is_on_floor(), body.get_slide_collision_count()])
+	body.queue_free()
+	map.queue_free()
+
+
+## A point just above a floor somewhere inside the level.
+##
+## Casts downward from head height at a spread of positions across the map and takes the
+## first that finds ground with room above it. Maps do not record where a player belongs in
+## any form this importer reads yet, so this is how a spawn point gets chosen.
+func _floor_inside(box: AABB) -> Vector3:
+	var space := get_world_3d().direct_space_state
+	var centre := box.position + box.size * 0.5
+
+	for fx in [0.5, 0.4, 0.6, 0.3, 0.7]:
+		for fz in [0.5, 0.4, 0.6, 0.3, 0.7]:
+			var x: float = box.position.x + box.size.x * fx
+			var z: float = box.position.z + box.size.z * fz
+			var from := Vector3(x, box.end.y - 1.0, z)
+			var to := Vector3(x, box.position.y, z)
+			var query := PhysicsRayQueryParameters3D.create(from, to)
+			var hit := space.intersect_ray(query)
+			if hit.is_empty():
+				continue
+			var ground: Vector3 = hit["position"]
+			# Room to stand: nothing within two metres above the ground we just found.
+			var up := PhysicsRayQueryParameters3D.create(
+				ground + Vector3(0, 0.2, 0), ground + Vector3(0, 2.2, 0))
+			if not space.intersect_ray(up).is_empty():
+				continue
+			return ground + Vector3(0, 0.1, 0)
+	return Vector3.INF
