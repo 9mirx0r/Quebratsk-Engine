@@ -316,7 +316,7 @@ easier aesthetics to reproduce with assets of your own.
 | [docs/API.md](docs/API.md) | Every class and method, for scripting against it |
 | [docs/TUTORIAL.md](docs/TUTORIAL.md) | Longer walkthroughs |
 | [CREDITS.md](CREDITS.md) | Who answered what |
-| [CLAUDE.md](CLAUDE.md) | How to work in this repository |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Building, testing, and what bites |
 
 ## Licence
 
