@@ -12,7 +12,8 @@ extends Node3D
 ## silence, an animation whose track path resolves to nothing: all of those pass a unit test
 ## and fail here.
 ##
-## Controls: WASD to move, mouse to look, left click to shoot, Escape to free the cursor.
+## Controls: WASD to move, mouse to look, left click to shoot, R to reload, Space to jump,
+## Ctrl to crouch, Shift to walk quietly, Escape to free the cursor.
 
 const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
@@ -33,6 +34,17 @@ const ENEMY_COUNT := 4
 ## de_dust2 is the one everybody knows, and it is open air, which the Condition Zero campaign
 ## maps are not: indoors at night nothing about lighting, shadows or a skybox can be judged.
 const FORCE_MAP := "de_dust2"
+
+## Which game this scene is about, as the folder the game keeps its own content in.
+##
+## Steam puts Half-Life, Counter-Strike, Condition Zero and its Deleted Scenes inside one
+## folder called Half-Life, so mounting "the installed game" mounts four of them and the scene
+## comes out as a mixture: a Condition Zero soldier holding a Half-Life crowbar on a
+## Counter-Strike map. Every part of that is meant to work, and none of it can be judged.
+##
+## So one game at a time, and the polishing happens on Counter-Strike 1.6. Set this to "" to
+## go back to mounting everything installed.
+const ONLY_GAME := "cstrike"
 
 ## Folders to mount besides the installed games: a downloaded map, an extracted mod, a
 ## folder of your own work. A custom map arrives as a bundle with its textures, its skybox
@@ -107,6 +119,13 @@ func _mount_installed_games() -> int:
 	var mounted := 0
 	for title in games:
 		var root := str(games[title])
+		# One game's content folder rather than the whole install. A GoldSrc game is
+		# self-contained there: cstrike carries its own maps, models, sounds and .wad textures.
+		if not ONLY_GAME.is_empty():
+			var only := root.path_join(ONLY_GAME)
+			if not DirAccess.dir_exists_absolute(only):
+				continue
+			root = only
 		var scan: Dictionary = vfs.scan_game_directory(root)
 		var n := 0
 		for archive in scan.get("archives", []):
@@ -141,11 +160,16 @@ func _mount_installed_games() -> int:
 	# this machine. A scene built around a Condition Zero map draws on Condition Zero, Counter-
 	# Strike and Half-Life and will not touch one of them, so opening them all is waiting for
 	# nothing. Asking for a named map is saying which game this is about.
-	if FORCE_MAP.is_empty() or FORCE_MAP.begins_with("gm_") or FORCE_MAP.begins_with("rp_"):
+	if ONLY_GAME.is_empty() and (FORCE_MAP.is_empty() or FORCE_MAP.begins_with("gm_") \
+			or FORCE_MAP.begins_with("rp_")):
 		mounted += _mount_workshop(mounted)
 	else:
 		print("[sandbox] skipping workshop addons: '%s' is not a Garry's Mod map" % FORCE_MAP)
-	_built["games"] = games.keys()
+	if ONLY_GAME.is_empty():
+		_built["games"] = games.keys()
+	else:
+		print("[sandbox] %s only; set ONLY_GAME to \"\" for everything installed" % ONLY_GAME)
+		_built["games"] = [ONLY_GAME]
 	return mounted
 
 
@@ -500,6 +524,7 @@ func _spawn_player() -> void:
 	# a body is also the only way an arm or a weapon can be seen where it actually is.
 	var skeleton: Skeleton3D = null
 	var uri := ""
+	var moves := {}
 	for attempt in 12:
 		uri = _pick(_character_pool())
 		if uri.is_empty():
@@ -509,7 +534,7 @@ func _spawn_player() -> void:
 		if importer.list_poses(uri).size() < 20:
 			continue
 
-		var moves := _animation_set(uri)
+		moves = _animation_set(uri)
 		var sequences := PackedStringArray()
 		for role in moves:
 			sequences.append(str(moves[role]))
@@ -558,7 +583,12 @@ func _spawn_player() -> void:
 	_stand_on_floor(_player, spot)
 
 	var head := _bone_like(skeleton, ["head"])
-	_player.setup(self, camera, skeleton, head)
+	# The stances, which were imported and then not handed over. Without them the player's
+	# _drive_animation() returned on its first line, so the body slid around the level frozen
+	# in one pose while the enemies walked properly — and it took the audio player down with
+	# it, because that was being created at the end of the same function.
+	_player.setup(self, camera, skeleton, head, moves)
+	print("[sandbox] player stances: %s" % ", ".join(PackedStringArray(moves.keys())))
 	if skeleton != null and head < 0:
 		print("[sandbox] no head bone on this model, the view stays at a fixed height")
 
@@ -744,14 +774,14 @@ func _build_view_model(camera: Camera3D) -> Dictionary:
 		return empty
 
 	var fire := _fire_sequence(uri)
-	var sequences := PackedStringArray()
-	for role in ["idle", "draw", "deploy"]:
-		for pose in importer.list_poses(uri):
-			if str(pose).to_lower().begins_with(role):
-				sequences.append(str(pose))
-				break
-	if not fire.is_empty():
-		sequences.append(fire)
+	# All of them. A view model is not a character: a Counter-Strike rifle carries six
+	# sequences in total — idle1, reload, draw and shoot1 through shoot3 — where a player model
+	# carries a hundred and eleven, so the reason to be selective does not apply here.
+	#
+	# Being selective cost something real. Matching one sequence per role took shoot1 and left
+	# shoot2 and shoot3 behind, and those are why a rifle fired ten times does not look like a
+	# loop; it also left out reload, which is why R could do nothing.
+	var sequences: PackedStringArray = importer.list_poses(uri)
 
 	var model: Node3D = importer.load_model(uri, "", sequences)
 	if model == null:
