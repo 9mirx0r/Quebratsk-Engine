@@ -20,6 +20,14 @@ same commit.** The ground truth for any layout is the header that pins it:
 An offset stated anywhere and not carried by a `static_assert` in one of those files is not
 verified. Add the assert rather than trusting the prose.
 
+That guide now also carries the player's physics: hull dimensions, the movement cvars, the
+jump formula, and how acceleration and friction actually work. Those replaced numbers that had
+been invented, so treat the same way: the guide is where they live and the code is what proves
+them.
+
+`CREDITS.md` records which outside project answered which question. Add to it when another one
+does, and check the licence before reading code rather than after.
+
 ## Verification
 
 Compiling proves nothing about these formats, and neither does review. Almost every defect

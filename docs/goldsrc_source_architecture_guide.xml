@@ -488,4 +488,129 @@ ModelDependencyGraph ParseGoldSrcDependencies(const uint8_t* buffer, size_t size
       </recommendation>
     </recommendations>
   </section>
+
+  <!-- SECCION 5: FISICA Y CINEMATICA DEL JUGADOR -->
+  <section id="player_physics">
+    <title>Constantes de Movimiento, Hull del Jugador y Cinematica</title>
+    <description>
+      Incorporado el 2026-08-01 desde un informe de investigacion sobre el SDK de Half-Life y
+      ReGameDLL_CS, contrastado contra xash3d-fwgs y contra medicion en el sandbox. Dos
+      afirmaciones del informe eran falsas y estan anotadas como errata, no borradas: el error
+      es tan instructivo como el dato.
+
+      Antes de esto, player.gd tenia gravedad 22.0, velocidad 5.0 y salto 6.5. Ninguno salia de
+      ningun lado. El motor define todos.
+    </description>
+
+    <errata_del_informe>
+      <error id="1" severidad="alta">
+        El informe da la transformacion de ejes como (x, y, z) hacia (-x*s, z*s, y*s). Eso manda
+        el frente de Valve a la IZQUIERDA de Godot. La correcta es (-y, z, -x), verificada contra
+        capturas del sandbox y contra la linea entre hombros en verify_first_person.gd.
+
+        La pista de que estaba mal es su propia recomendacion de conjugar con una rotacion base
+        de -90 grados sobre X: eso es un parche para una transformacion base equivocada, no una
+        exigencia del formato. Adoptarla habria reintroducido el bug de los NPC de costado que
+        costo un dia encontrar.
+      </error>
+      <error id="2" severidad="media">
+        El informe dice que el hull de pie es (-16,-16,0) a (16,16,72) con el origen en los pies,
+        y que solo el hull agachado esta centrado. El SDK define los dos centrados:
+        VEC_HULL_MIN/MAX es (-16,-16,-36) a (16,16,36). Justamente por eso existe
+        AIRDUCKORIGINOFFSET: el origen se queda en el centro y la caja se encoge a su alrededor.
+
+        El numero derivado igual sale bien, 36 mas 28 son 64 unidades de altura de ojos, lo mismo
+        que su 0 mas 64. Pero quien siga el razonamiento coloca el colisionador mal.
+      </error>
+    </errata_del_informe>
+
+    <hull verified="SDK de Half-Life, util.h">
+      <estado nombre="de pie" min="-16,-16,-36" max="16,16,36" altura_unidades="72"
+          origen="centro del hull, 36 unidades sobre las suelas"/>
+      <estado nombre="agachado" min="-16,-16,-18" max="16,16,18" altura_unidades="36"
+          origen="centro del hull, 18 unidades sobre las suelas"/>
+      <vista de_pie="VEC_VIEW 0,0,28 desde el centro, o 64 unidades sobre las suelas"
+          agachado="VEC_DUCK_VIEW 0,0,12 desde el centro, o 30 sobre las suelas"/>
+      <nota>
+        El hull es una caja alineada a ejes, no una capsula. Quebratsk usa capsula porque es lo
+        que CharacterBody3D quiere, y difieren en las esquinas: un jugador de GoldSrc entra por
+        un hueco de 33 unidades de ancho y una capsula del mismo radio no. Si algun mapa resulta
+        intransitable, esto es lo primero a mirar.
+      </nota>
+    </hull>
+
+    <constantes verified="valores por defecto del motor; la conversion es exacta">
+      <unidad>1 unidad Hammer es 1 pulgada, 0.0254 m</unidad>
+      <cvar name="sv_gravity" hl="800" cs="800" metros="20.32 m/s2"/>
+      <cvar name="sv_stepsize" hl="18" cs="18" metros="0.457 m"/>
+      <cvar name="sv_maxspeed" hl="320" cs="900 en servidor" metros="8.13 m/s en HL"/>
+      <cvar name="sv_accelerate" hl="10" cs="5"/>
+      <cvar name="sv_airaccelerate" hl="10" cs="10"/>
+      <cvar name="sv_friction" hl="4.0" cs="4.0"/>
+      <cvar name="sv_stopspeed" hl="100" cs="75" metros="1.905 m/s en CS"/>
+      <cvar name="edgefriction" hl="2.0" cs="2.0"/>
+      <salto formula="raiz de 2 por sv_gravity por 45" unidades="268.3 u/s" metros="6.82 m/s">
+        No es un numero que alguien eligio. Valve diseno Half-Life alrededor de superar una caja
+        de 45 unidades y la velocidad de despegue es lo que eso exige.
+      </salto>
+      <velocidades_cs>
+        El arma en mano dicta el limite, por eso el servidor pone sv_maxspeed alto. Cuchillo, C4
+        y pistolas ligeras 250 u/s; subfusiles cerca de 240; fusiles entre 210 y 230; AWP 210, y
+        150 con la mira. Caminar es 0.52 de lo que permita el arma y agachado 0.333.
+      </velocidades_cs>
+    </constantes>
+
+    <cinematica verified="implementado en demo/sandbox/player.gd">
+      <pm_accelerate>
+        Acelerar en la direccion pedida solo por lo que falta EN ESA DIRECCION, medido con
+        producto escalar: current es velocity.dot(wishdir), falta es wishspeed menos current, y
+        si falta es negativo o cero no se hace nada. El incremento del fotograma es accel por
+        wishspeed por delta, acotado a lo que falta.
+      </pm_accelerate>
+      <air_cap unidades="30" metros="0.762 m/s">
+        En el aire wishspeed se acota a 30 u/s antes de la cuenta. De ese unico clamp salen el
+        air strafing y el bunny hop: girar hacia el movimiento reabre la brecha una y otra vez.
+        Sin el clamp la misma cuenta regala velocidad ilimitada en el primer fotograma.
+      </air_cap>
+      <friccion>
+        Por debajo de sv_stopspeed la caida se calcula contra ese umbral y no contra la velocidad
+        real, para que lo ultimo del movimiento se corte con firmeza en vez de arrastrarse.
+      </friccion>
+      <root_motion valor="ninguno">
+        Las animaciones de jugador no llevan movimiento de raiz. El desplazamiento lo hace el
+        codigo de fisica y el modelo lo sigue. Para que no patine, la velocidad de reproduccion
+        de la animacion escala con la velocidad real en el plano.
+      </root_motion>
+      <view_bobbing fuente="cl_dll/view.cpp, V_CalcBob, cl_bob 0.01">
+        El cabeceo de la camara al caminar es codigo, no una animacion de craneo. Amplitud
+        proporcional a la velocidad, cero cuando esta quieto.
+      </view_bobbing>
+    </cinematica>
+
+    <animacion_de_carrera verified="NO, pendiente de comprobar contra modelos instalados">
+      En Counter-Strike 1.6 correr no seria una secuencia sola sino un arbol de mezcla con nodos
+      por direccion (a_RunN, a_RunNW, a_RunS y demas) manejado por dos parametros move_x y move_y
+      de -1 a 1. animation_sets.gd busca una unica secuencia run y por eso los modelos de CS se
+      ven pobres al moverse. Afirmacion del informe, sin comprobar todavia.
+    </animacion_de_carrera>
+
+    <muerte verified="SDK de Half-Life">
+      GoldSrc no tiene ragdolls. Al bajar health de cero se levanta deadflag, el hull se reduce a
+      un volumen pegado al suelo, los proyectiles lo atraviesan, y se reproduce una animacion
+      death que congela en su ultimo fotograma. Un cadaver no reacciona a nada.
+
+      O sea que poner ragdolls es una modernizacion deliberada y no una restauracion. Vale
+      hacerlo, pero como decision de diseno declarada, no como fidelidad.
+    </muerte>
+
+    <sentences fuente="sound/sentences.txt, SENTENCEG_Init en dlls/world.cpp"
+        verified="parcial: el formato no se leyo todavia">
+      Un message de ambient_generic que empieza con ! no es un archivo sino un grupo de frases
+      definido en sound/sentences.txt. El motor mantiene una cache LRU para que un personaje no
+      repita el mismo fragmento dos veces seguidas.
+
+      Quebratsk todavia no lee sentences.txt: de 253 sonidos declarados por ocho mapas de
+      Condition Zero resolvieron 238, y cuatro de los quince restantes eran frases.
+    </sentences>
+  </section>
 </architecture_guide>

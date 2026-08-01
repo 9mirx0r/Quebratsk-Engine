@@ -33,6 +33,18 @@ const CROUCH_FACTOR := 0.333
 
 ## sv_stepsize 18: how high a ledge is climbed without jumping.
 const STEP_HEIGHT := 18.0 * UNIT     # 0.457 m
+
+## sv_accelerate, sv_airaccelerate, sv_friction and sv_stopspeed, at Counter-Strike's values.
+const ACCELERATE := 5.0
+const AIR_ACCELERATE := 10.0
+const FRICTION := 4.0
+const STOP_SPEED := 75.0 * UNIT
+
+## The cap that makes air control a skill rather than free speed. Acceleration in the air is
+## computed against 30 units per second no matter how fast the player wants to go, so turning
+## into the movement grants a sliver at a time. Bunny hopping and air strafing come out of
+## this one clamp; without it the same code hands out unlimited speed on the first frame.
+const MAX_AIR_SPEED := 30.0 * UNIT
 const LOOK_SENSITIVITY := 0.0022
 const RANGE := 80.0
 const DAMAGE := 34   # three hits, so a fight lasts long enough to be a fight
@@ -161,18 +173,58 @@ func _physics_process(delta: float) -> void:
 	if Input.is_key_pressed(KEY_D): strafe += 1.0
 	if Input.is_key_pressed(KEY_A): strafe -= 1.0
 
-	var direction := (transform.basis * Vector3(strafe, 0, -forward)).normalized()
-	velocity.x = direction.x * SPEED
-	velocity.z = direction.z * SPEED
+	var wishdir := (transform.basis * Vector3(strafe, 0, -forward)).normalized()
+	var wishspeed := SPEED
+	if Input.is_key_pressed(KEY_SHIFT):
+		wishspeed *= WALK_FACTOR
+	elif Input.is_key_pressed(KEY_CTRL):
+		wishspeed *= CROUCH_FACTOR
 
+	# Quake's movement, which GoldSrc inherited and never replaced. Setting velocity straight
+	# from the input direction, which is what this did, gives a character that starts and stops
+	# instantly and cannot carry momentum through a turn. The whole feel of these games is in
+	# the two functions below.
 	if is_on_floor():
+		_apply_friction(delta)
+		_accelerate(wishdir, wishspeed, ACCELERATE, delta)
 		if Input.is_key_pressed(KEY_SPACE):
 			velocity.y = JUMP
 	else:
+		_accelerate(wishdir, minf(wishspeed, MAX_AIR_SPEED), AIR_ACCELERATE, delta)
 		velocity.y -= GRAVITY * delta
 
 	move_and_slide()
 	_drive_animation()
+
+
+## Add speed in the direction asked for, but only as much as is missing in that direction.
+##
+## The dot product is the whole trick. Speed already being carried towards where the player is
+## pointing counts against the allowance, so running straight ahead at full tilt gains nothing,
+## while turning into the movement leaves a gap and the gap gets filled. In the air, where the
+## allowance is capped at 30 units per second, that gap reopens on every small turn of the
+## mouse, which is where air strafing comes from. It is not a bug anybody left in.
+func _accelerate(wishdir: Vector3, wishspeed: float, accel: float, delta: float) -> void:
+	if wishdir.length_squared() < 0.001:
+		return
+	var current := velocity.dot(wishdir)
+	var missing := wishspeed - current
+	if missing <= 0.0:
+		return
+	velocity += wishdir * minf(accel * wishspeed * delta, missing)
+
+
+## Bleed speed off on the ground, harder once slow enough to be stopping.
+##
+## Below sv_stopspeed the drop is computed against that threshold rather than against the
+## actual speed, so the last of the movement is scrubbed briskly instead of trailing off.
+func _apply_friction(delta: float) -> void:
+	var speed := velocity.length()
+	if speed < 0.0001:
+		return
+	var control: float = STOP_SPEED if speed < STOP_SPEED else speed
+	var kept: float = maxf(speed - control * FRICTION * delta, 0.0) / speed
+	velocity *= kept
 
 
 func _shoot() -> void:
