@@ -28,6 +28,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A reload made no sound, and the model had been carrying it all along.** An AK's reload
+  sequence names `weapons/ak47_clipout.wav` and `weapons/ak47_clipin.wav` as animation events,
+  a USP names three including the slide release, and the M3 keeps its shell noises on
+  `start_reload` and `insert` rather than on anything called reload — which is why the whole
+  chain is walked instead of one name being asked for. Nothing was ever missing from the data.
+  Nothing played it.
+
+  Measured: 2 sounds resolved for the AK, 2 playbacks heard, 0.81 s apart.
+
+  Spread across the reload rather than placed in it. Each event carries the exact frame it
+  fires on and the importer does not publish that yet, so a magazine leaving and one going in
+  are evenly spaced instead of falling where the animator put them. Close enough to hear as a
+  reload, and not the same thing as right.
+
 - **Weapons floated above people's heads.** An enemy's weapon was positioned by hand relative
   to the body, and a GoldSrc body's origin is the centre of its hull rather than its hands. It
   now hangs from the right hand's bone through a `BoneAttachment3D`, and a model with no such
