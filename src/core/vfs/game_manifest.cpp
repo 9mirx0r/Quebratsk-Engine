@@ -93,6 +93,15 @@ std::optional<GameManifest> read_gameinfo(const std::string& dir, const std::str
     manifest.id = canonical_dir(game_dir);
     manifest.name = to_lower(game_dir.filename().string());
 
+    // The friendly name. It sits at the top of the GameInfo block, and the same word is used
+    // again inside SearchPaths for a very different purpose, so only the first is taken.
+    for (size_t i = 0; i + 1 < tokens.size(); ++i) {
+        if (tokens[i].brace || to_lower(tokens[i].text) != "game") continue;
+        if (tokens[i + 1].brace) continue;
+        manifest.title = tokens[i + 1].text;
+        break;
+    }
+
     // Find the SearchPaths block and read the pairs inside it. Nesting is not tracked beyond
     // that: the block holds only key/value pairs, so once inside, the next closing brace ends
     // it and nothing between can be misread as a game folder.
@@ -111,6 +120,7 @@ std::optional<GameManifest> read_gameinfo(const std::string& dir, const std::str
         }
         break;
     }
+    if (manifest.title.empty()) manifest.title = manifest.name;
     return manifest;
 }
 
@@ -126,7 +136,9 @@ std::optional<GameManifest> read_liblist(const std::string& dir, const std::stri
     std::string base;
     for (size_t i = 0; i + 1 < tokens.size(); ++i) {
         const std::string key = to_lower(tokens[i].text);
-        if (key == "fallback_dir") {
+        if (key == "game" && manifest.title.empty()) {
+            manifest.title = tokens[i + 1].text;
+        } else if (key == "fallback_dir") {
             add_fallback(manifest, game_dir, search_path_root(tokens[i + 1].text));
         } else if (key == "basedir") {
             base = search_path_root(tokens[i + 1].text);
@@ -139,6 +151,7 @@ std::optional<GameManifest> read_liblist(const std::string& dir, const std::stri
     // implicit here would leave every Counter-Strike model unable to find a Half-Life texture.
     if (base.empty()) base = "valve";
     add_fallback(manifest, game_dir, base);
+    if (manifest.title.empty()) manifest.title = manifest.name;
     return manifest;
 }
 

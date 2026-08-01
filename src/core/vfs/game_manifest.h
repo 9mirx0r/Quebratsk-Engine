@@ -22,6 +22,13 @@ namespace quebratsk::vfs {
 struct GameManifest {
     std::string id;                      // absolute game directory, lowercase, forward slashes
     std::string name;                    // the folder's own name: "cstrike"
+
+    /// What the game calls itself: "Counter-Strike", "Condition Zero", "HALF-LIFE 2".
+    ///
+    /// Read from the manifest rather than mapped from the folder name, because a folder name
+    /// is not something to show anybody and a table of them would cover the games somebody
+    /// thought of and no mod. Falls back to the folder name when the manifest gives none.
+    std::string title;
     std::vector<std::string> fallbacks;  // absolute directories it draws from, in order
 };
 

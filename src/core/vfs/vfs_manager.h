@@ -145,11 +145,17 @@ public:
     ///
     /// Returns { "files": PackedStringArray, "total": int }, where `total` is how many
     /// matched before the limit — a UI needs that to say "showing the first 400 of 18,090".
+    /// `games` restricts the search to those game directories, as get_game_of() reports
+    ///     them; empty searches all of them. Distinct from `prefixes` because the two do not
+    ///     line up: one game is several mounts, and one mount can hold four games, which is
+    ///     exactly how Steam lays out Half-Life and its three siblings.
     godot::Dictionary find_files(const godot::String& needle,
                                  const godot::PackedStringArray& extensions,
                                  const godot::PackedStringArray& exclude,
                                  const godot::PackedStringArray& prefixes,
-                                 int64_t limit) const;
+                                 int64_t limit,
+                                 const godot::PackedStringArray& games
+                                     = godot::PackedStringArray()) const;
 
     /// Read file content as PackedByteArray (decompresses automatically if needed)
     godot::PackedByteArray read_file(const godot::String& vfs_uri) const;
@@ -242,7 +248,7 @@ private:
     /// so the answer is kept.
     std::unordered_map<std::string, std::pair<std::string, std::string>> m_game_of_dir;
 
-    /// The readable name of each game directory, for anything a person looks at.
+    /// What each game directory calls itself, for anything a person looks at.
     std::unordered_map<std::string, std::string> m_game_names;
 
     /// Game directories by slot, so an entry can name one in two bytes. Slot 0 is empty and

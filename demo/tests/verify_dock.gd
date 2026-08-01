@@ -11,6 +11,11 @@ const DockScript := preload("res://addons/quebratsk_editor/quebratsk_dock.gd")
 const GMOD := "C:/Program Files (x86)/Steam/steamapps/common/GarrysMod/garrysmod"
 const HL2 := "C:/Program Files (x86)/Steam/steamapps/common/half-life 2/hl2"
 
+## Four games in one folder: Half-Life, Counter-Strike, Condition Zero and its Deleted
+## Scenes. This is how Steam lays GoldSrc out, and it is the case the dock used to get
+## wrong, offering all four at once under a single name.
+const GOLDSRC := "C:/Program Files (x86)/Steam/steamapps/common/Half-Life"
+
 var _dock: VBoxContainer
 
 
@@ -26,6 +31,7 @@ func _ready() -> void:
 	_check_detect()
 	_check_add()
 	_check_search()
+	_check_game_filter()
 	_check_pick()
 	_check_persistence()
 	print("\n=== DONE ===")
@@ -47,7 +53,7 @@ func _check_detect() -> void:
 
 
 func _check_add() -> void:
-	print("\n2. Adding two games")
+	print("\n2. Adding the games")
 	# Adding a game is the one operation a user waits on, and it also runs on every editor
 	# start when the previous session's games are restored. Worth knowing what it costs.
 	var t0 := Time.get_ticks_msec()
@@ -58,6 +64,12 @@ func _check_add() -> void:
 	t0 = Time.get_ticks_msec()
 	_dock._add_game_folder(HL2, "Half-Life 2")
 	print("   says: %s   (%d ms)" % [_dock._status.text, Time.get_ticks_msec() - t0])
+
+	# One folder, four games. Whether they are offered separately is the question.
+	if DirAccess.dir_exists_absolute(GOLDSRC):
+		t0 = Time.get_ticks_msec()
+		_dock._add_game_folder(GOLDSRC, "Half-Life")
+		print("   says: %s   (%d ms)" % [_dock._status.text, Time.get_ticks_msec() - t0])
 
 	_split_mount_cost()
 
@@ -155,6 +167,73 @@ func _time_filtering() -> void:
 		% [new_us / 1000.0, (found["files"] as PackedStringArray).size(), int(found["total"])])
 
 
+## Does the game dropdown offer the games, and does picking one narrow the search to it?
+##
+## Steam calls one folder "Half-Life" and there are four games inside it. The dropdown used
+## to list the mount, so asking for Half-Life handed back Counter-Strike and Condition Zero
+## as well and there was no way to say which one you meant.
+func _check_game_filter() -> void:
+	print("
+3b. the game dropdown")
+
+	var labels := []
+	for i in _dock._game_filter.item_count:
+		labels.append(_dock._game_filter.get_item_text(i))
+	print("   offers: %s" % ", ".join(PackedStringArray(labels)))
+
+	# Every entry past "All games" has to narrow the result, and to content that really is
+	# that game's. A filter that returns the same list as no filter is not a filter.
+	# "Everything", not category 0. The first two are Favourites and Recently imported,
+	# which are curated lists that never run a search at all: reading a total after selecting
+	# one reads whatever the previous search left behind, which is how this check first
+	# reported that nothing narrowed anything.
+	_dock._search.text = ""
+	for i in _dock.CATEGORIES.size():
+		if str((_dock.CATEGORIES[i] as Dictionary)["label"]) == "Everything":
+			_dock._filter.select(i)
+			break
+	_dock._refresh_results()
+	var everything: int = _dock._last_total
+
+	var checked := 0
+	var narrowed := 0
+	var clean := 0
+	for i in range(1, _dock._game_filter.item_count):
+		if checked >= 5:
+			break
+		_dock._game_filter.select(i)
+		_dock._refresh_results()
+		checked += 1
+		var total: int = _dock._last_total
+		if total < everything and total > 0:
+			narrowed += 1
+
+		# Read a page back and ask the engine which game each hit belongs to.
+		var meta = _dock._game_filter.get_item_metadata(i)
+		var wanted := "" if not (meta is Dictionary) else str((meta as Dictionary).get("game", ""))
+		var stray := 0
+		var row: TreeItem = _dock._results.get_root().get_first_child()
+		var looked := 0
+		while row != null and looked < 40:
+			var uri := str(row.get_metadata(0))
+			if not wanted.is_empty() and not uri.is_empty():
+				if _dock._vfs.get_game_of(uri) != wanted:
+					stray += 1
+			row = row.get_next()
+			looked += 1
+		if stray == 0:
+			clean += 1
+		print("   %-32s %6d of %d files, %d from another game"
+			% [_dock._game_filter.get_item_text(i), total, everything, stray])
+
+	_dock._game_filter.select(0)
+	_dock._refresh_results()
+	print("   %d of %d narrow the search, %d return only their own game"
+		% [narrowed, checked, clean])
+	if checked > 0 and clean < checked:
+		print("   ** the filter leaks between games **")
+
+
 func _check_search() -> void:
 	print("\n3. Ready-made categories, no search term")
 	_dock._search.text = ""
@@ -210,8 +289,9 @@ func _check_order() -> void:
 	for i in _dock._game_filter.item_count:
 		_dock._game_filter.select(i)
 		var label: String = _dock._game_filter.get_item_text(i)
+		var scope: Dictionary = _dock._chosen_scope()
 		var only: Dictionary = _dock._vfs.find_files("police", PackedStringArray(["mdl"]),
-			PackedStringArray(), _dock._chosen_prefixes(), 0)
+			PackedStringArray(), scope["prefixes"], 0, scope["games"])
 		var origins := {}
 		for f in only["files"]:
 			origins[_dock._game_of(str(f))] = true
