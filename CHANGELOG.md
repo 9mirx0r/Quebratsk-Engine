@@ -119,6 +119,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Brush entities have a place now.** Half of what a GoldSrc map contains is not a point: a
+  door, a lift, a trigger volume, a pool of water carry no `origin` at all. They carry
+  `"model" "*71"`, and where they are *is* that model — lump 14, one box per brush entity.
+  Reading only origins left every one of them placeless, and it was not obvious because the
+  entities were all there, just nowhere.
+
+  `load_map_entities()` publishes `position` and `bounds` for them, under the same key a point
+  entity uses so a caller need not know which kind it is holding.
+
+  On de_aztec that one lump unblocked three separate things at once: the **two volumes that
+  set off the thunder** went back to being places instead of a 45-second timer, the rain got
+  the box `env_rain` declares instead of falling through ceilings, and **five bodies of water**
+  appeared that nothing could previously locate.
+
 - **Presets: a model that knows how to act, not just how to be drawn.** Importing gives you
   geometry and a skeleton. What it does not give you is the model being a character — which of
   its 111 sequences is standing and which is running, which of its parts have a second version,
