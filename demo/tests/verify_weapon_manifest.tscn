@@ -1,0 +1,4 @@
+[gd_scene load_steps=2 format=3 uid="uid://bqxk3n7vverwpn"]
+[ext_resource type="Script" path="res://tests/verify_weapon_manifest.gd" id="1_w"]
+[node name="VerifyWeaponManifest" type="Node"]
+script = ExtResource("1_w")
