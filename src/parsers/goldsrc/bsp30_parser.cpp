@@ -19,16 +19,42 @@ namespace {
 
 /// Whether a face wearing this texture should be left out of the mesh.
 ///
-/// "sky" is the convention across every Quake-derived engine, and mappers write it in
-/// whatever case they please. Some maps use a numbered variant when they need more than one
-/// sky brush entity.
-bool is_sky_texture(const std::string& name) {
+/// A GoldSrc map carries brushes the engine never draws. Some mark volumes rather than
+/// surfaces: AAATRIGGER is what a trigger looks like in the editor, CLIP is a wall that
+/// stops players and not bullets, ORIGIN sets a rotating brush's pivot. Others are
+/// instructions to the compiler that should not have survived it at all.
+///
+/// Drawing them is not a small cosmetic error. AAATRIGGER is a magenta tile with a lambda
+/// on it, and a map with a few trigger volumes in it comes out with solid magenta slabs
+/// standing in the middle of the level, walling off rooms that are open in the game.
+///
+/// Names are compared in lower case because a mapper writes them however they please.
+bool is_non_visible_texture(const std::string& name) {
     std::string lower;
     lower.reserve(name.size());
     for (const char c : name) {
         lower.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
     }
-    return lower == "sky" || lower.starts_with("sky_") || lower == "skip" || lower == "null";
+
+    // The skybox is drawn behind these rather than on them.
+    if (lower == "sky" || lower.starts_with("sky_")) return true;
+
+    static constexpr const char* kToolTextures[] = {
+        "aaatrigger",  // trigger volumes
+        "clip",        // blocks players, not projectiles
+        "clipbevel", "clipbevelbrush", "cliphull1", "cliphull2", "cliphull3",
+        "origin",      // pivot for a rotating brush
+        "hint", "skip", "solidhint",  // compiler instructions
+        "null",        // face removed at compile time
+        "bevel",
+        "nodraw",      // Source's name for the same idea
+        "trigger",
+        "contentwater", "contentempty", "contentsolid",
+    };
+    for (const char* tool : kToolTextures) {
+        if (lower == tool) return true;
+    }
+    return false;
 }
 
 } // namespace
@@ -185,7 +211,7 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
             // and never renders the brush. Emitting it as geometry puts the sky texture's
             // own pixels across the level, which is a lurid purple placeholder that no
             // player of the game has ever seen, and walls the map in besides.
-            if (is_sky_texture(miptex->name)) {
+            if (is_non_visible_texture(miptex->name)) {
                 ++diag_sky_faces;
                 continue;
             }

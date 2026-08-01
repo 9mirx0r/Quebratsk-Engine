@@ -141,6 +141,10 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh, TextureLoad
             // Legacy content is authored for point sampling; bilinear filtering blurs
             // 64x64 GoldSrc textures into mush.
             mat->set_texture_filter(BaseMaterial3D::TEXTURE_FILTER_NEAREST_WITH_MIPMAPS);
+            // Carry the name the asset used. Anyone opening an imported scene sees which
+            // texture a surface came from instead of a numbered material, and it is what
+            // makes a wrong-looking surface traceable back to a file.
+            mat->set_name(String(surf.material_name.c_str()));
 
             if (masked) {
                 mat->set_transparency(BaseMaterial3D::TRANSPARENCY_ALPHA_SCISSOR);
