@@ -704,6 +704,10 @@ func _shoot() -> void:
 	var struck = hit["collider"]
 	if struck != null and struck.has_method("take_damage"):
 		struck.take_damage(DAMAGE)
+	elif _lab != null and _lab.has_method("hurt_brush"):
+		# Not everything that can be shot is a character. A crate arrives as a static body
+		# with no script on it, and what it belongs to is known by the brushes.
+		_lab.hurt_brush(struck, float(DAMAGE))
 
 
 ## Play the weapon's own reload, and refuse to fire until it has finished.

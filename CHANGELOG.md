@@ -146,6 +146,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Things you can shoot to pieces.** `func_breakable` carries a health and a material number,
+  and the material decides both what it sounds like coming apart and what it leaves behind —
+  glass, wood, metal, flesh, cinder block, ceiling tile, computer, unbreakable glass, rocks,
+  none, in that order, from `CBreakable::Die`.
+
+  de_aztec's eight crates declare **material 8, which is rocks** rather than wood: they are
+  stone blocks in an Aztec temple and the mapper was right. So they break with
+  `debris/bustconcrete` and scatter `models/rockgibs.mdl`, a real model the game ships.
+
+  The debris is read when the level loads, not when something breaks. Reading a `.mdl` means
+  fetching it from an archive, decoding and converting it, and doing that at the moment
+  somebody pulls a trigger stalled the frame long enough to hang the game outright — which is
+  how it was found.
+
+  Throwing the pieces as rigid bodies is a modernisation and not a restoration: GoldSrc has
+  its own gib physics and this is not it.
+
 - **A floor sounds like what it is made of.** Every footstep was concrete, including on metal,
   grates and in water. The nine sample sets are the game's own, from `PM_PlayStepSound` — four
   apiece and five for tile — and which one plays comes from `sound/materials.txt`, a list the

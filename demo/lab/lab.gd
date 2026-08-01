@@ -48,7 +48,9 @@ const PRESETS := "Counter-Strike 1.6"
 ##
 ## de_aztec has rain and thunder. de_torn has a hundred ambient_generic entities, de_piranesi
 ## ninety-six, cs_italy an opera and some chickens.
-const MAP := "cs_siege"
+## de_aztec for now: it is the only Counter-Strike map with func_breakable on it, eight of
+## them, and they are the thing being looked at.
+const MAP := "de_aztec"
 
 const ENEMY_COUNT := 3
 
@@ -395,6 +397,11 @@ func _build_weather(entities: Array, map: Node3D) -> void:
 			% [_map_uri.get_file(), _thunder_zones.size(), int(_thunder_interval)])
 	else:
 		print("[lab] %s sets off no thunder" % _map_uri.get_file())
+
+
+## Something was shot that is not a person. Passed to whatever owns the level's brushes.
+func hurt_brush(collider: Object, amount: float) -> bool:
+	return _brushes != null and _brushes.hurt(collider, amount)
 
 
 ## Follow this sound, so a wall between it and the listener is heard as a wall.
