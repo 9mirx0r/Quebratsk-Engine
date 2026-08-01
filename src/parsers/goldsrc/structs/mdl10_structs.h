@@ -238,6 +238,13 @@ static_assert(sizeof(StudioMesh) == 20, "StudioMesh size mismatch");
 static_assert(sizeof(StudioTexture) == 80, "StudioTexture size mismatch");
 static_assert(sizeof(StudioAttachment) == 88, "StudioAttachment size mismatch");
 static_assert(sizeof(StudioSeqDesc) == 176, "StudioSeqDesc size mismatch");
+// Where a sequence says its own body reaches to. Pinned because reading these one field
+// early returns the bit pattern of a float as an integer, which is how a first attempt at
+// this produced a motion bone index of 1115684864.
+static_assert(offsetof(StudioSeqDesc, motion_type) == 68, "motion_type moved");
+static_assert(offsetof(StudioSeqDesc, motion_bone) == 72, "motion_bone moved");
+static_assert(offsetof(StudioSeqDesc, bbmin) == 96, "bbmin moved");
+static_assert(offsetof(StudioSeqDesc, bbmax) == 108, "bbmax moved");
 static_assert(sizeof(StudioSeqGroup) == 104, "StudioSeqGroup size mismatch");
 static_assert(sizeof(StudioSeqHeader) == 76, "StudioSeqHeader size mismatch");
 static_assert(sizeof(StudioEvent) == 76, "StudioEvent size mismatch");

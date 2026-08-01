@@ -7,6 +7,7 @@
 
 #include "ir_texture_data.h"
 
+#include <godot_cpp/variant/aabb.hpp>
 #include <godot_cpp/variant/color.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 #include <godot_cpp/variant/vector3.hpp>
@@ -73,6 +74,20 @@ struct IRMeshData {
     /// for something ending in "/police.vmt", which finds the wrong file as easily as the
     /// right one and, often enough, nothing: that is why models arrived untextured.
     std::vector<std::string> material_search_paths;
+
+    /// Where the model itself says its body reaches to, in Godot's axes and metres.
+    ///
+    /// This is not the same thing as the mesh's bounding box and the difference is the whole
+    /// reason it is here. A GoldSrc entity's origin is the centre of its hull rather than the
+    /// soles of its feet — a player is 72 units tall and stands with its origin 36 units up —
+    /// and the animations are authored around that. The bind pose is authored standing on the
+    /// origin instead, so a collider measured from the mesh sits most of a metre away from the
+    /// body that is actually drawn, and the character appears to float.
+    ///
+    /// Taken from the sequences, each of which declares its own bbmin and bbmax. Empty when
+    /// nothing declared any, which is a model whose collider has to be guessed at.
+    bool has_declared_bounds = false;
+    godot::AABB declared_bounds;
 
     /// The parts of this model that have alternatives, and which one was built. Empty for a
     /// model with nothing to choose, which is most props.

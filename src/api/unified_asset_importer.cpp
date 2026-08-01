@@ -27,6 +27,7 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <algorithm>
+#include <optional>
 #include <cctype>
 #include <cstring>
 
@@ -610,6 +611,10 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
         mesh_instance->set_skin(skin);
     }
 
+    // What the sequence being shown says about where the body reaches, used for the collider
+    // further down. Filled once which sequence that is has been decided.
+    std::optional<AABB> shown_bounds;
+
     // Prefer a real stance over the bind pose. Source models ship in a T-pose, which is
     // a modelling artefact the game never shows; the sequences carry the poses players
     // actually see. Fall back to the first sequence when no idle-like one is named.
@@ -642,6 +647,9 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
         if (idx < 0) idx = 0;
 
         const ir::IRPose& pose = parsed.skeleton.poses[static_cast<size_t>(idx)];
+        // The collider describes the body in the stance it is standing in, so this is the
+        // sequence whose declaration counts.
+        if (pose.has_bounds) shown_bounds = pose.bounds;
         if (converters::SkeletonConverter::apply_pose(skeleton, pose)) {
             UtilityFunctions::print("[QuebratskImporter] Pose '", String(pose.name.c_str()),
                                     "' applied (", static_cast<int64_t>(parsed.skeleton.poses.size()),
@@ -651,15 +659,31 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
 
     attach_animations(skeleton, parsed);
 
-    // The mesh bound describes the rest pose, and the pose that was just applied need not
-    // fit inside it. One Condition Zero model came out with its bones hanging 0.93 m below
-    // its own capsule, which looks exactly like a figure sunk to the waist in the floor:
-    // the collider rested on the ground correctly and the body it was meant to describe was
-    // somewhere else. Measured across five characters, four agreed to within a centimetre
-    // and that one did not, so this is a property of the model rather than of the maths.
-    AABB bounds = mesh->get_aabb();
-    for (int b = 0; b < skeleton->get_bone_count(); ++b) {
-        bounds = bounds.expand(skeleton->get_bone_global_pose(b).origin);
+    // Where the model says its own body is, when the model says. Not the mesh's bounding box.
+    //
+    // A GoldSrc entity's origin is the centre of its hull and not the soles of its feet: a
+    // player is 72 units tall and stands with its origin 36 units up, and every sequence is
+    // authored around that. The bind pose is authored standing on the origin instead, so the
+    // two are 36 units — 0.91 m — apart, and a collider measured from the mesh describes a
+    // body that is nowhere near the one being drawn.
+    //
+    // That gap is what put weapons in the sky and made characters hover: it read as several
+    // unrelated faults and was one. An earlier attempt widened the mesh box to swallow the
+    // posed bones, which produced a 2.67 m capsule for a 1.8 m person and moved the problem
+    // rather than solving it.
+    //
+    // Each sequence declares its own bbmin and bbmax and the parser unions them.
+    AABB bounds;
+    if (shown_bounds.has_value()) {
+        bounds = *shown_bounds;
+    } else {
+        // Nothing declared. The posed skeleton is the next best description, because whatever
+        // else is true the mesh is skinned to those bones and follows them.
+        bounds = AABB(skeleton->get_bone_global_pose(0).origin, Vector3());
+        for (int b = 1; b < skeleton->get_bone_count(); ++b) {
+            bounds = bounds.expand(skeleton->get_bone_global_pose(b).origin);
+        }
+        if (skeleton->get_bone_count() == 0) bounds = mesh->get_aabb();
     }
 
     if (StaticBody3D* body = capsule_body(bounds); body != nullptr) {
