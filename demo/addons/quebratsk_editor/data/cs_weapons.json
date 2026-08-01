@@ -132,6 +132,9 @@
         "weapons/elite_rightclipin.wav",
         "weapons/elite_deploy.wav"
       ],
+      "fire_sounds": [
+        "weapons/elite_fire.wav"
+      ],
       "damage": 36,
       "range_modifier": 0.75,
       "max_speed": 250,
@@ -460,8 +463,11 @@
         "weapons/mp5-1.wav",
         "weapons/mp5-2.wav"
       ],
-      "weight": 25,
-      "price": 1500
+      "damage": 26,
+      "range_modifier": 0.84,
+      "max_speed": 250,
+      "reload_time": 2.63,
+      "clip_size": 30
     },
     "p228": {
       "name": "p228",
