@@ -222,6 +222,9 @@ void                set_vfs(vfs: VFSManager)
 ArrayMesh           load_mesh(vfs_uri: String)
 Node3D              load_model(vfs_uri: String, pose_name := "",
                                animations := PackedStringArray())
+Node3D              load_map(vfs_uri: String)
+Node3D              load_character(vfs_uri: String, pose_name := "",
+                                   animations := PackedStringArray())
 StandardMaterial3D  load_material(vfs_uri: String)
 HeightMapShape3D    load_terrain(vfs_uri: String)
 Texture2D           load_texture(texture_ref: String)
@@ -257,6 +260,34 @@ Two things worth knowing:
 - **The animation's length is what was decoded, not what the header claims.** If a sequence's
   data cannot be reached part way through, the animation is shorter and the parser says so on
   stderr, rather than reporting a full duration the model would be frozen through.
+
+**`load_map()`** returns a `MeshInstance3D` carrying a `StaticBody3D` with a trimesh
+collider, which is the structure Godot's own *Create Trimesh Static Body* produces. Use it
+rather than `load_mesh()` unless you specifically want geometry with nothing to stand on.
+
+**`load_character()`** returns a `CharacterBody3D` with the capsule at the root and the
+`Skeleton3D` beneath it, which is the layout Godot expects of something that moves. A script
+on the root has `move_and_slide()` available with no rearranging:
+
+```gdscript
+var npc := importer.load_character(uri, "", PackedStringArray(["walk_all"]))
+map.add_child(npc)
+npc.position = somewhere_on_the_floor
+```
+
+`load_model()` gives a `StaticBody3D` instead, which is right for scenery and wrong for
+anything meant to walk: a static body is an obstacle, not a mover.
+
+Two things worth knowing before you place one:
+
+- **Maps do not tell you where to stand yet.** A BSP records its player starts as entities,
+  and this importer reads geometry only, so there is no `info_player_start` to ask. Cast a
+  ray downward from inside the map's AABB to find a floor. Dropping something in from above
+  the map does not work: a GoldSrc BSP is a sealed box, and anything released over the top
+  lands on the outer shell and is walled in.
+- **The capsule is sized from the model's narrower ground axis.** A rest pose has its arms
+  out, so the wide axis is a wingspan rather than a body; a capsule built from it is over a
+  metre thick and cannot fit through the gap it is standing in.
 
 **`get_last_error_code()`** — why the last `load_*` call ended as it did. Set on **both**
 the success and the failure paths of every entry point, so it always describes the most

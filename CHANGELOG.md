@@ -58,6 +58,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `as_oilrig.bsp` comes to rest at y=10.33 on a 16,309-triangle collider. A player model
   produces a capsule 1.79 m tall and 0.55 m across, centred at hip height.
 
+- **`load_character()`**, which returns a `CharacterBody3D` with the capsule at the root and
+  the skeleton beneath it. That is the layout Godot expects of something that moves, so a
+  script on the root has `move_and_slide()` without any rearranging. `load_model()` still
+  gives a static body, which is right for scenery and wrong for anything meant to walk.
+
+  Verified by walking one: an imported model spawned on an imported GoldSrc map lands on the
+  floor and travels 2.00 m in a second of being pushed at 2 m/s, which is unobstructed
+  movement rather than the 0.00 m of something wedged.
+
+  Getting there turned up two things worth writing down. The capsule was sized from the
+  model's **wider** ground axis, which in a rest pose is the arm span: that gave a person a
+  1.1 m thick collider that lands fine and then cannot fit through anything. And a character
+  dropped in from above a GoldSrc map lands on the *outside* of it, because a BSP is a sealed
+  box, so a spawn point has to be found by casting a ray downward from inside.
+
 - **Category icons, a backdrop behind the 3D preview, and an illustration for the empty
   state**, plus the checkerboard stand-in every engine here uses for a texture it could not
   read. Cosmetic. The empty-state art went back once for having the word AMMO legible on

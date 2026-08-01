@@ -120,6 +120,19 @@ public:
                               const godot::String& pose_name = godot::String(),
                               const godot::PackedStringArray& animations = godot::PackedStringArray());
 
+    /// Load a model as something that can move under its own power.
+    ///
+    /// Returns a CharacterBody3D holding the capsule and, beneath it, the same Skeleton3D
+    /// that load_model() returns. That is the layout Godot expects of a character: the body
+    /// moves, the skeleton is carried along, and a script on the root has move_and_slide()
+    /// available without any rearranging.
+    ///
+    /// load_model() gives a static body instead, which is right for scenery and wrong for
+    /// anything meant to walk: a StaticBody3D is an obstacle, not a mover.
+    godot::Node3D* load_character(const godot::String& vfs_uri,
+                                  const godot::String& pose_name = godot::String(),
+                                  const godot::PackedStringArray& animations = godot::PackedStringArray());
+
     /// Load a map as something you can stand on.
     ///
     /// Returns a MeshInstance3D carrying a StaticBody3D with a trimesh collider, which is
