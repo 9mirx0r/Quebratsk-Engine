@@ -34,6 +34,13 @@ struct ParsedAssetIR {
     /// Fully decoded sequences, one per name the caller asked for. Empty otherwise:
     /// nothing decodes an animation unless it was requested by name.
     std::vector<ir::IRAnimationData> animations;
+
+    /// One per brush entity in a map: a door, a lift, a pool of water, a decoration. Index 0
+    /// is the world and is empty here, because it is `mesh` above.
+    ///
+    /// Separate because they have to move. Faces used to be grouped by texture across the
+    /// whole map, which welded every door to every wall sharing its texture.
+    std::vector<ir::IRMeshData> brush_meshes;
 };
 
 /// An asset's bytes plus any companion files it cannot be decoded without.

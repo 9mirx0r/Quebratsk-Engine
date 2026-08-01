@@ -146,6 +146,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Every brush entity is its own node.** Faces were grouped by texture across the whole map
+  into a single mesh, so a door was welded to every wall that shared its texture and there was
+  nothing left to move. Lump 14 says which faces belong to which brush: model 0 is the world
+  and each of the rest is a door, a lift, a pool of water, a decoration.
+
+  `load_map()` builds them as `brush_1`, `brush_2` … children, named for what an entity's
+  `"model" "*71"` points at, each with its own mesh and collider. On cs_siege: **126 brush
+  entities** beside a 59-surface world.
+
+  This is the thing that was in the way of nearly everything else about a level. A `func_door`
+  could not open, a `func_illusionary` could not stop being solid — cs_siege has **73** of
+  those, and the game walks straight through all of them — a `func_breakable` could not break,
+  a `func_button` could not be pressed. Whether a brush should collide is the entity's
+  business and stays with whoever reads the classnames.
+
+- **Noclip on V**, while the doors are still shut. Being stuck in a room is a poor way to look
+  at the rest of a level.
+
 - **The light comes from the sky that is showing.** A visible sun with the lighting arriving
   from somewhere else is the single thing that makes a scene read as assembled rather than
   photographed, and a map's `light_environment` was written for the sky it shipped with, not

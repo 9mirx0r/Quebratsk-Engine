@@ -97,6 +97,10 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         map_data.entity_string = std::string(reinterpret_cast<const char*>(ent_lump.data()), ent_lump.size());
     }
 
+    // Which faces each brush model owns, filled from lump 14 and used far below to build one
+    // mesh per model instead of one for the whole map.
+    std::vector<std::pair<size_t, size_t>> model_ranges;
+
     // Lump 14: brush models. One per brush entity plus the world, each a box in the map's
     // own units. This is the only record of where a door, a trigger or a body of water is:
     // those entities carry "model" "*N" and no origin at all.
@@ -112,10 +116,14 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
                 godot::Vector3(models[i].maxs[0], models[i].maxs[1], models[i].maxs[2]));
             // Re-cornered after the remap: it permutes and negates axes, so a transformed
             // minimum is not necessarily still a minimum.
-            map_data.brush_models.push_back({
-                godot::Vector3(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)),
-                godot::Vector3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)),
-            });
+            BrushModelBounds box;
+            box.mins = godot::Vector3(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z));
+            box.maxs = godot::Vector3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
+            map_data.brush_models.push_back(std::move(box));
+
+            model_ranges.emplace_back(
+                models[i].first_face < 0 ? 0 : static_cast<size_t>(models[i].first_face),
+                models[i].num_faces < 0 ? 0 : static_cast<size_t>(models[i].num_faces));
         }
     }
 
@@ -213,10 +221,27 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         }
     }
 
-    // Group surfaces by texture index
+    // Group surfaces by texture index, per brush model.
+    //
+    // Per model, not per map, and that is the point. Lump 14 says which faces belong to which
+    // brush: model 0 is the world and each of the rest is a door, a lift, a pool of water, a
+    // decoration. Grouping every face together made all of them one object — so a door was
+    // welded to every wall that shared its texture and could not move, and a func_illusionary
+    // that the game walks straight through became a wall.
+    //
+    // A face outside every model's range is unreachable and does not get built. On a
+    // well-formed map there are none.
+    std::vector<std::pair<size_t, size_t>> ranges;   // first face, count
+    for (const auto& model : model_ranges) ranges.push_back(model);
+    if (ranges.empty()) ranges.emplace_back(0, num_faces);
+
+    for (size_t model_index = 0; model_index < ranges.size(); ++model_index) {
     std::unordered_map<int32_t, ir::IRSurface> surface_map;
 
-    for (size_t f = 0; f < num_faces; ++f) {
+    const size_t face_from = ranges[model_index].first;
+    const size_t face_to = std::min(face_from + ranges[model_index].second, num_faces);
+
+    for (size_t f = face_from; f < face_to; ++f) {
         const auto& face = bsp_faces[f];
 
         // texinfo_index was only checked for >= 0, never against the lump size, so a
@@ -330,8 +355,12 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         }
     }
 
-    map_data.mesh_data.source_engine = ir::SourceEngine::GoldSrc;
-    map_data.mesh_data.name = "GoldSrcMap";
+    // Model 0 is the world; the rest are entity brushes and go to whichever entity names them.
+    ir::IRMeshData& into = model_index == 0
+        ? map_data.mesh_data
+        : map_data.brush_models[model_index].mesh;
+    into.source_engine = ir::SourceEngine::GoldSrc;
+    into.name = model_index == 0 ? "GoldSrcMap" : ("brush_" + std::to_string(model_index));
 
     for (auto& [idx, surf] : surface_map) {
         // NOTE: no winding inversion here. math::source_to_godot() applies
@@ -343,8 +372,12 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         // The matrix written here used to be [1 0 0; 0 0 1; 0 -1 0], which was the remap
         // before it was corrected, and the comment outlived it. The conclusion held either
         // way, since both have determinant +1, which is exactly why nobody noticed.
-        map_data.mesh_data.surfaces.push_back(std::move(surf));
+        into.surfaces.push_back(std::move(surf));
     }
+    if (model_index != 0) {
+        into.material_search_paths = map_data.mesh_data.material_search_paths;
+    }
+    }   // per brush model
 
     // Lump 9: ClipNodes, GoldSrc's real collision. Planes (lump 1) were already loaded above
     // for per-face normals and are reused here.

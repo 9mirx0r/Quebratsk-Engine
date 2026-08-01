@@ -325,6 +325,9 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
     } else if (lowercase_uri.ends_with(".bsp")) {
         if (auto bsp_res = parsers::goldsrc::BSP30Parser::parse(data); bsp_res.has_value()) {
             out.mesh = std::move(bsp_res->mesh_data);
+            for (auto& model : bsp_res->brush_models) {
+                out.brush_meshes.push_back(std::move(model.mesh));
+            }
             return out;
         }
     } else if (lowercase_uri.ends_with(".p3d")) {
@@ -925,7 +928,23 @@ Array UnifiedAssetImporter::load_map_entities(const String& vfs_uri) {
 }
 
 Node3D* UnifiedAssetImporter::load_map(const String& vfs_uri) {
-    Ref<ArrayMesh> mesh = load_mesh(vfs_uri);
+    const AssetBundleBytes bundle = read_asset_bundle(vfs_uri);
+    if (bundle.empty()) {
+        m_last_error_code = ERR_ASSET_UNREADABLE;
+        return nullptr;
+    }
+    const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
+    ParsedAssetIR parsed = parse_asset_ir(bundle, uri_lower);
+    if (parsed.mesh.surfaces.empty()) {
+        m_last_error_code = ERR_PARSE_FAILED;
+        return nullptr;
+    }
+
+    converters::TextureLoader loader(m_vfs);
+    loader.set_origin(uri_lower);
+    loader.set_search_paths(parsed.mesh.material_search_paths);
+
+    Ref<ArrayMesh> mesh = converters::MeshConverter::convert(parsed.mesh, &loader);
     if (mesh.is_null()) return nullptr;
 
     MeshInstance3D* instance = memnew(MeshInstance3D);
@@ -939,6 +958,34 @@ Node3D* UnifiedAssetImporter::load_map(const String& vfs_uri) {
     } else {
         UtilityFunctions::printerr("[QuebratskImporter] Map has no collidable geometry: ",
                                    vfs_uri);
+    }
+
+    // Every brush entity as a node of its own, named for the model an entity points at, so a
+    // caller holding `"model" "*71"` can find the thing and move it. A door that is welded
+    // into the world is a wall for ever.
+    //
+    // Each keeps its own collider. Whether it should collide at all is the entity's business
+    // — a func_illusionary is walked straight through, and cs_siege has seventy-three of them
+    // — so that decision belongs to whoever reads the classnames, not here.
+    int64_t built = 0;
+    for (size_t i = 1; i < parsed.brush_meshes.size(); ++i) {
+        if (parsed.brush_meshes[i].surfaces.empty()) continue;
+
+        Ref<ArrayMesh> brush = converters::MeshConverter::convert(parsed.brush_meshes[i], &loader);
+        if (brush.is_null()) continue;
+
+        MeshInstance3D* node = memnew(MeshInstance3D);
+        node->set_mesh(brush);
+        node->set_name(String("brush_") + String::num_int64(static_cast<int64_t>(i)));
+        if (StaticBody3D* body = trimesh_body(brush); body != nullptr) {
+            node->add_child(body);
+        }
+        instance->add_child(node);
+        ++built;
+    }
+    if (built > 0) {
+        UtilityFunctions::print("[QuebratskImporter] ", built,
+                                " brush entity/entities built as their own nodes");
     }
 
 
