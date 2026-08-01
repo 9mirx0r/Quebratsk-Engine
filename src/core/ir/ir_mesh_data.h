@@ -44,6 +44,19 @@ struct IRSurface {
 };
 
 /// Complete mesh data in Intermediate Representation
+/// A part of a model that comes in several versions, only one of which is worn at a time.
+///
+/// A Half-Life scientist has four heads, a weapon has a magazine that can be present or
+/// absent, a player model has a helmet. The game picks one per part at runtime through a
+/// single packed integer, and an importer that quietly takes the first is not wrong so much
+/// as silent: somebody looking for the model with the glasses has no way to know it is in
+/// there.
+struct IRBodyGroup {
+    std::string name;                    // the part, e.g. "head" or "clip"
+    std::vector<std::string> options;    // what it can be, in the order the model lists them
+    int32_t chosen = 0;                  // which one this import actually built
+};
+
 struct IRMeshData {
     SourceEngine source_engine = SourceEngine::GoldSrc;
     std::string name;
@@ -60,6 +73,20 @@ struct IRMeshData {
     /// for something ending in "/police.vmt", which finds the wrong file as easily as the
     /// right one and, often enough, nothing: that is why models arrived untextured.
     std::vector<std::string> material_search_paths;
+
+    /// The parts of this model that have alternatives, and which one was built. Empty for a
+    /// model with nothing to choose, which is most props.
+    std::vector<IRBodyGroup> body_groups;
+
+    /// Named points on the skeleton the game hangs things from: a muzzle flash, a shell
+    /// ejection, the tip of a barrel. Each is a bone and an offset in that bone's space, and
+    /// they are the only record of where a weapon's effects belong.
+    struct Attachment {
+        std::string name;
+        int32_t bone_index = -1;
+        godot::Vector3 position;         // in the bone's own space, already in Godot's axes
+    };
+    std::vector<Attachment> attachments;
 
     godot::Vector3 bbox_min;
     godot::Vector3 bbox_max;

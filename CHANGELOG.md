@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A model says which of its pieces you are not seeing.** A GoldSrc model can have parts that
+  come in several versions: `v_357.mdl` has a part called *scope* that is either blank or a
+  laser sight, and `v_9mmhandgun.mdl` has a silencer. Only the first version is built, which is
+  what the game does at any given moment, and the problem was never that choice. It was the
+  silence: somebody hunting for the pistol with the silencer had no way to know it was in
+  there.
+
+  `list_body_groups()` reports them and `list_attachments()` reports the named points on the
+  skeleton where a muzzle flash or a shell ejection belongs, which nothing else in the file
+  records. Across forty weapon and player models, three hide a piece each and **30 carry
+  attachment points**, none of which were read before.
+
 - **A level says what is in it.** A `.bsp` showed a filename and a size, which tells you
   nothing about whether you are looking at a bomb site or a corridor. The map's own entity
   list is the only description of it that exists and it was being read and discarded.

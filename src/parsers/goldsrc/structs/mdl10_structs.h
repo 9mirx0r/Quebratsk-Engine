@@ -111,6 +111,19 @@ struct StudioTexture {
     int32_t index;   // offset to 8-bit palettized pixels
 };
 
+/// mstudioattachment_t (88 bytes). A named point on a bone.
+///
+/// This is where a muzzle flash goes, where a shell leaves the breech, where the tip of a
+/// barrel is. Nothing else in the file records it, so a weapon imported without these has
+/// nowhere to put its effects.
+struct StudioAttachment {
+    char name[32];
+    int32_t type;
+    int32_t bone;
+    float origin[3];      // in the bone's own space
+    float vectors[3][3];  // an orientation the stock games leave at zero
+};
+
 /// mstudioseqdesc_t (176 bytes). One named animation: "idle1", "shoot", "reload".
 ///
 /// The fields this parser ignores are still spelled out, because a struct with holes in it
@@ -223,6 +236,7 @@ static_assert(sizeof(StudioBodyPart) == 76, "StudioBodyPart size mismatch");
 static_assert(sizeof(StudioModel) == 112, "StudioModel size mismatch");
 static_assert(sizeof(StudioMesh) == 20, "StudioMesh size mismatch");
 static_assert(sizeof(StudioTexture) == 80, "StudioTexture size mismatch");
+static_assert(sizeof(StudioAttachment) == 88, "StudioAttachment size mismatch");
 static_assert(sizeof(StudioSeqDesc) == 176, "StudioSeqDesc size mismatch");
 static_assert(sizeof(StudioSeqGroup) == 104, "StudioSeqGroup size mismatch");
 static_assert(sizeof(StudioSeqHeader) == 76, "StudioSeqHeader size mismatch");
