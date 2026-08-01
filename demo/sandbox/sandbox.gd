@@ -26,7 +26,11 @@ const ENEMY_COUNT := 4
 
 ## Name a map here to always load that one, or leave it empty to take a readable map at
 ## random. Matched loosely, so "de_dust" finds de_dust2 as well.
-const FORCE_MAP := "de_caminito"
+## Which map to open. Empty takes any readable one.
+##
+## cz_alamo is a Condition Zero: Deleted Scenes level: a campaign map rather than a bomb map,
+## so it comes with 728 entities, 29 ambient sounds and a desert sky.
+const FORCE_MAP := "cz_alamo"
 
 ## Folders to mount besides the installed games: a downloaded map, an extracted mod, a
 ## folder of your own work. A custom map arrives as a bundle with its textures, its skybox
@@ -47,6 +51,10 @@ var _map: Node3D
 var _spawns := {}
 var _player: CharacterBody3D
 var _pool := PackedStringArray()
+
+## The map that is open, and the games worth drawing the rest of the scene from.
+var _map_uri := ""
+var _scope := PackedStringArray()
 var _hud: Label
 var _rng := RandomNumberGenerator.new()
 
@@ -100,6 +108,10 @@ func _mount_installed_games() -> int:
 	for folder in EXTRA_FOLDERS:
 		if not DirAccess.dir_exists_absolute(str(folder)):
 			continue
+		# Only when it is the map being opened. A downloaded bundle brings its own .wad files
+		# and those textures would otherwise be in the running for every other map's lookups.
+		if not FORCE_MAP.is_empty() and not str(folder).to_lower().contains(FORCE_MAP.to_lower()):
+			continue
 		# The archives first, then the loose tree. Mounting only the tree indexes a .wad as
 		# a single file rather than opening it, so every texture inside stays unreachable:
 		# de_caminito came out with 68 of its 123 surfaces textured for exactly that reason,
@@ -114,7 +126,14 @@ func _mount_installed_games() -> int:
 			% [str(folder).get_file(), archives, found])
 		mounted += 1
 
-	mounted += _mount_workshop(mounted)
+	# Workshop addons are Garry's Mod's, and they are the bulk of the startup: 476 archives on
+	# this machine. A scene built around a Condition Zero map draws on Condition Zero, Counter-
+	# Strike and Half-Life and will not touch one of them, so opening them all is waiting for
+	# nothing. Asking for a named map is saying which game this is about.
+	if FORCE_MAP.is_empty() or FORCE_MAP.begins_with("gm_") or FORCE_MAP.begins_with("rp_"):
+		mounted += _mount_workshop(mounted)
+	else:
+		print("[sandbox] skipping workshop addons: '%s' is not a Garry's Mod map" % FORCE_MAP)
 	_built["games"] = games.keys()
 	return mounted
 
@@ -174,7 +193,9 @@ func _load_random_map() -> bool:
 			continue
 		_map = map
 		add_child(map)
-		_built["map"] = uri.get_file()
+		_map_uri = uri
+		_scope = _game_scope(uri)
+		_built["map"] = "%s   (%s)" % [uri.get_file(), _which_game(uri)]
 		_read_spawns(uri)
 		_place_ambient_sounds(uri)
 		_apply_sky(uri)
@@ -526,8 +547,10 @@ func _spawn_player() -> void:
 ## rather than a gunshot picked at random from whichever game happened to be mounted. That
 ## was the whole complaint: a deagle that sounded like a shotgun from another game.
 func _give_weapon(mount: Node3D, offset: Vector3, apparent_size := 0.4) -> Dictionary:
+	# From the map's own game, so a Condition Zero level is fought over with Condition Zero
+	# weapons rather than with whatever else happens to be installed.
 	var hit: Dictionary = vfs.find_files("weapons/", PackedStringArray(["mdl"]),
-		PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 0)
+		PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 0, _scope)
 
 	# Not everything under weapons/ is a weapon. c_arms_citizen.mdl is a pair of forearms
 	# meant to be composited with a gun, and on its own it is two hands floating in the air,
@@ -681,6 +704,33 @@ func _weapon_sound(uri: String, fire: String) -> AudioStream:
 	return find_gunshot()
 
 
+## The games a scene built around this map should draw on: the map's own, then whatever that
+## game falls back to.
+##
+## This is the whole answer to a complaint worth repeating: a Counter-Strike map populated
+## with Half-Life 2 citizens holding a Garry's Mod prop is not a scene, it is a pile. Nothing
+## was choosing badly; nothing was choosing at all, because until the games declared their own
+## content order there was no way to say what belonged with what. A Condition Zero map now
+## draws on Condition Zero, then Counter-Strike, then Half-Life, in that order, which is the
+## same order the game itself would use.
+func _game_scope(uri: String) -> PackedStringArray:
+	var game := vfs.get_game_of(uri)
+	if game.is_empty():
+		return PackedStringArray()
+
+	var out := PackedStringArray([game])
+	var order: Dictionary = vfs.get_game_search_order()
+	if not order.has(game):
+		return out
+
+	# The chain is reported by display name; the filter wants directories.
+	var names: PackedStringArray = (order[game] as Dictionary)["falls_back_to"]
+	for other in order:
+		if str((order[other] as Dictionary)["name"]) in names:
+			out.append(str(other))
+	return out
+
+
 ## Every model that might be a person, across every mounted game.
 ##
 ## Each game lays its characters out differently. Half-Life keeps its NPCs loose in models/,
@@ -698,16 +748,52 @@ func _character_pool() -> PackedStringArray:
 		"scientist", "barney", "hgrunt", "gordon", "gman", "hassault",
 		"leet", "arctic", "guerilla", "militia", "gsg9", "sas", "urban", "phoenix",
 	]
-	var seen := {}
-	for where in WHERE_PEOPLE_LIVE:
-		var found: Dictionary = vfs.find_files(where, PackedStringArray(["mdl"]),
-			PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 0)
-		for entry in found["files"]:
-			if not seen.has(str(entry)):
-				seen[str(entry)] = true
-				_pool.append(str(entry))
-	print("[sandbox] %d candidate characters across every mounted game" % _pool.size())
+	# The map's own game first, and only if it has too few of its own does the search widen
+	# to what it falls back to. A Condition Zero level should be fought over by Condition Zero
+	# soldiers, not by Half-Life scientists who are merely reachable from it.
+	var tried := PackedStringArray()
+	for game in _scope:
+		tried.append(game)
+		var seen := {}
+		for where in WHERE_PEOPLE_LIVE:
+			var found: Dictionary = vfs.find_files(where, PackedStringArray(["mdl"]),
+				PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 0,
+				PackedStringArray([game]))
+			for entry in found["files"]:
+				if not seen.has(str(entry)):
+					seen[str(entry)] = true
+					_pool.append(str(entry))
+		if _pool.size() >= ENEMY_COUNT * 4:
+			break
+
+	if _scope.is_empty():
+		var seen := {}
+		for where in WHERE_PEOPLE_LIVE:
+			var found: Dictionary = vfs.find_files(where, PackedStringArray(["mdl"]),
+				PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 0)
+			for entry in found["files"]:
+				if not seen.has(str(entry)):
+					seen[str(entry)] = true
+					_pool.append(str(entry))
+
+	if _scope.is_empty():
+		print("[sandbox] %d candidate characters across every mounted game" % _pool.size())
+	else:
+		print("[sandbox] %d candidate characters from %s"
+			% [_pool.size(), _names_of(tried)])
 	return _pool
+
+
+## Game directories in words.
+func _names_of(dirs: PackedStringArray) -> String:
+	var order: Dictionary = vfs.get_game_search_order()
+	var out := PackedStringArray()
+	for dir in dirs:
+		if order.has(dir):
+			out.append(str((order[dir] as Dictionary)["name"]))
+		else:
+			out.append(str(dir).get_file())
+	return ", ".join(out)
 
 
 ## The bone whose name reads like one of `needles`, or -1.
@@ -844,7 +930,7 @@ func _which_game(uri: String) -> String:
 func find_gunshot() -> AudioStream:
 	for needle in ["weapons/", "wpn_", "gun", "shoot", "fire"]:
 		var hit: Dictionary = vfs.find_files(needle, PackedStringArray(["wav"]),
-			PackedStringArray(), PackedStringArray(), 0)
+			PackedStringArray(), PackedStringArray(), 0, _scope)
 		for attempt in 8:
 			var uri := _pick(hit["files"])
 			if uri.is_empty():

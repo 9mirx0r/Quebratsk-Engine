@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://bqxk3n7vverc0"]
+
+[ext_resource type="Script" path="res://tests/verify_cz_maps.gd" id="1_vercz"]
+
+[node name="VerifyCZMaps" type="Node"]
+script = ExtResource("1_vercz")
