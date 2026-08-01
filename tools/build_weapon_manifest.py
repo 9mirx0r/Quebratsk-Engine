@@ -49,13 +49,32 @@ def list_weapon_files() -> list[str]:
 
 
 def read_constants(text: str) -> dict[str, float]:
-    """Numeric #defines, so AK47_DAMAGE resolves to a number rather than a name."""
+    """Named numbers, so AK47_DAMAGE resolves to 36 rather than to a name.
+
+    Three spellings, found one at a time, each because something came out missing:
+
+      const float AK47_DAMAGE = 36.0f;     damage, range, speed
+      AK47_MAX_CLIP = 30,                  enum members: clip size, price, weight
+      #define SOMETHING 5                  the rare survivor
+
+    The first version knew only the last of those and every weapon came out with its numbers
+    absent, from a file that had them on consecutive lines. Worth remembering that "the field
+    is empty" was a fact about this parser and never about the game.
+    """
     out = {}
-    for name, value in re.findall(r"#define\s+([A-Z0-9_]+)\s+([0-9.]+)f?\s*$", text, re.M):
-        try:
-            out[name] = float(value)
-        except ValueError:
-            pass
+    patterns = [
+        r"const\s+(?:float|int|unsigned int)\s+([A-Z0-9_]+)\s*=\s*(-?[0-9.]+)f?\s*;",
+        # Enum members. Anchored to the line so an assignment inside a function body cannot
+        # be mistaken for a declared constant.
+        r"^\s*([A-Z][A-Z0-9_]{2,})\s*=\s*(-?[0-9.]+)\s*,\s*(?://.*)?$",
+        r"#define\s+([A-Z0-9_]+)\s+\(?(-?[0-9.]+)f?\)?\s*$",
+    ]
+    for pattern in patterns:
+        for name, value in re.findall(pattern, text, re.M):
+            try:
+                out.setdefault(name, float(value))
+            except ValueError:
+                pass
     return out
 
 
@@ -99,13 +118,25 @@ def parse_weapon(name: str, text: str, constants: dict[str, float]) -> dict:
 
     # Numbers, resolved through the constants when the source names one.
     upper = name.upper()
-    for key, suffix in [("damage", "_DAMAGE"), ("range_modifier", "_RANGE_MODIFER"),
-                        ("max_speed", "_MAX_SPEED"), ("reload_time", "_RELOAD_TIME")]:
-        if (value := constants.get(upper + suffix)) is not None:
-            weapon[key] = value
+    for key, suffixes in [
+        ("damage", ["_DAMAGE"]),
+        ("range_modifier", ["_RANGE_MODIFER", "_RANGE_MODIFIER"]),
+        ("max_speed", ["_MAX_SPEED", "_PLAYER_SPEED"]),
+        ("reload_time", ["_RELOAD_TIME"]),
+        ("clip_size", ["_MAX_CLIP", "_CLIP_SIZE"]),
+        ("cycle_time", ["_CYCLETIME", "_CYCLE_TIME", "_FIRE_RATE"]),
+        ("weight", ["_WEIGHT"]),
+        ("price", ["_PRICE"]),
+    ]:
+        for suffix in suffixes:
+            if (value := constants.get(upper + suffix)) is not None:
+                # Whole numbers read as whole numbers; a clip of 30.0 is noise.
+                weapon[key] = int(value) if value == int(value) else value
+                break
 
-    if m := re.search(r"m_iClip\s*=\s*(\d+)", text):
-        weapon["clip_size"] = int(m.group(1))
+    # The silenced variant, which several weapons carry as a second damage figure.
+    if (value := constants.get(upper + "_DAMAGE_SIL")) is not None:
+        weapon["damage_silenced"] = int(value) if value == int(value) else value
 
     return weapon
 

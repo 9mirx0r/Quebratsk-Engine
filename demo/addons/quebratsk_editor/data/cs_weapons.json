@@ -19,7 +19,14 @@
       "fire_sounds": [
         "weapons/ak47-1.wav",
         "weapons/ak47-2.wav"
-      ]
+      ],
+      "damage": 36,
+      "range_modifier": 0.98,
+      "max_speed": 221,
+      "reload_time": 2.45,
+      "clip_size": 30,
+      "weight": 25,
+      "price": 2500
     },
     "aug": {
       "name": "aug",
@@ -37,7 +44,14 @@
       ],
       "fire_sounds": [
         "weapons/aug-1.wav"
-      ]
+      ],
+      "damage": 32,
+      "range_modifier": 0.96,
+      "max_speed": 240,
+      "reload_time": 3.3,
+      "clip_size": 30,
+      "weight": 25,
+      "price": 3500
     },
     "awp": {
       "name": "awp",
@@ -56,7 +70,14 @@
       ],
       "fire_sounds": [
         "weapons/awp1.wav"
-      ]
+      ],
+      "damage": 115,
+      "range_modifier": 0.99,
+      "max_speed": 210,
+      "reload_time": 2.5,
+      "clip_size": 10,
+      "weight": 30,
+      "price": 4750
     },
     "c4": {
       "name": "c4",
@@ -66,7 +87,9 @@
       "animation_extension": "c4",
       "sounds": [
         "weapons/c4_click.wav"
-      ]
+      ],
+      "max_speed": 250,
+      "weight": 3
     },
     "deagle": {
       "name": "deagle",
@@ -85,7 +108,14 @@
       "fire_sounds": [
         "weapons/deagle-1.wav",
         "weapons/deagle-2.wav"
-      ]
+      ],
+      "damage": 54,
+      "range_modifier": 0.81,
+      "max_speed": 250,
+      "reload_time": 2.2,
+      "clip_size": 7,
+      "weight": 7,
+      "price": 650
     },
     "elite": {
       "name": "elite",
@@ -101,7 +131,14 @@
         "weapons/elite_sliderelease.wav",
         "weapons/elite_rightclipin.wav",
         "weapons/elite_deploy.wav"
-      ]
+      ],
+      "damage": 36,
+      "range_modifier": 0.75,
+      "max_speed": 250,
+      "reload_time": 4.5,
+      "clip_size": 30,
+      "weight": 5,
+      "price": 800
     },
     "famas": {
       "name": "famas",
@@ -122,7 +159,14 @@
       "fire_sounds": [
         "weapons/famas-1.wav",
         "weapons/famas-2.wav"
-      ]
+      ],
+      "damage": 30,
+      "range_modifier": 0.96,
+      "max_speed": 240,
+      "reload_time": 3.3,
+      "clip_size": 25,
+      "weight": 75,
+      "price": 2250
     },
     "fiveseven": {
       "name": "fiveseven",
@@ -140,7 +184,14 @@
       ],
       "fire_sounds": [
         "weapons/fiveseven-1.wav"
-      ]
+      ],
+      "damage": 20,
+      "range_modifier": 0.885,
+      "max_speed": 250,
+      "reload_time": 2.7,
+      "clip_size": 20,
+      "weight": 5,
+      "price": 750
     },
     "flashbang": {
       "name": "flashbang",
@@ -157,7 +208,10 @@
       "fire_sounds": [
         "weapons/flashbang-1.wav",
         "weapons/flashbang-2.wav"
-      ]
+      ],
+      "max_speed": 250,
+      "weight": 1,
+      "price": 200
     },
     "g3sg1": {
       "name": "g3sg1",
@@ -174,7 +228,14 @@
       ],
       "fire_sounds": [
         "weapons/g3sg1-1.wav"
-      ]
+      ],
+      "damage": 80,
+      "range_modifier": 0.98,
+      "max_speed": 210,
+      "reload_time": 3.5,
+      "clip_size": 20,
+      "weight": 20,
+      "price": 5000
     },
     "galil": {
       "name": "galil",
@@ -192,7 +253,14 @@
       "fire_sounds": [
         "weapons/galil-1.wav",
         "weapons/galil-2.wav"
-      ]
+      ],
+      "damage": 30,
+      "range_modifier": 0.98,
+      "max_speed": 240,
+      "reload_time": 2.45,
+      "clip_size": 35,
+      "weight": 25,
+      "price": 2000
     },
     "glock18": {
       "name": "glock18",
@@ -216,7 +284,14 @@
         "weapons/glock18-1.wav",
         "weapons/glock18-2.wav",
         "weapons/357_cock1.wav"
-      ]
+      ],
+      "damage": 25,
+      "range_modifier": 0.75,
+      "max_speed": 250,
+      "reload_time": 2.2,
+      "clip_size": 20,
+      "weight": 5,
+      "price": 400
     },
     "hegrenade": {
       "name": "hegrenade",
@@ -235,7 +310,10 @@
         "weapons/hegrenade-1.wav",
         "weapons/hegrenade-2.wav",
         "weapons/he_bounce-1.wav"
-      ]
+      ],
+      "max_speed": 250,
+      "weight": 2,
+      "price": 300
     },
     "knife": {
       "name": "knife",
@@ -258,7 +336,9 @@
       "fire_sounds": [
         "weapons/knife_slash1.wav",
         "weapons/knife_slash2.wav"
-      ]
+      ],
+      "max_speed": 250,
+      "weight": 0
     },
     "m249": {
       "name": "m249",
@@ -278,7 +358,14 @@
       "fire_sounds": [
         "weapons/m249-1.wav",
         "weapons/m249-2.wav"
-      ]
+      ],
+      "damage": 32,
+      "range_modifier": 0.97,
+      "max_speed": 220,
+      "reload_time": 4.7,
+      "clip_size": 100,
+      "weight": 25,
+      "price": 5750
     },
     "m3": {
       "name": "m3",
@@ -295,7 +382,12 @@
       ],
       "fire_sounds": [
         "weapons/m3-1.wav"
-      ]
+      ],
+      "damage": 20,
+      "max_speed": 230,
+      "clip_size": 8,
+      "weight": 20,
+      "price": 1700
     },
     "m4a1": {
       "name": "m4a1",
@@ -318,7 +410,15 @@
         "weapons/m4a1-1.wav",
         "weapons/m4a1_unsil-1.wav",
         "weapons/m4a1_unsil-2.wav"
-      ]
+      ],
+      "damage": 32,
+      "range_modifier": 0.97,
+      "max_speed": 230,
+      "reload_time": 3.05,
+      "clip_size": 30,
+      "weight": 25,
+      "price": 3100,
+      "damage_silenced": 33
     },
     "mac10": {
       "name": "mac10",
@@ -334,7 +434,14 @@
       ],
       "fire_sounds": [
         "weapons/mac10-1.wav"
-      ]
+      ],
+      "damage": 29,
+      "range_modifier": 0.82,
+      "max_speed": 250,
+      "reload_time": 3.15,
+      "clip_size": 30,
+      "weight": 25,
+      "price": 1400
     },
     "mp5navy": {
       "name": "mp5navy",
@@ -352,7 +459,9 @@
       "fire_sounds": [
         "weapons/mp5-1.wav",
         "weapons/mp5-2.wav"
-      ]
+      ],
+      "weight": 25,
+      "price": 1500
     },
     "p228": {
       "name": "p228",
@@ -369,7 +478,14 @@
       ],
       "fire_sounds": [
         "weapons/p228-1.wav"
-      ]
+      ],
+      "damage": 32,
+      "range_modifier": 0.8,
+      "max_speed": 250,
+      "reload_time": 2.7,
+      "clip_size": 13,
+      "weight": 5,
+      "price": 600
     },
     "p90": {
       "name": "p90",
@@ -386,7 +502,14 @@
       ],
       "fire_sounds": [
         "weapons/p90-1.wav"
-      ]
+      ],
+      "damage": 21,
+      "range_modifier": 0.885,
+      "max_speed": 245,
+      "reload_time": 3.4,
+      "clip_size": 50,
+      "weight": 26,
+      "price": 2350
     },
     "scout": {
       "name": "scout",
@@ -403,7 +526,14 @@
       ],
       "fire_sounds": [
         "weapons/scout_fire-1.wav"
-      ]
+      ],
+      "damage": 75,
+      "range_modifier": 0.98,
+      "max_speed": 260,
+      "reload_time": 2,
+      "clip_size": 10,
+      "weight": 30,
+      "price": 2750
     },
     "sg550": {
       "name": "sg550",
@@ -420,7 +550,14 @@
       ],
       "fire_sounds": [
         "weapons/sg550-1.wav"
-      ]
+      ],
+      "damage": 70,
+      "range_modifier": 0.98,
+      "max_speed": 210,
+      "reload_time": 3.35,
+      "clip_size": 30,
+      "weight": 20,
+      "price": 4200
     },
     "sg552": {
       "name": "sg552",
@@ -438,7 +575,14 @@
       "fire_sounds": [
         "weapons/sg552-1.wav",
         "weapons/sg552-2.wav"
-      ]
+      ],
+      "damage": 33,
+      "range_modifier": 0.955,
+      "max_speed": 235,
+      "reload_time": 3,
+      "clip_size": 30,
+      "weight": 25,
+      "price": 3500
     },
     "smokegrenade": {
       "name": "smokegrenade",
@@ -450,7 +594,10 @@
       "sounds": [
         "weapons/pinpull.wav",
         "weapons/sg_explode.wav"
-      ]
+      ],
+      "max_speed": 250,
+      "weight": 1,
+      "price": 300
     },
     "tmp": {
       "name": "tmp",
@@ -465,7 +612,14 @@
       "fire_sounds": [
         "weapons/tmp-1.wav",
         "weapons/tmp-2.wav"
-      ]
+      ],
+      "damage": 20,
+      "range_modifier": 0.85,
+      "max_speed": 250,
+      "reload_time": 2.12,
+      "clip_size": 30,
+      "weight": 25,
+      "price": 1250
     },
     "ump45": {
       "name": "ump45",
@@ -481,7 +635,14 @@
       ],
       "fire_sounds": [
         "weapons/ump45-1.wav"
-      ]
+      ],
+      "damage": 30,
+      "range_modifier": 0.82,
+      "max_speed": 250,
+      "reload_time": 3.5,
+      "clip_size": 25,
+      "weight": 25,
+      "price": 1700
     },
     "usp": {
       "name": "usp",
@@ -504,7 +665,15 @@
         "weapons/usp1.wav",
         "weapons/usp2.wav",
         "weapons/usp_unsil-1.wav"
-      ]
+      ],
+      "damage": 34,
+      "range_modifier": 0.79,
+      "max_speed": 250,
+      "reload_time": 2.7,
+      "clip_size": 12,
+      "weight": 5,
+      "price": 500,
+      "damage_silenced": 30
     },
     "xm1014": {
       "name": "xm1014",
@@ -519,7 +688,12 @@
       ],
       "fire_sounds": [
         "weapons/xm1014-1.wav"
-      ]
+      ],
+      "damage": 20,
+      "max_speed": 240,
+      "clip_size": 7,
+      "weight": 20,
+      "price": 3000
     }
   }
 }
