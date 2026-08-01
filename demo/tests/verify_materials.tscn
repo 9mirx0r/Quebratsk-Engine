@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bqxk3n7vvermat00"]
+
+[ext_resource type="Script" path="res://tests/verify_materials.gd" id="1_vm"]
+
+[node name="VerifyMaterials" type="Node"]
+script = ExtResource("1_vm")

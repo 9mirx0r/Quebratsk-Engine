@@ -15,16 +15,13 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Quebratsk Engine Demo"
-run/main_scene="res://main.tscn"
+run/main_scene="res://sandbox/sandbox.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/quebratsk_editor/plugin.cfg")
 
 [autoload]
 
 McpInteractionServer="*res://mcp_interaction_server.gd"
 
+[editor_plugins]
 
-
+enabled=PackedStringArray("res://addons/quebratsk_editor/plugin.cfg")

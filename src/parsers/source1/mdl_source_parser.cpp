@@ -7,6 +7,7 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <algorithm>
+#include <cctype>
 #include <cstring>
 #include <limits>
 #include <optional>
@@ -624,6 +625,29 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
     }
     if (vtx_header->checksum != header->checksum) {
         return std::unexpected(SourceMDLParseError::ChecksumMismatch);
+    }
+
+    // ------------------------------------------------- material search paths ----
+    //
+    // The other half of a material reference. A model states the names of its materials in
+    // one table and the directories they live in in another, and both are needed to find a
+    // file: "police" plus "models/player/police/" is a path, and "police" on its own is a
+    // guess.
+    if (header->num_cdtextures > 0 && header->cdtexture_index > 0) {
+        const auto dirs = mdl.array_at<int32_t>(static_cast<size_t>(header->cdtexture_index),
+                                                static_cast<size_t>(header->num_cdtextures));
+        for (const int32_t offset : dirs) {
+            if (offset <= 0) continue;
+            auto dir = mdl.cstr_at(static_cast<size_t>(offset));
+            if (!dir.has_value() || dir->empty()) continue;
+
+            std::string path = std::move(*dir);
+            std::replace(path.begin(), path.end(), '\\', '/');
+            std::transform(path.begin(), path.end(), path.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (!path.ends_with('/')) path.push_back('/');
+            result.mesh_data.material_search_paths.push_back(std::move(path));
+        }
     }
 
     // -------------------------------------------------------- material names ----

@@ -602,67 +602,14 @@ func _preview_texture(uri: String) -> bool:
 ## extracted, so the container is parsed here and the samples handed over directly. RIFF
 ## is a chunk list, not a fixed header: the fmt and data chunks are found by walking it,
 ## because real game audio carries LIST and fact chunks in between.
-## Any sound the dock lists, as something Godot can play.
-##
-## Only WAV needs decoding here. Godot ships importers for the other two, and they take the
-## file's own bytes, so handing those straight over is both simpler and lossless.
+## Any sound the dock lists, as something Godot can play. The RIFF walk lives in
+## sound_loader.gd so the dock and anything built on the importer share one copy of it.
 func _load_sound(uri: String) -> AudioStream:
-	match uri.get_extension().to_lower():
-		"wav":
-			return _load_wav(uri)
-		"mp3":
-			var mp3 := AudioStreamMP3.new()
-			mp3.data = _vfs.read_file(uri)
-			return mp3 if mp3.data.size() > 0 else null
-		"ogg":
-			var bytes := _vfs.read_file(uri)
-			return AudioStreamOggVorbis.load_from_buffer(bytes) if bytes.size() > 0 else null
-	return null
+	return QuebratskSoundLoader.load_sound(_vfs, uri)
 
 
 func _load_wav(uri: String) -> AudioStreamWAV:
-	var bytes := _vfs.read_file(uri)
-	if bytes.size() < 44:
-		return null
-	if bytes.slice(0, 4).get_string_from_ascii() != "RIFF":
-		return null
-	if bytes.slice(8, 12).get_string_from_ascii() != "WAVE":
-		return null
-
-	var channels := 0
-	var rate := 0
-	var bits := 0
-	var samples := PackedByteArray()
-
-	var pos := 12
-	while pos + 8 <= bytes.size():
-		var id := bytes.slice(pos, pos + 4).get_string_from_ascii()
-		var size := bytes.decode_u32(pos + 4)
-		var body := pos + 8
-		# A declared size past the end means the file is truncated; stop rather than
-		# slicing beyond the buffer.
-		if size > bytes.size() - body:
-			break
-		if id == "fmt ":
-			channels = bytes.decode_u16(body + 2)
-			rate = bytes.decode_u32(body + 4)
-			bits = bytes.decode_u16(body + 14)
-		elif id == "data":
-			samples = bytes.slice(body, body + size)
-		pos = body + size + (size & 1)  # chunks are word-aligned
-
-	if samples.is_empty() or rate <= 0 or channels <= 0:
-		return null
-
-	var stream := AudioStreamWAV.new()
-	match bits:
-		8: stream.format = AudioStreamWAV.FORMAT_8_BITS
-		16: stream.format = AudioStreamWAV.FORMAT_16_BITS
-		_: return null  # ADPCM and float WAVs are not handled
-	stream.mix_rate = rate
-	stream.stereo = channels >= 2
-	stream.data = samples
-	return stream
+	return QuebratskSoundLoader.load_wav(_vfs, uri)
 
 
 func _on_play_pressed() -> void:

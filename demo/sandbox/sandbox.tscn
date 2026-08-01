@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://l5l22lrfq7w2"]
+
+[ext_resource type="Script" path="res://sandbox/sandbox.gd" id="1_sandbox"]
+
+[node name="Sandbox" type="Node3D"]
+script = ExtResource("1_sandbox")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.86, -0.32, 0.39, 0, 0.77, 0.63, -0.5, -0.55, 0.66, 0, 12, 0)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
