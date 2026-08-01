@@ -38,7 +38,7 @@ const PRESETS := "Counter-Strike 1.6"
 ##
 ## de_aztec has rain and thunder. de_torn has a hundred ambient_generic entities, de_piranesi
 ## ninety-six, cs_italy an opera and some chickens.
-const MAP := "de_aztec"
+const MAP := "cs_siege"
 
 const ENEMY_COUNT := 3
 
@@ -256,6 +256,24 @@ func _apply_sky(entities: Array) -> void:
 	environment.ambient_light_energy = 0.6
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 
+	# Looking toward the sun should hurt a little. The panorama is an ordinary 8-bit image so
+	# its sun cannot exceed white on its own; the sky shader lifts the disc above 1.0 and this
+	# is what turns that into a bloom rather than a flat bright patch.
+	environment.glow_enabled = true
+	environment.glow_intensity = 0.9
+	environment.glow_bloom = 0.15
+	environment.glow_hdr_threshold = 1.0
+	environment.glow_blend_mode = Environment.GLOW_BLEND_MODE_SCREEN
+
+	# Shafts of light, done with the engine's own volumetrics rather than a screen-space
+	# trick. A screen-space godray needs the sun to be on screen and vanishes the moment it
+	# leaves; fog in the light does not, and it is also what the light is actually doing.
+	environment.volumetric_fog_enabled = true
+	environment.volumetric_fog_density = 0.012
+	environment.volumetric_fog_albedo = Color(0.9, 0.92, 1.0)
+	environment.volumetric_fog_length = 128.0
+	environment.volumetric_fog_gi_inject = 0.0
+
 	var camera_env := WorldEnvironment.new()
 	camera_env.name = "WorldEnvironment"
 	camera_env.environment = environment
@@ -276,8 +294,25 @@ func _build_weather(entities: Array, map: Node3D) -> void:
 
 	_build_rooms(entities)
 	_weather.set_storm_sky(_storm_sky)
-	if _weather.build_sun(entities) == null:
+	var sun: DirectionalLight3D = _weather.build_sun(entities)
+	if sun == null:
 		print("[lab] %s declares no light_environment, so it has no sun" % _map_uri.get_file())
+
+	# Where the sky says the sun is, which beats where the map says when there is a sky showing
+	# one. A visible sun and a light coming from somewhere else is the single thing that makes
+	# a scene read as assembled rather than photographed, and the map's light_environment was
+	# written for a different sky than the one now behind it.
+	var from_sky := SkyLoader.sun_direction(_map_uri.get_file().get_basename())
+	if from_sky != Vector3.ZERO and sun != null:
+		# A light points where it shines, so it looks from the sun back toward the world.
+		sun.look_at_from_position(Vector3.ZERO, -from_sky, Vector3.UP)
+		_built["sun"] = "%.0f deg up, from the sky itself" % rad_to_deg(asin(from_sky.y))
+		print("[lab] sun found in the panorama: %.1f deg above the horizon, %s"
+			% [rad_to_deg(asin(from_sky.y)), str(from_sky.snappedf(0.01))])
+		if _storm_sky != null and _storm_sky.sky_material is ShaderMaterial:
+			var material := _storm_sky.sky_material as ShaderMaterial
+			material.set_shader_parameter("sun_direction", from_sky)
+			material.set_shader_parameter("sun_size", 0.0006)
 
 	# How big the level is, for deciding where rain belongs.
 	var extent := AABB(Vector3.ZERO, Vector3(60, 30, 60))

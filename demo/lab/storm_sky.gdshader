@@ -112,11 +112,18 @@ void sky() {
 	vec3 cloud = mix(cloud_dark, cloud_light, depth);
 	cloud = mix(cloud, flash_colour, flash * (0.35 + 0.65 * depth));
 
-	// A sun or moon behind the cloud rather than in front of it.
+	// The sun, lifted above white so it can bloom.
+	//
+	// A panorama is an ordinary 8-bit image: its sun is already at white and cannot go
+	// brighter, so glow has nothing to catch and looking at it is a flat bright patch rather
+	// than something you squint at. Raising the disc and its immediate surround past 1.0 is
+	// what gives the bloom something to work with. Where it is comes from the picture itself.
 	if (sun_size > 0.001) {
-		float disc = smoothstep(1.0 - sun_size, 1.0 - sun_size * 0.5,
-			dot(dir, normalize(sun_direction)));
-		base += sun_colour * disc * (1.0 - density * 0.85);
+		float toward = dot(dir, normalize(sun_direction));
+		// The disc, and a much wider skirt around it that lifts more gently.
+		float disc = smoothstep(1.0 - sun_size, 1.0 - sun_size * 0.35, toward);
+		float halo = pow(clamp(toward, 0.0, 1.0), 220.0);
+		base += sun_colour * (disc * 9.0 + halo * 1.6) * (1.0 - density * 0.85);
 	}
 
 	COLOR = mix(base, cloud, density * above * cloud_opacity);

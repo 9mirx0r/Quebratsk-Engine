@@ -146,6 +146,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The light comes from the sky that is showing.** A visible sun with the lighting arriving
+  from somewhere else is the single thing that makes a scene read as assembled rather than
+  photographed, and a map's `light_environment` was written for the sky it shipped with, not
+  for the one now behind it.
+
+  So the picture is asked instead of three numbers being chosen: the brightest place in the
+  upper half of an equirectangular panorama is the sun, and its position maps back to a
+  direction exactly. On cs_siege that is **20.2° above the horizon at (-0.61, 0.35, -0.71)** —
+  computed independently in Python beforehand as 19.6°, which is two implementations of the
+  same maths agreeing within half a degree.
+
+  The upper half only. The lower half of that panorama is a river valley in full afternoon
+  light and outshines the sky comfortably if allowed to compete. And a sky with nothing bright
+  enough to be a disc gets no sun rather than a guessed one — an overcast day has none.
+
+- **Looking at the sun is unpleasant, and light comes in shafts.** A panorama is an ordinary
+  8-bit image: its sun is already at white and cannot go higher, so bloom has nothing to catch
+  and staring at it is a flat bright patch. The sky shader lifts the disc and a wide skirt
+  around it past 1.0, which is what gives the glow something to work with.
+
+  Shafts are the engine's own volumetric fog rather than a screen-space trick, because a
+  screen-space godray needs the sun to be on screen and vanishes the moment it is not.
+
 - **A level sounds like the place it is.** A GoldSrc map places `env_sound` markers — a point,
   a radius and a room type from 0 to 28 — and every import read none of them, so every level
   sounded like a field. `cs_siege` places **40**, and reports them now: *10 Big 3, 12 Concrete
