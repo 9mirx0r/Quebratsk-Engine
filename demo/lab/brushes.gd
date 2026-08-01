@@ -35,6 +35,34 @@ const BUTTON_SOUNDS := {
 	24: "buttons/lever4.wav", 25: "buttons/lever5.wav",
 }
 
+## What a func_breakable is made of, by the number the map writes. The enum's order is the
+## table: glass, wood, metal, flesh, cinder block, ceiling tile, computer, unbreakable glass,
+## rocks, none.
+##
+## Each carries what it sounds like coming apart and what it leaves behind, out of
+## CBreakable::Die. de_aztec's crates declare material 8 — they are rocks, not wood, which is
+## the mapper being right about a stone temple rather than a mistake.
+const MATERIALS := [
+	{"name": "glass",    "sounds": ["debris/bustglass1.wav", "debris/bustglass2.wav"],
+	 "gibs": "models/glassgibs.mdl"},
+	{"name": "wood",     "sounds": ["debris/bustcrate1.wav", "debris/bustcrate2.wav"],
+	 "gibs": "models/woodgibs.mdl"},
+	{"name": "metal",    "sounds": ["debris/bustmetal1.wav", "debris/bustmetal2.wav"],
+	 "gibs": "models/metalplategibs.mdl"},
+	{"name": "flesh",    "sounds": ["debris/bustflesh1.wav", "debris/bustflesh2.wav"],
+	 "gibs": "models/fleshgibs.mdl"},
+	{"name": "cinder",   "sounds": ["debris/bustconcrete1.wav", "debris/bustconcrete2.wav"],
+	 "gibs": "models/cindergibs.mdl"},
+	{"name": "ceiling",  "sounds": ["debris/bustceiling.wav"],
+	 "gibs": "models/ceilinggibs.mdl"},
+	{"name": "computer", "sounds": ["buttons/spark5.wav", "buttons/spark6.wav"],
+	 "gibs": ""},
+	{"name": "unbreakable glass", "sounds": [], "gibs": ""},
+	{"name": "rocks",    "sounds": ["debris/bustconcrete1.wav", "debris/bustconcrete2.wav"],
+	 "gibs": "models/rockgibs.mdl"},
+	{"name": "none",     "sounds": [], "gibs": ""},
+]
+
 ## SF_DOOR_USE_ONLY. Without it a func_door opens when you walk into it, which is why nearly
 ## every door in Counter-Strike has no button.
 const USE_ONLY := 256
@@ -42,6 +70,9 @@ const USE_ONLY := 256
 var _lab: Node3D
 var _doors: Array = []
 var _buttons: Array = []
+
+## Which breakable a collider belongs to, so a bullet that hits a shape knows what it hit.
+var _breakables := {}
 
 ## Volumes the player's own movement has to know about: what you climb and what you swim in.
 var ladders: Array[AABB] = []
@@ -93,6 +124,8 @@ func setup(lab: Node3D, map: Node3D, entities: Array) -> void:
 					"ready": 0.0,
 					"audio": null,
 				})
+			"func_breakable":
+				_build_breakable(node, entity)
 			"func_water":
 				# The surface is drawn separately and prettier; this is the brush behind it,
 				# which you swim through rather than walk into.
@@ -113,8 +146,155 @@ func setup(lab: Node3D, map: Node3D, entities: Array) -> void:
 		print("[brushes] %d door(s), %d with a sound" % [_doors.size(), voiced])
 	if not _buttons.is_empty():
 		print("[brushes] %d button(s)" % _buttons.size())
+	var breakables := 0
+	for key in _breakables:
+		if (_breakables[key] as Dictionary)["node"] is MeshInstance3D:
+			breakables += 1
+	if breakables > 0:
+		print("[brushes] %d breakable(s)" % int(breakables / 2.0))
 	if not ladders.is_empty() or not water.is_empty():
 		print("[brushes] %d ladder(s), %d water volume(s)" % [ladders.size(), water.size()])
+
+
+## Something you can shoot to pieces.
+##
+## health is how much damage it takes, material is what it is made of, and both come from the
+## map. de_aztec's crates declare 1 health, so a single shot does it, which is what makes them
+## feel like scenery you can clear rather than an obstacle.
+func _build_breakable(node: MeshInstance3D, entity: Dictionary) -> void:
+	var kind := clampi(int(entity.get("material", 1)), 0, MATERIALS.size() - 1)
+	var made_of: Dictionary = MATERIALS[kind]
+
+	var sounds: Array[AudioStream] = []
+	for named in made_of["sounds"]:
+		var stream := _named_sound(str(named))
+		if stream != null:
+			sounds.append(stream)
+
+	var record := {
+		"node": node,
+		"health": maxf(float(entity.get("health", 1.0)), 1.0),
+		"material": str(made_of["name"]),
+		"sounds": sounds,
+		# Read now rather than when it breaks. A .mdl is fetched from the archive, decoded and
+		# converted, and doing that at the moment somebody shoots stalls the frame hard enough
+		# to hang the game for a second - which is exactly what it did.
+		"gibs": _load_gibs(str(made_of["gibs"])),
+		"broken": false,
+	}
+	_breakables[node.get_instance_id()] = record
+
+	# Registered against every collider it has, because a shot arrives as a physics body and
+	# has to be traced back to the thing it belongs to.
+	for child in node.get_children():
+		if child is StaticBody3D:
+			_breakables[child.get_instance_id()] = record
+
+
+## Something shot this. Returns true when it was something breakable.
+func hurt(collider: Object, amount: float) -> bool:
+	if collider == null:
+		return false
+	var record = _breakables.get(collider.get_instance_id())
+	if record == null:
+		return false
+
+	var broken: Dictionary = record
+	if broken["broken"]:
+		return true
+	broken["health"] = float(broken["health"]) - amount
+	if float(broken["health"]) > 0.0:
+		return true
+
+	broken["broken"] = true
+	_break(broken)
+	return true
+
+
+## Come apart: the noise, the pieces, and then gone.
+func _break(record: Dictionary) -> void:
+	var node: MeshInstance3D = record["node"]
+	if not is_instance_valid(node):
+		return
+
+	var at := node.global_position
+	var sounds: Array = record["sounds"]
+	if not sounds.is_empty():
+		var audio := AudioStreamPlayer3D.new()
+		audio.stream = sounds[randi() % sounds.size()]
+		audio.unit_size = 8.0
+		_lab.add_child(audio)
+		audio.global_position = at
+		audio.play()
+		audio.finished.connect(audio.queue_free)
+		if _lab.has_method("track_sound"):
+			_lab.track_sound(audio)
+
+	_spawn_gibs(record, at, node)
+
+	# Gone, rather than hidden: the game removes the entity, and leaving an invisible collider
+	# behind is how a broken crate stays a wall.
+	node.queue_free()
+	print("[brushes] a %s breakable came apart" % str(record["material"]))
+
+
+## The debris model, read once and kept.
+##
+## Shared between every breakable of the same material, because a level with eight crates
+## should read models/rockgibs.mdl once rather than eight times.
+static var _gib_cache := {}
+
+func _load_gibs(named: String) -> Node3D:
+	if named.is_empty() or _lab == null:
+		return null
+	if _gib_cache.has(named):
+		return _gib_cache[named]
+
+	var hit: Dictionary = _lab.vfs.find_files(named, PackedStringArray(["mdl"]),
+		PackedStringArray(), PackedStringArray(), 1)
+	var files: PackedStringArray = hit["files"]
+	var built: Node3D = null
+	if not files.is_empty():
+		built = _lab.importer.load_model(str(files[0]))
+		if built != null:
+			# Kept out of the tree as a template to copy from.
+			for c in built.get_children():
+				if c is StaticBody3D:
+					built.remove_child(c)
+					c.queue_free()
+	_gib_cache[named] = built
+	return built
+
+
+## The pieces it leaves, which are a real model the game ships.
+##
+## models/rockgibs.mdl and its kin are ordinary studio models with several body parts, one per
+## fragment. Thrown as rigid bodies here, which GoldSrc does not do — it has its own gib
+## physics — and is the modernisation rather than the restoration.
+func _spawn_gibs(record: Dictionary, at: Vector3, was: MeshInstance3D) -> void:
+	var piece = record["gibs"]
+	if piece == null or not is_instance_valid(piece):
+		return
+
+	var spread: Vector3 = was.get_aabb().size * 0.4
+	for i in 5:
+		var body := RigidBody3D.new()
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(0.25, 0.25, 0.25)
+		shape.shape = box
+		body.add_child(shape)
+
+		body.add_child((piece as Node3D).duplicate())
+
+		_lab.add_child(body)
+		body.global_position = at + Vector3(
+			randf_range(-spread.x, spread.x), randf_range(0.0, spread.y),
+			randf_range(-spread.z, spread.z))
+		body.linear_velocity = Vector3(randf_range(-3, 3), randf_range(2, 5), randf_range(-3, 3))
+		body.angular_velocity = Vector3(randf_range(-6, 6), randf_range(-6, 6), randf_range(-6, 6))
+		# Cleared after a while: a level nobody restarts would otherwise fill with rubble.
+		_lab.get_tree().create_timer(12.0).timeout.connect(body.queue_free)
 
 
 ## Take the collider off, leaving what you can see.
