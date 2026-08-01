@@ -52,7 +52,10 @@ The movement figures in `player.gd` are the engine's own, converted once from Ha
 clearing a 45 unit crate requires. They were 22.0, 5.0 and 6.5 before, and those came from
 nowhere at all.
 
-Taken from the Half-Life SDK and `ReGameDLL_CS` and checked against the engine sources above.
+Assembled by the project owner from the Half-Life SDK and `ReGameDLL_CS`, and checked here
+against the engine sources above. Two of its claims turned out to be wrong and are kept as
+errata rather than quietly dropped, because in this domain the error is as instructive as the
+fact: one of them would have reintroduced a defect that had already cost a day to find.
 
 ## Other importers looked at
 
