@@ -181,11 +181,33 @@ void VFSManager::adopt_game(MountedContainer& container) {
     container.game_name = std::move(name);
 }
 
-std::vector<std::string> VFSManager::search_order(size_t container_index) const {
-    std::vector<std::string> order;
-    if (container_index >= m_containers.size()) return order;
+uint16_t VFSManager::intern_game(const std::string& id) {
+    if (id.empty()) return 0;
+    if (const auto it = m_game_slots.find(id); it != m_game_slots.end()) return it->second;
 
-    const std::string& game = m_containers[container_index].game_id;
+    // Two bytes per entry only works while the table stays small, and it is: one slot per
+    // game installed. Overflowing it means falling back to the container's answer, which is
+    // the behaviour this replaced rather than a new failure.
+    if (m_game_ids.size() >= 0xFFFF) return 0;
+
+    const uint16_t slot = static_cast<uint16_t>(m_game_ids.size());
+    m_game_ids.push_back(id);
+    m_game_slots.emplace(id, slot);
+    return slot;
+}
+
+const std::string& VFSManager::game_id_of(const VFSEntry& entry) const {
+    static const std::string none;
+    if (entry.game != 0 && entry.game < m_game_ids.size()) return m_game_ids[entry.game];
+    if (entry.container_index < m_containers.size()) {
+        return m_containers[entry.container_index].game_id;
+    }
+    return none;
+}
+
+std::vector<std::string> VFSManager::search_order(const VFSEntry& entry) const {
+    std::vector<std::string> order;
+    const std::string& game = game_id_of(entry);
     if (game.empty()) return order;
 
     order.push_back(game);
@@ -198,8 +220,8 @@ std::vector<std::string> VFSManager::search_order(size_t container_index) const 
 std::string VFSManager::game_of(const std::string& vfs_uri) const {
     std::lock_guard<std::mutex> lock(m_mutex);
     const auto it = m_index.find(to_lower(vfs_uri));
-    if (it == m_index.end() || it->second.container_index >= m_containers.size()) return {};
-    return m_containers[it->second.container_index].game_id;
+    if (it == m_index.end()) return {};
+    return game_id_of(it->second);
 }
 
 size_t VFSManager::place_container(MountedContainer&& container) {
@@ -348,10 +370,26 @@ int64_t VFSManager::mount_directory(const String& vfs_prefix, const String& real
         return 0;
     }
 
+    // Resolved per directory rather than per file. The walk yields a folder's files together,
+    // so the same answer serves a whole directory and reading a manifest stays rare.
+    std::filesystem::path last_dir;
+    uint16_t last_game = 0;
+    bool have_last = false;
+
     const std::filesystem::recursive_directory_iterator end;
     for (; it != end; it.increment(ec)) {
         if (ec) break;
         if (!it->is_regular_file(ec) || ec) continue;
+
+        const std::filesystem::path parent = it->path().parent_path();
+        if (!have_last || parent != last_dir) {
+            MountedContainer probe;
+            probe.real_path = parent.string();
+            adopt_game(probe);
+            last_game = intern_game(probe.game_id);
+            last_dir = parent;
+            have_last = true;
+        }
 
         // Lexically, not std::filesystem::relative(): that one resolves both paths through
         // weakly_canonical, touching the filesystem once per file to chase symlinks that
@@ -369,6 +407,7 @@ int64_t VFSManager::mount_directory(const String& vfs_prefix, const String& real
 
         VFSEntry entry;
         entry.container_index = container_idx;
+        entry.game = last_game;
         entry.loose_path = it->path().string();
         entry.disk_size = static_cast<size_t>(size);
         entry.uncompressed_size = entry.disk_size;
@@ -822,10 +861,12 @@ std::string VFSManager::find_by_suffix(const std::string& lowercase_suffix,
     size_t origin_container = kNoContainer;
     std::vector<std::string> order;
 
+    std::string origin_game;
     if (!origin_uri.empty()) {
         if (const auto it = m_index.find(to_lower(origin_uri)); it != m_index.end()) {
             origin_container = it->second.container_index;
-            order = search_order(origin_container);
+            origin_game = game_id_of(it->second);
+            order = search_order(it->second);
         }
     }
 
@@ -833,10 +874,12 @@ std::string VFSManager::find_by_suffix(const std::string& lowercase_suffix,
     // game falls back to, then anything else. With no origin every candidate scores the
     // same and the mount order decides, which is still an answer that does not change.
     auto rank_of = [&](const VFSEntry& entry) -> size_t {
-        if (entry.container_index == origin_container) return 0;
-        if (entry.container_index >= m_containers.size()) return order.size() + 2;
+        const std::string& game = game_id_of(entry);
 
-        const std::string& game = m_containers[entry.container_index].game_id;
+        // Same archive is best, but only when the archive stands for one game. A directory
+        // mount can hold four of them at once, and there the game is what separates them.
+        if (entry.container_index == origin_container && game == origin_game) return 0;
+
         for (size_t i = 0; i < order.size(); ++i) {
             if (order[i] == game) return i + 1;
         }

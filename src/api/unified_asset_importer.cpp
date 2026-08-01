@@ -63,6 +63,8 @@ void UnifiedAssetImporter::_bind_methods() {
     ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
     ClassDB::bind_method(D_METHOD("list_sounds", "vfs_uri", "sequence"),
                          &UnifiedAssetImporter::list_sounds, DEFVAL(String()));
+    ClassDB::bind_method(D_METHOD("resolve_sound", "name", "origin_uri"),
+                         &UnifiedAssetImporter::resolve_sound, DEFVAL(String()));
     ClassDB::bind_method(D_METHOD("get_last_error_code"), &UnifiedAssetImporter::get_last_error_code);
     ClassDB::bind_method(D_METHOD("get_last_missing_companions"),
                          &UnifiedAssetImporter::get_last_missing_companions);
@@ -409,6 +411,23 @@ PackedStringArray UnifiedAssetImporter::list_sounds(const String& vfs_uri,
                                    "\", which is not on this machine");
     }
 
+    m_last_error_code = ERR_OK;
+    return out;
+}
+
+PackedStringArray UnifiedAssetImporter::resolve_sound(const String& name,
+                                                      const String& origin_uri) {
+    PackedStringArray out;
+    if (!m_vfs) {
+        m_last_error_code = ERR_VFS_NOT_SET;
+        return out;
+    }
+    if (!m_sounds) m_sounds = std::make_unique<converters::SoundResolver>(m_vfs);
+
+    for (const auto& uri : m_sounds->resolve(name.utf8().get_data(),
+                                             origin_uri.utf8().get_data())) {
+        out.push_back(String(uri.c_str()));
+    }
     m_last_error_code = ERR_OK;
     return out;
 }

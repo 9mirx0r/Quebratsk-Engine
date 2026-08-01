@@ -48,6 +48,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   animation plays, and carry a right hand bone an arm's length away.** Both naming
   conventions are handled, `ValveBiped.Bip01_Head1` and `Bip01 Head`.
 
+- **A map plays the sounds it declares.** A level is not only a shape: it says where the
+  generator hums, where the wind blows, where water runs, as `ambient_generic` entities
+  carrying a sound name and a position. Every import read those off disk and threw them away.
+  They are placed now, each as a positional source at its own origin, with the volume, pitch
+  and radius the mapper set. Across six maps, **27 of 27 declared sounds reach a real file.**
+
+  A map uses that same entity for one-shot dialogue a script fires later, and the difference
+  is a spawnflag rather than anything about the sound. Those are left alone: the tram ride
+  announcer at the start of Half-Life is one, and looping it the moment a level opens is
+  worse than leaving it out.
+
 - **A world model borrows the sound of the weapon it is.** A `w_` model is the shape a gun
   has in someone's hand and carries no sequences at all, so it names no sound. The firing
   sound lives on the view model of the same weapon, and that is where it is read from now:
@@ -69,6 +80,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   chance. Eight games were found on the test machine with their chains intact, among them
   `cstrike` to `valve` and `ep2` to `episodic` to `hl2`. Of **281 lookups for paths that
   exist in more than one game, 281 now answer from the asking game.**
+
+  Two later corrections came from installing four more games. A mounted directory can hold
+  several games at once, which is exactly how Steam lays out GoldSrc: Half-Life, Counter-
+  Strike, Condition Zero and its Deleted Scenes all sit in one folder. Attributing files by
+  the archive they came from put **fourteen thousand loose files in no game at all**, and
+  since GoldSrc keeps nearly everything loose, that was most of GoldSrc. The game is resolved
+  per file now, cached per directory. The measurement went from 281 lookups over 135 contested
+  paths to **898 over 356**, all of them answered from the asking game.
+
+  The other is that Valve ships a stray `liblist.gam` inside `scripts/` in more than one game,
+  which made a folder called "scripts" a game of its own and took every soundscript out of the
+  search order of the game shipping it. The outermost manifest wins, and a folder with a
+  reserved content name is never a game.
 
   Two things the manifests do not say outright had to be handled. Counter-Strike 1.6 declares
   no fallback at all, because GoldSrc takes the base game as given, so a GoldSrc mod falls

@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://par0hxl14vrd"]
+
+[ext_resource type="Script" path="res://tests/verify_ambient.gd" id="1_veramb"]
+
+[node name="VerifyAmbient" type="Node"]
+script = ExtResource("1_veramb")

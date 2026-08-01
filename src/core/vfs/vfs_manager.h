@@ -38,6 +38,16 @@ struct VFSEntry {
     size_t uncompressed_size = 0; // Final size
     CompressionType compression = CompressionType::None;
 
+    /// Which game this one file belongs to, as a slot in the manager's game table, or 0 to
+    /// take the container's answer.
+    ///
+    /// A mounted archive sits inside exactly one game, so its files inherit and this stays 0.
+    /// A mounted directory need not: the four GoldSrc games on a machine share one folder,
+    /// with valve, cstrike, czero and czeror inside it, so a single mount spans all four.
+    /// Attributing those by container put fourteen thousand files in no game at all, and
+    /// since GoldSrc keeps nearly everything as loose files, that was most of GoldSrc.
+    uint16_t game = 0;
+
     /// Non-empty when this entry is a standalone file mounted via mount_directory()
     /// rather than a slice of a container. Such entries are read on demand instead of
     /// being memory-mapped, so mounting a large tree costs no OS handles.
@@ -211,9 +221,15 @@ private:
     /// Called for every mount, including the side archives a VPK brings with it.
     void adopt_game(MountedContainer& container);
 
-    /// The games a lookup should consult, best first, for an asset from `container_index`.
-    /// Requires m_mutex.
-    [[nodiscard]] std::vector<std::string> search_order(size_t container_index) const;
+    /// The games a lookup should consult, best first, on behalf of `entry`. Requires m_mutex.
+    [[nodiscard]] std::vector<std::string> search_order(const VFSEntry& entry) const;
+
+    /// The game directory an entry belongs to: its own when it has one, its container's
+    /// otherwise. Requires m_mutex.
+    [[nodiscard]] const std::string& game_id_of(const VFSEntry& entry) const;
+
+    /// The slot a game directory occupies in the table, adding it if new. Requires m_mutex.
+    [[nodiscard]] uint16_t intern_game(const std::string& id);
 
     std::vector<MountedContainer> m_containers;
     std::unordered_map<std::string, VFSEntry> m_index;
@@ -228,6 +244,11 @@ private:
 
     /// The readable name of each game directory, for anything a person looks at.
     std::unordered_map<std::string, std::string> m_game_names;
+
+    /// Game directories by slot, so an entry can name one in two bytes. Slot 0 is empty and
+    /// means "ask the container".
+    std::vector<std::string> m_game_ids{std::string()};
+    std::unordered_map<std::string, uint16_t> m_game_slots;
 
     size_t m_mount_counter = 0;
     mutable std::mutex m_mutex;
