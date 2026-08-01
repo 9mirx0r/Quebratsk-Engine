@@ -175,6 +175,21 @@ public:
     /// map was building the MeshInstance3D by hand and none of them added a body.
     godot::Node3D* load_map(const godot::String& vfs_uri);
 
+    /// The same sounds list_sounds() gives, each with the moment it happens.
+    ///
+    /// A model does not merely name its noises, it says when: the event carries the frame it
+    /// fires on and the sequence carries its frame rate, so a magazine leaving a rifle and the
+    /// next one going in have exact times the animator chose. Without them a caller can only
+    /// space them evenly across the animation, which is audible as a reload and is not the
+    /// reload the model describes.
+    ///
+    /// Returns an Array of Dictionaries: { "sequence": String, "sound": String (a VFS URI),
+    /// "time": float (seconds from the start of that sequence) }.
+    ///
+    /// Pass an empty `sequence` for every sound the model can make.
+    godot::Array list_sound_events(const godot::String& vfs_uri,
+                                   const godot::String& sequence = godot::String());
+
     /// The parts of a model that come in several versions, and what each could be.
     ///
     /// A Half-Life scientist has four heads and a weapon has a magazine that can be present or

@@ -59,6 +59,14 @@ struct IRPose {
     /// Picking a gunshot any other way is picking one at random and hoping.
     std::vector<std::string> sounds;
 
+    /// When each of those sounds happens, in seconds from the start of the sequence.
+    ///
+    /// Parallel to `sounds`. The event carries the frame it fires on and the sequence carries
+    /// its frame rate, so this is knowable exactly — and it was being read and dropped, which
+    /// left a reload spacing its magazine-out and magazine-in evenly instead of putting them
+    /// where the animator did.
+    std::vector<float> sound_times;
+
     /// Where this sequence says the body reaches, in Godot's axes and metres.
     ///
     /// Per sequence and not per model, because they differ enormously: a death animation
