@@ -141,6 +141,11 @@ var _sources: Dictionary = {}
 ## Mount prefix -> game display name, rebuilt whenever the mounts change. See _game_of().
 var _prefix_to_game: Dictionary = {}
 
+## How many files the last search matched, before the page limit. Kept so a check can ask
+## whether narrowing the search actually narrowed anything, which reading the status label
+## cannot answer once it has been rounded and translated.
+var _last_total := 0
+
 ## vfs:// URI -> true. A set, so membership is a hash lookup while drawing 400 rows.
 var _favourites: Dictionary = {}
 ## Most recent first, capped at MAX_RECENTS.
@@ -1213,34 +1218,105 @@ func _refresh_game_filter() -> void:
 	if _game_filter.selected > 0 and _game_filter.selected < _game_filter.item_count:
 		previous = str(_game_filter.get_item_metadata(_game_filter.selected))
 
+
 	_game_filter.clear()
 	_game_filter.add_item(tr("All games"))
-	_game_filter.set_item_metadata(0, "")
+	_game_filter.set_item_metadata(0, {})
 
-	var names := _sources.keys()
-	names.sort()
-	for key in names:
-		_game_filter.add_item(str(key))
-		_game_filter.set_item_metadata(_game_filter.item_count - 1, str(key))
-		if str(key) == previous:
-			_game_filter.select(_game_filter.item_count - 1)
+	# What the games say they are, rather than what mounting them happened to be called.
+	# Steam calls one folder "Half-Life" and there are four games inside it: Half-Life,
+	# Counter-Strike, Condition Zero and its Deleted Scenes. Listing the mount offered all
+	# four at once under one name, with no way to ask for just the one you meant.
+	var order: Dictionary = _vfs.get_game_search_order()
+
+	# A title is not always unique. Episode One and Episode Two both call themselves
+	# HALF-LIFE 2, so where two agree, the folder is what tells them apart.
+	var seen_titles := {}
+	for dir in order:
+		var title := str((order[dir] as Dictionary)["name"])
+		seen_titles[title] = int(seen_titles.get(title, 0)) + 1
+
+	var rows := []
+	for dir in order:
+		var entry: Dictionary = order[dir]
+		var title := str(entry["name"])
+		if int(seen_titles.get(title, 0)) > 1:
+			title = "%s (%s)" % [title, str(entry["folder"])]
+		rows.append({"label": title, "meta": {"game": str(dir)}})
+
+	# Anything mounted that belongs to no game keeps an entry of its own: a folder of
+	# extracted assets or a downloaded map bundle has no manifest and would otherwise be
+	# reachable only under "All games".
+	for key in _sources.keys():
+		if _game_has_manifest(key, order):
+			continue
+		rows.append({"label": str(key), "meta": {"source": str(key)}})
+
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return str(a["label"]).naturalnocasecmp_to(str(b["label"])) < 0)
+
+	for row in rows:
+		_game_filter.add_item(str((row as Dictionary)["label"]))
+		var at := _game_filter.item_count - 1
+		_game_filter.set_item_metadata(at, (row as Dictionary)["meta"])
+		if str((row as Dictionary)["meta"]) == previous:
+			_game_filter.select(at)
 
 	# One game is no choice at all, and a dropdown with a single real entry is clutter.
-	_game_filter.visible = _sources.size() > 1
+	_game_filter.visible = rows.size() > 1
 
 
-## The mount prefixes the game dropdown is pointing at, or empty for all of them.
-func _chosen_prefixes() -> PackedStringArray:
+## Is this source already represented by the games in the list?
+##
+## A game the engine recognised is in the list under its own name, so listing the mount as
+## well offers the same content twice under two labels. Steam's Half-Life folder held four
+## games and its own entry, so "Half-Life" appeared twice and meant something different each
+## time.
+##
+## Answered by whether ANY of its files landed in a game, not all of them. A folder that holds
+## games also holds odds and ends outside them, and one unlucky sample used to be enough to
+## conclude the whole mount belonged nowhere. Sources where nothing at all has a game keep
+## their entry: an extracted asset folder or a downloaded map bundle has no manifest and would
+## otherwise be reachable only under "All games".
+func _game_has_manifest(source_name: String, _order: Dictionary) -> bool:
+	for entry in (_sources.get(source_name, {}) as Dictionary).get("mounts", []):
+		var prefix := str((entry as Dictionary).get("prefix", ""))
+		var hit: Dictionary = _vfs.find_files("", PackedStringArray(), PackedStringArray(),
+			PackedStringArray([prefix]), 24)
+		for f in hit["files"]:
+			if not _vfs.get_game_of(str(f)).is_empty():
+				return true
+	return false
+
+
+## What the game dropdown is pointing at, as a Dictionary the search can be given.
+##
+## Two kinds of answer, because the two do not line up. A game is a game wherever its files
+## were mounted from, and one mount can hold several. Anything with no manifest can still be
+## named by the mounts it brought.
+func _chosen_scope() -> Dictionary:
+	var empty := {"games": PackedStringArray(), "prefixes": PackedStringArray()}
 	if _game_filter == null or _game_filter.selected <= 0:
-		return PackedStringArray()
-	var game := str(_game_filter.get_item_metadata(_game_filter.selected))
-	if game.is_empty() or not _sources.has(game):
-		return PackedStringArray()
+		return empty
 
-	var out := PackedStringArray()
-	for entry in (_sources[game] as Dictionary).get("mounts", []):
-		out.append(str((entry as Dictionary).get("prefix", "")))
-	return out
+	var meta = _game_filter.get_item_metadata(_game_filter.selected)
+	if not (meta is Dictionary):
+		return empty
+
+	if (meta as Dictionary).has("game"):
+		return {
+			"games": PackedStringArray([str((meta as Dictionary)["game"])]),
+			"prefixes": PackedStringArray(),
+		}
+
+	var source := str((meta as Dictionary).get("source", ""))
+	if source.is_empty() or not _sources.has(source):
+		return empty
+
+	var prefixes := PackedStringArray()
+	for entry in (_sources[source] as Dictionary).get("mounts", []):
+		prefixes.append(str((entry as Dictionary).get("prefix", "")))
+	return {"games": PackedStringArray(), "prefixes": prefixes}
 
 
 ## Which game a URI belongs to, from the mount prefix.
@@ -1315,11 +1391,13 @@ func _refresh_results() -> void:
 	# With a folder rule the engine cannot apply the limit, because whether a URI survives
 	# is decided here. Without one its count and its page are both final.
 	var hard_limit := MAX_RESULTS if folders.is_empty() else 0
-	var found: Dictionary = _vfs.find_files(needle, ext_filter, drop, _chosen_prefixes(),
-		hard_limit)
+	var scope := _chosen_scope()
+	var found: Dictionary = _vfs.find_files(needle, ext_filter, drop, scope["prefixes"],
+		hard_limit, scope["games"])
 
 	var shown := 0
 	var matched := int(found["total"])
+	_last_total = matched
 
 	for entry in found["files"]:
 		var uri := str(entry)
@@ -1343,6 +1421,7 @@ func _refresh_results() -> void:
 	# ceiling and `matched` counts everything that passed.
 	if not folders.is_empty():
 		matched = maxi(matched, shown)
+		_last_total = matched
 
 	if matched == 0:
 		var none := _results.create_item(root)

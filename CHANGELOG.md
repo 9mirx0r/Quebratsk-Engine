@@ -48,6 +48,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   animation plays, and carry a right hand bone an arm's length away.** Both naming
   conventions are handled, `ValveBiped.Bip01_Head1` and `Bip01 Head`.
 
+- **The game dropdown lists the games, by the names they call themselves.** It listed what
+  mounting a folder happened to be called, and Steam keeps four games in the folder it calls
+  Half-Life: Half-Life, Counter-Strike, Condition Zero and its Deleted Scenes. Picking
+  "Half-Life" handed back all four mixed together with no way to say which was meant.
+
+  The names come from each game's own manifest rather than from a table somebody would have
+  to keep, so a mod is named by what it calls itself too. Where two games agree on a name,
+  as Episode One and Episode Two both do by calling themselves HALF-LIFE 2, the folder is
+  added to tell them apart. Searching can now be restricted to a game rather than to a mount,
+  which are not the same thing: one game is several mounts and one mount can hold four games.
+
+  Measured on one folder holding eight games: **all five sampled narrow the search and none
+  return a file from another game.** Garry's Mod and Half-Life 2 together account for 41,969
+  files and split exactly, with nothing counted twice.
+
 - **A map plays the sounds it declares.** A level is not only a shape: it says where the
   generator hums, where the wind blows, where water runs, as `ambient_generic` entities
   carrying a sound name and a position. Every import read those off disk and threw them away.

@@ -25,10 +25,11 @@ void VFSManager::_bind_methods() {
     ClassDB::bind_method(D_METHOD("file_exists", "vfs_uri"), &VFSManager::file_exists);
     ClassDB::bind_method(D_METHOD("list_files", "prefix"), &VFSManager::list_files, DEFVAL(""));
     ClassDB::bind_method(D_METHOD("find_files", "needle", "extensions", "exclude",
-                                  "prefixes", "limit"),
+                                  "prefixes", "limit", "games"),
                          &VFSManager::find_files,
                          DEFVAL(PackedStringArray()), DEFVAL(PackedStringArray()),
-                         DEFVAL(PackedStringArray()), DEFVAL(0));
+                         DEFVAL(PackedStringArray()), DEFVAL(0),
+                         DEFVAL(PackedStringArray()));
     ClassDB::bind_method(D_METHOD("read_file", "vfs_uri"), &VFSManager::read_file);
     ClassDB::bind_method(D_METHOD("get_file_size", "vfs_uri"), &VFSManager::get_file_size);
     ClassDB::bind_method(D_METHOD("get_mounts_info"), &VFSManager::get_mounts_info);
@@ -174,7 +175,7 @@ void VFSManager::adopt_game(MountedContainer& container) {
         // First manifest wins. The same game can be reached down two paths, and its own
         // declaration is the one that counts either way.
         m_game_fallbacks.try_emplace(id, manifest->fallbacks);
-        m_game_names.try_emplace(id, name);
+        m_game_names.try_emplace(id, manifest->title.empty() ? name : manifest->title);
     }
     m_game_of_dir.emplace(key, std::make_pair(id, name));
     container.game_id = std::move(id);
@@ -698,7 +699,8 @@ Dictionary VFSManager::find_files(const String& needle,
                                   const PackedStringArray& extensions,
                                   const PackedStringArray& exclude,
                                   const PackedStringArray& prefixes,
-                                  int64_t limit) const {
+                                  int64_t limit,
+                                  const PackedStringArray& games) const {
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // The index is already lowercase, so the needle is lowered once here rather than
@@ -740,7 +742,22 @@ Dictionary VFSManager::find_files(const String& needle,
     std::vector<Match> matches;
     matches.reserve(m_index.size());
 
+    std::vector<std::string> wanted_games;
+    wanted_games.reserve(static_cast<size_t>(games.size()));
+    for (int i = 0; i < games.size(); ++i) {
+        wanted_games.push_back(to_lower(games[i].utf8().get_data()));
+    }
+
     for (const auto& [uri, entry] : m_index) {
+        if (!wanted_games.empty()) {
+            const std::string& game = game_id_of(entry);
+            bool from_wanted = false;
+            for (const auto& wanted : wanted_games) {
+                if (game == wanted) { from_wanted = true; break; }
+            }
+            if (!from_wanted) continue;
+        }
+
         if (!wanted_mounts.empty()) {
             bool from_wanted = false;
             for (const auto& mount : wanted_mounts) {
@@ -944,6 +961,9 @@ Dictionary VFSManager::get_game_search_order() const {
         Dictionary entry;
         const auto named = m_game_names.find(game);
         entry["name"] = String((named != m_game_names.end() ? named->second : game).c_str());
+        // The folder too, because a title is not always unique: Episode One and Episode Two
+        // both call themselves HALF-LIFE 2, and what tells them apart is where they live.
+        entry["folder"] = String(game.substr(game.find_last_of('/') + 1).c_str());
         entry["falls_back_to"] = chain;
         out[String(game.c_str())] = entry;
     }
