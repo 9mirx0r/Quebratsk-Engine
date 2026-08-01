@@ -1,0 +1,26 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2",
+    "shoot3"
+  ],
+  "cycle_time": 0.0955,
+  "fire_sounds": [
+    "sound/weapons/ak47-1.wav",
+    "sound/weapons/ak47-2.wav"
+  ],
+  "holder_class": "ak47",
+  "kind": "weapon",
+  "max_speed": 5.6134,
+  "model": "models/v_ak47.mdl",
+  "name": "v_ak47",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 6
+}

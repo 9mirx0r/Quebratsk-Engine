@@ -1,0 +1,26 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2",
+    "shoot3"
+  ],
+  "cycle_time": 0.2,
+  "fire_sounds": [
+    "sound/weapons/sg552-1.wav",
+    "sound/weapons/sg552-2.wav"
+  ],
+  "holder_class": "mp5",
+  "kind": "weapon",
+  "max_speed": 5.969,
+  "model": "models/v_sg552.mdl",
+  "name": "v_sg552",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 6
+}

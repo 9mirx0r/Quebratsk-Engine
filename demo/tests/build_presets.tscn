@@ -1,0 +1,4 @@
+[gd_scene format=3 uid="uid://beu0np8326swo"]
+[ext_resource type="Script" path="res://tests/build_presets.gd" id="1_x"]
+[node name="BuildPresets" type="Node"]
+script = ExtResource("1_x")

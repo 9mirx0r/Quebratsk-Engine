@@ -1,0 +1,30 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "kind": "character",
+  "model": "models/player/sas/sas.mdl",
+  "name": "sas",
+  "parts": {
+    "backpack": {
+      "chosen": 0,
+      "options": [
+        "blank",
+        "..\\packs\\defuse"
+      ]
+    }
+  },
+  "quebratsk_preset": 1,
+  "sequences": 111,
+  "stance_layer": "legs",
+  "stances": {
+    "crouch": "crouch_idle",
+    "crouch_walk": "crouchrun",
+    "die": "death1",
+    "idle": "idle1",
+    "jump": "jump",
+    "run": "run",
+    "walk": "walk"
+  }
+}

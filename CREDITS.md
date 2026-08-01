@@ -69,6 +69,15 @@ pairs with which world model, which sounds it makes, how hard it hits. Quebratsk
 from filenames, which held until it did not, and this replaces the inference with the game's
 own declaration for 29 weapons.
 
+The same repository answers a second question, through `tools/build_sound_catalogue.py` into
+`data/cs_sounds.json`: what a Counter-Strike level sounds like. A `.mdl` names the sounds its
+own animations trigger, which covers a gunshot and almost nothing else. Footsteps, the C4
+beeping and being planted and going off, a grenade bouncing off a wall, hitting flesh, taking
+a fall, drowning, the radio, the hostages — none of that is in any file Quebratsk reads, which
+is why an imported character walked across a level in silence. 313 sound names, of which 200
+are present in a retail Counter-Strike 1.6 install; the 113 that are not are almost entirely
+hostage voice lines that ReGameDLL supports and retail does not ship.
+
 ## Other importers looked at
 
 Read for approach, not copied. None is a dependency.

@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://dq3cs16seqprob"]
+[gd_scene format=3 uid="uid://c43pdh7tsnixd"]
 [ext_resource type="Script" path="res://tests/probe_cs16_sequences.gd" id="1_p"]
 [node name="ProbeCS16Sequences" type="Node"]
 script = ExtResource("1_p")

@@ -63,6 +63,18 @@ const BOB_UP := 0.5         # cl_bobup, where in the cycle the upswing ends
 const BOB_MAX := 4.0 * UNIT
 const BOB_MIN := -7.0 * UNIT
 
+## How far you travel between footsteps, and how far again when running.
+##
+## GoldSrc does not put a step on an animation frame. CBasePlayer::UpdateStepSound counts
+## distance covered and fires a sound every 220 units at a walk and every 300 at a run, which
+## is why footsteps stay even no matter what the animation is doing.
+const STEP_WALK := 220.0 * UNIT
+const STEP_RUN := 300.0 * UNIT
+
+## Below this you are sneaking, and Counter-Strike gives you silence for it. That is the whole
+## reason to hold Shift.
+const STEP_SILENT := 100.0 * UNIT
+
 ## V_CalcRoll(): the view leans into a strafe. Small, and its absence is one of those things
 ## that reads as stiffness without being nameable.
 const ROLL_ANGLE := 2.0     # cl_rollangle, degrees
@@ -78,6 +90,8 @@ const IMMORTAL := true
 
 const WeaponManifest := preload("res://addons/quebratsk_editor/weapon_manifest.gd")
 const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd")
+const SoundCatalogue := preload("res://addons/quebratsk_editor/sound_catalogue.gd")
+const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 
 ## Where the eyes are relative to the head bone, which sits at the base of the skull.
 ## VEC_VIEW puts the eye 64 units above the soles, which is 8 units below the top of a 72
@@ -108,6 +122,13 @@ var _eye_rest := Vector3.ZERO
 var _said_no_sound := false
 var _said_no_reload := false
 var _hull: CollisionShape3D
+
+## Footsteps: the sounds themselves, the distance still to cover before the next one, and a
+## separate player so a step is not cut off by a gunshot sharing one channel.
+var _steps: Array[AudioStream] = []
+var _step_audio: AudioStreamPlayer3D
+var _until_step := 0.0
+var _last_step := -1
 var _stand_height := 0.0
 var _stand_y := 0.0
 var _ducked := false
@@ -163,6 +184,11 @@ func _ready() -> void:
 		_hull.shape = _hull.shape.duplicate()
 		_stand_height = (_hull.shape as CapsuleShape3D).height
 		_stand_y = _hull.position.y
+
+	_step_audio = AudioStreamPlayer3D.new()
+	_step_audio.volume_db = -8.0
+	_step_audio.unit_size = 4.0
+	add_child(_step_audio)
 
 
 ## Play the stance that matches what the body is doing.
@@ -317,7 +343,72 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	_drive_animation()
+	_step_sound()
 	_bob_view(delta)
+
+
+## Give the player footsteps, which is the loudest thing that was missing.
+##
+## A character walked across de_dust2 in complete silence, and no check that reads files could
+## ever have caught it: no model names a footstep. GoldSrc plays them out of the game library,
+## picked by what you are standing on, and the names come from ReGameDLL_CS through
+## data/cs_sounds.json.
+##
+## Counter-Strike's own rules, not an approximation of them. In the air there are no steps;
+## crouching or holding Shift is silent, which is the entire reason to do either; and the
+## interval is a distance rather than a time, so it stays even whatever the animation does.
+func _step_sound() -> void:
+	if _step_audio == null or not is_on_floor():
+		return
+
+	var ground := Vector2(velocity.x, velocity.z).length()
+	if ground < STEP_SILENT or _ducked or Input.is_key_pressed(KEY_SHIFT):
+		return
+
+	_until_step -= ground * get_physics_process_delta_time()
+	if _until_step > 0.0:
+		return
+	_until_step = STEP_RUN if ground > _speed * 0.55 else STEP_WALK
+
+	if _steps.is_empty():
+		_load_steps()
+	if _steps.is_empty():
+		return
+
+	# Never the same one twice running, which is what the engine's own cache is for: four
+	# samples played at random repeat often enough to be noticed.
+	var pick := randi() % _steps.size()
+	if _steps.size() > 1 and pick == _last_step:
+		pick = (pick + 1) % _steps.size()
+	_last_step = pick
+	_step_audio.stream = _steps[pick]
+	_step_audio.play()
+
+
+## Read the footstep samples once, the first time one is needed.
+##
+## Concrete, because working out what you are standing on means reading the texture under your
+## feet: GoldSrc takes the first letter of the texture's name, and a raycast here returns a
+## collision shape rather than a face. Named as the gap it is rather than left implicit.
+func _load_steps() -> void:
+	if _sandbox == null:
+		return
+	var vfs = _sandbox.get("vfs")
+	if vfs == null:
+		return
+	for name in SoundCatalogue.footsteps("step"):
+		var hit: Dictionary = vfs.find_files("sound/" + str(name), PackedStringArray(["wav"]),
+			PackedStringArray(), PackedStringArray(), 1)
+		var files: PackedStringArray = hit["files"]
+		if files.is_empty():
+			continue
+		var stream: AudioStream = SoundLoader.load_sound(vfs, str(files[0]))
+		if stream != null:
+			_steps.append(stream)
+	if _steps.is_empty():
+		push_warning("[player] no footstep sounds resolved, so walking stays silent")
+	else:
+		print("[player] %d footstep sample(s)" % _steps.size())
 
 
 ## Shrink to the ducked hull, or grow back to the standing one.

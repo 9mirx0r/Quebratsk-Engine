@@ -1,0 +1,25 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2",
+    "shoot3"
+  ],
+  "cycle_time": 0.1,
+  "fire_sounds": [
+    "sound/weapons/ump45-1.wav"
+  ],
+  "holder_class": "carbine",
+  "kind": "weapon",
+  "max_speed": 6.35,
+  "model": "models/v_ump45.mdl",
+  "name": "v_ump45",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 6
+}

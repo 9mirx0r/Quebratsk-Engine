@@ -1,0 +1,22 @@
+{
+  "attacks": [
+    "slash1",
+    "slash2",
+    "stab",
+    "midslash1",
+    "midslash2"
+  ],
+  "cycle_time": 1.0,
+  "fire_sounds": [
+    "sound/weapons/knife_slash1.wav",
+    "sound/weapons/knife_slash2.wav"
+  ],
+  "holder_class": "knife",
+  "kind": "weapon",
+  "max_speed": 6.35,
+  "model": "models/v_knife.mdl",
+  "name": "v_knife",
+  "quebratsk_preset": 1,
+  "reload": [],
+  "sequences": 8
+}

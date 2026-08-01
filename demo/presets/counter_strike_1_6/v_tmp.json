@@ -1,0 +1,26 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot",
+    "shoot #2",
+    "shoot #3"
+  ],
+  "cycle_time": 0.07,
+  "fire_sounds": [
+    "sound/weapons/tmp-1.wav",
+    "sound/weapons/tmp-2.wav"
+  ],
+  "holder_class": "onehanded",
+  "kind": "weapon",
+  "max_speed": 6.35,
+  "model": "models/v_tmp.mdl",
+  "name": "v_tmp",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 6
+}

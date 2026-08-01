@@ -1,0 +1,15 @@
+{
+  "attacks": [
+    "slash1",
+    "slash2",
+    "stab",
+    "midslash1",
+    "midslash2"
+  ],
+  "kind": "weapon",
+  "model": "models/v_knife_r.mdl",
+  "name": "v_knife_r",
+  "quebratsk_preset": 1,
+  "reload": [],
+  "sequences": 8
+}
