@@ -32,6 +32,16 @@ struct BrushModelBounds {
 
     [[nodiscard]] godot::Vector3 centre() const { return (mins + maxs) * 0.5f; }
     [[nodiscard]] godot::Vector3 size() const { return maxs - mins; }
+
+    /// This model's own geometry, separate from the world's.
+    ///
+    /// Faces used to be grouped by texture across the whole map into one mesh, which meant a
+    /// door's faces were merged with every wall sharing its texture and there was nothing
+    /// left to move. A door cannot open, a lift cannot rise and a decoration cannot stop
+    /// being solid while they are all the same object.
+    ///
+    /// Empty for a model with nothing visible, which some trigger volumes are.
+    ir::IRMeshData mesh;
 };
 
 struct ParsedBSP30Map {
