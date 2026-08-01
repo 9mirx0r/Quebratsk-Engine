@@ -90,6 +90,21 @@ Nothing from there is copied into Quebratsk today. `demo/lab/storm_sky.gdshader`
 established before reading the code rather than after, and the answer is worth not looking up
 twice.
 
+## Player movement
+
+**Valve's Half-Life SDK**, `pm_shared/pm_shared.c` and `pm_materials.h`. Read, not copied, and
+the difference matters: the SDK's own header restricts use to *"non-commercial enhancements to
+products from Valve LLC"*, which is not a licence to reuse the code. What is taken is fact
+rather than expression — that 'M' at the front of a texture name means metal, that a footstep
+falls every 400 milliseconds at a walk, that climbing is capped at 200 units per second — the
+same kind of thing already taken from the FGDs and the weapon tables. The implementations here
+are written from that.
+
+It corrected something stated confidently and wrongly. Footsteps had been spaced by distance
+covered, with a comment claiming GoldSrc does the same. It does not: `flTimeStepSound` is 400
+milliseconds walking and 300 running, and which one applies is decided at `velrun`, 210 units
+per second.
+
 ## Engine reimplementations, and one that is not read
 
 Two projects reimplement the GoldSrc engine itself rather than its game library, and they are

@@ -43,6 +43,10 @@ var _lab: Node3D
 var _doors: Array = []
 var _buttons: Array = []
 
+## Volumes the player's own movement has to know about: what you climb and what you swim in.
+var ladders: Array[AABB] = []
+var water: Array[AABB] = []
+
 
 func setup(lab: Node3D, map: Node3D, entities: Array) -> void:
 	_lab = lab
@@ -53,11 +57,18 @@ func setup(lab: Node3D, map: Node3D, entities: Array) -> void:
 		var model := str(entity.get("model", ""))
 		if not model.begins_with("*"):
 			continue
+		var cls := str(entity.get("classname", ""))
+
+		# Volumes first, because these need no geometry and usually have none. A func_ladder
+		# is textured with something the renderer skips, so it produces no surfaces and no
+		# node — and requiring a node found none of cs_siege's six. What a ladder is, is its
+		# box.
+		if cls == "func_ladder" and entity.has("bounds"):
+			ladders.append(entity["bounds"] as AABB)
+
 		var node := map.get_node_or_null("brush_%s" % model.substr(1)) as MeshInstance3D
 		if node == null:
 			continue
-
-		var cls := str(entity.get("classname", ""))
 		match cls:
 			"func_illusionary":
 				# Scenery you walk straight through: a vine, an overhang, a bar of light. The
@@ -86,6 +97,12 @@ func setup(lab: Node3D, map: Node3D, entities: Array) -> void:
 				# The surface is drawn separately and prettier; this is the brush behind it,
 				# which you swim through rather than walk into.
 				_make_passable(node)
+				if entity.has("bounds"):
+					water.append(entity["bounds"] as AABB)
+			"func_ladder":
+				# Its box was taken above; if it did happen to have geometry, it is not
+				# something you bump into.
+				_make_passable(node)
 
 	if passable > 0:
 		print("[brushes] %d brush(es) made passable" % passable)
@@ -96,6 +113,8 @@ func setup(lab: Node3D, map: Node3D, entities: Array) -> void:
 		print("[brushes] %d door(s), %d with a sound" % [_doors.size(), voiced])
 	if not _buttons.is_empty():
 		print("[brushes] %d button(s)" % _buttons.size())
+	if not ladders.is_empty() or not water.is_empty():
+		print("[brushes] %d ladder(s), %d water volume(s)" % [ladders.size(), water.size()])
 
 
 ## Take the collider off, leaving what you can see.
