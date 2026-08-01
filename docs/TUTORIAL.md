@@ -55,16 +55,23 @@ extracted mod folder, and **Open one archive file** for a single `.vpk`, `.wad`,
 
 ## 3. Find something
 
-Two ways, and you can combine them:
+Three ways, and you can combine them:
 
 - **The category dropdown** — *Characters & people*, *Weapons*, *Vehicles*,
   *Props & scenery*, *Maps & terrain*, *Textures & materials*, *Sounds*. Use this when you
-  want to browse rather than search for something specific.
+  want to browse rather than search for something specific. *Favourites* and *Recently
+  imported* are there too, once you have starred or imported anything.
+- **The game dropdown** beside it narrows everything to one game.
 - **The search box** — type part of a name, like `police` or `dust`.
 
 Each result shows what the file is called and, after a slash, which game it came from. That
-second part matters more than it looks: both Half-Life 2 and Garry's Mod ship a
-`police.mdl`, and they are different models.
+second part matters more than it looks: both Half-Life 2 and Garry's Mod ship a `police.mdl`,
+and they are different models.
+
+The game dropdown lists games by the names they call themselves, which is not the same as the
+folders they live in. Steam keeps Half-Life, Counter-Strike, Condition Zero and its Deleted
+Scenes in one folder called Half-Life, and each of those is a separate entry here, so asking
+for Counter-Strike gives you Counter-Strike and nothing else.
 
 ---
 
@@ -84,15 +91,41 @@ chose. From there it is a normal Godot node: move it, rotate it, attach a script
 
 **Ctrl+Z** undoes the import like any other editor action.
 
+### Bringing it in moving
+
+A pose is one frozen frame. Tick **Bring it in moving** to get the animation instead, and
+choose how much:
+
+- **Just this one** imports the sequence selected in the pose list.
+- **The usual moves** finds idle, walking, running, crouching, jumping, shooting, reloading
+  and dying among the hundreds a model carries, and brings them in together.
+
+Either way they arrive as an `AnimationPlayer` on the model, and you play them by name. A
+Condition Zero player model has 494 sequences and nearly all are situational, so the second
+option exists to spare you reading that list.
+
+### Save, if this is for a real project
+
+**Add to scene** is a one-off. **Save** writes the import to `res://imported/` as a scene you
+can drag in anywhere, version and edit.
+
+Save is the one that matters for anything you intend to ship. A saved scene is an ordinary
+Godot scene: it opens without Quebratsk and without the game installed, so whoever plays your
+game needs neither. Textures and meshes are written beside it as their own resources, which
+keeps the scene small and lets two models that share a texture share one copy of it.
+
+Sounds save the same way and land beside the scenes.
+
 ---
 
 ## What you can and cannot import
 
-| You can place in a scene | You can browse but not place |
+| Works today | Being built |
 |---|---|
-| Models from Half-Life, Counter-Strike 1.6, Half-Life 2, Garry's Mod, Portal, TF2 | Textures and materials — they are used *by* models, not placed on their own |
-| Maps from those games | Sounds |
-| Arma and DayZ terrain (`.wrp`) | Arma and DayZ models — [on the roadmap](../README.md#roadmap) |
+| Models from Half-Life, Counter-Strike 1.6, Condition Zero, Half-Life 2, Garry's Mod, and workshop addons | Maps from Source games. Those are VBSP v19 and v20, a different format from the GoldSrc BSP already working |
+| Maps from the GoldSrc games, with their entities, skybox and ambient sound | Arma and DayZ models. Retail ships them compiled and only the editable form reads so far |
+| Sounds, which import as well as preview | Arma and DayZ terrain, which is `OPRW v29` |
+| Textures, which come in attached to whatever uses them | |
 
 If an import fails, the panel says why in plain language rather than logging to a console
 you are not watching. The most common cause is a Source model whose shape lives in
