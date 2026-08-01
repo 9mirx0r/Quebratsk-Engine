@@ -84,6 +84,14 @@ var _soles := 0.0
 var _bob_time := 0.0
 var _airborne := 0.0
 
+## Walk through walls, on V.
+##
+## Here because the doors do not open yet: a func_door's geometry is baked into the world mesh
+## along with everything else that shares its texture, so it is a wall until brush models are
+## built as their own meshes. Until then a level with a shut door is a level you cannot leave,
+## and being stuck in a room is a poor way to look at the rest of it.
+var _noclip := false
+
 var _stances := {}
 var _body_anim: AnimationPlayer
 var _hull: CollisionShape3D
@@ -272,6 +280,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_R:
 			_reload()
+		elif event.keycode == KEY_V:
+			_noclip = not _noclip
+			for child in get_children():
+				if child is CollisionShape3D:
+					(child as CollisionShape3D).disabled = _noclip
+			velocity = Vector3.ZERO
+			print("[player] noclip %s" % ("on" if _noclip else "off"))
 		elif event.keycode == KEY_ESCAPE:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
@@ -288,6 +303,17 @@ func _physics_process(delta: float) -> void:
 	if Input.is_key_pressed(KEY_S): forward -= 1.0
 	if Input.is_key_pressed(KEY_D): strafe += 1.0
 	if Input.is_key_pressed(KEY_A): strafe -= 1.0
+
+	if _noclip:
+		# Flown rather than walked, along the way the camera is pointing, so a ceiling is not
+		# an obstacle to looking at what is above it.
+		var fly := (_camera.global_transform.basis * Vector3(strafe, 0, -forward)).normalized()
+		if Input.is_key_pressed(KEY_SPACE): fly += Vector3.UP
+		if Input.is_key_pressed(KEY_CTRL): fly += Vector3.DOWN
+		velocity = fly * _speed * 2.0
+		move_and_slide()
+		_bob_view(delta)
+		return
 
 	var wishdir := (transform.basis * Vector3(strafe, 0, -forward)).normalized()
 	var wishspeed := _speed
