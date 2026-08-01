@@ -45,6 +45,20 @@ const STOP_SPEED := 75.0 * UNIT
 ## into the movement grants a sliver at a time. Bunny hopping and air strafing come out of
 ## this one clamp; without it the same code hands out unlimited speed on the first frame.
 const MAX_AIR_SPEED := 30.0 * UNIT
+
+## View bobbing, from V_CalcBob() in cl_dll/view.cpp. The camera's rise and fall while walking
+## is code, not an animation of the head: GoldSrc has no bone driving it and the amplitude is
+## taken straight from how fast the body is moving across the ground.
+const BOB := 0.01           # cl_bob
+const BOB_CYCLE := 0.8      # cl_bobcycle, seconds for one full step
+const BOB_UP := 0.5         # cl_bobup, where in the cycle the upswing ends
+const BOB_MAX := 4.0 * UNIT
+const BOB_MIN := -7.0 * UNIT
+
+## V_CalcRoll(): the view leans into a strafe. Small, and its absence is one of those things
+## that reads as stiffness without being nameable.
+const ROLL_ANGLE := 2.0     # cl_rollangle, degrees
+const ROLL_SPEED := 200.0 * UNIT
 const LOOK_SENSITIVITY := 0.0022
 const RANGE := 80.0
 const DAMAGE := 34   # three hits, so a fight lasts long enough to be a fight
@@ -75,6 +89,8 @@ var _fire := ""
 var _weapon_node: Node3D
 var _moves: Dictionary = {}
 var _body_anim: AnimationPlayer
+var _bob_time := 0.0
+var _eye_rest := Vector3.ZERO
 
 
 func setup(sandbox: Node3D, camera: Camera3D, skeleton: Skeleton3D = null,
@@ -86,6 +102,14 @@ func setup(sandbox: Node3D, camera: Camera3D, skeleton: Skeleton3D = null,
 	_moves = moves
 	if skeleton != null:
 		_body_anim = skeleton.get_node_or_null("AnimationPlayer")
+	# VEC_VIEW, not the head bone. GoldSrc puts the eye at a fixed 64 units above the soles and
+	# adds V_CalcBob; it does not follow a bone, and following one hands the view the whole
+	# swing of a third-person walk cycle, which is both wrong and unpleasant. Having the real
+	# constant is what made this worth changing.
+	if camera != null:
+		camera.position = Vector3(0, EYE_HEIGHT, 0)
+		_eye_rest = camera.position
+	_head = -1
 
 
 ## Play the stance that matches what the body is doing.
@@ -195,6 +219,39 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	_drive_animation()
+	_bob_view(delta)
+
+
+## Rise, fall and lean the view the way walking does.
+##
+## Two separate effects that the engine computes rather than animates. The cycle is not a plain
+## sine: the upswing occupies the first half and the downswing the second, mapped to different
+## halves of pi, which is what gives a footstep its weight instead of a float. Amplitude comes
+## from ground speed alone, so standing still is perfectly still.
+##
+func _bob_view(delta: float) -> void:
+	if _camera == null:
+		return
+
+	_bob_time += delta
+	var cycle: float = fmod(_bob_time, BOB_CYCLE) / BOB_CYCLE
+	if cycle < BOB_UP:
+		cycle = PI * cycle / BOB_UP
+	else:
+		cycle = PI + PI * (cycle - BOB_UP) / (1.0 - BOB_UP)
+
+	var ground := Vector2(velocity.x, velocity.z).length()
+	var bob := ground * BOB
+	# Never all the way to zero at the turn: a third of it is constant and the rest swings.
+	bob = bob * 0.3 + bob * 0.7 * sin(cycle)
+	bob = clampf(bob, BOB_MIN, BOB_MAX)
+
+	# Leaning into a strafe, from the sideways component of the movement.
+	var side: float = velocity.dot(transform.basis.x)
+	var roll: float = ROLL_ANGLE * clampf(side / ROLL_SPEED, -1.0, 1.0)
+
+	_camera.position = _eye_rest + Vector3(0, bob, 0)
+	_camera.rotation.z = lerp_angle(_camera.rotation.z, deg_to_rad(-roll), 0.2)
 
 
 ## Add speed in the direction asked for, but only as much as is missing in that direction.
