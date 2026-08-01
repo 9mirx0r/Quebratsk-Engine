@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://bqxk3n7vvermaptex"]
+[gd_scene format=3 uid="uid://kehej4w1m56n"]
 
 [ext_resource type="Script" path="res://tests/verify_map_textures.gd" id="1_vmt"]
 
