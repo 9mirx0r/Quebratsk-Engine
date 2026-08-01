@@ -155,13 +155,26 @@ constexpr int32_t kMaxSequenceFrames = 4096;
 void read_sequences(const ByteReader& mdl, const StudioHeader& header, const StudioBone* bones,
                     ir::IRSkeletonData& skeleton,
                     std::vector<ir::IRAnimationData>& animations,
-                    const std::vector<std::string>& animate) {
+                    const std::vector<std::string>& animate,
+                    const std::vector<std::span<const std::byte>>& sequence_groups) {
     if (bones == nullptr || header.num_bones <= 0 || header.num_seq <= 0 || header.seq_index <= 0) {
         return;
     }
     const auto sequences = mdl.array_at<StudioSeqDesc>(static_cast<size_t>(header.seq_index),
                                                        static_cast<size_t>(header.num_seq));
     if (sequences.empty()) return;
+
+    // A sidecar begins with its own header and is only usable if it is really one of these.
+    // Handing the wrong file here would read a stranger's bytes as bone tracks.
+    std::vector<ByteReader> readers;
+    readers.reserve(sequence_groups.size());
+    for (const auto& group : sequence_groups) {
+        const ByteReader reader(group);
+        const auto head = reader.array_at<StudioSeqHeader>(0, 1);
+        const bool usable = !head.empty()
+                         && std::memcmp(head[0].magic, kSeqGroupMagic.data(), 4) == 0;
+        readers.push_back(usable ? reader : ByteReader());
+    }
 
     for (size_t s = 0; s < sequences.size(); ++s) {
         const StudioSeqDesc& seq = sequences[s];
@@ -185,16 +198,24 @@ void read_sequences(const ByteReader& mdl, const StudioHeader& header, const Stu
             }
         }
 
-        // Where the bone tracks are. Group 0 means this file; anything else means a sidecar
-        // "<name>01.mdl" that this parser was not handed, so those sequences keep their name
-        // and their sounds and stand in the bind pose.
+        // Which file holds the bone tracks. Group 0 is this one; anything else is a sidecar,
+        // and its offsets are counted from the start of that file rather than from this one.
+        // A group the caller could not supply leaves the sequence named, with its sounds, in
+        // the bind pose, which is better than dropping it: the name is still worth having.
+        const ByteReader* track_file = &mdl;
+        if (seq.seq_group > 0) {
+            const size_t group = static_cast<size_t>(seq.seq_group) - 1;
+            track_file = group < readers.size() ? &readers[group] : nullptr;
+        }
+
         const size_t anim_offset = static_cast<size_t>(seq.anim_index);
         const bool tracks_here =
-            seq.seq_group == 0 && seq.anim_index > 0 &&
-            !mdl.array_at<StudioAnim>(anim_offset, static_cast<size_t>(header.num_bones)).empty();
+            track_file != nullptr && seq.anim_index > 0 &&
+            !track_file->array_at<StudioAnim>(anim_offset,
+                                              static_cast<size_t>(header.num_bones)).empty();
 
         ir::IRPose pose = tracks_here
-                              ? sample_pose(mdl, anim_offset, bones, header.num_bones, 0)
+                              ? sample_pose(*track_file, anim_offset, bones, header.num_bones, 0)
                               : rest_pose(bones, header.num_bones);
         pose.name = std::move(label);
         pose.sounds = std::move(sounds);
@@ -219,7 +240,8 @@ void read_sequences(const ByteReader& mdl, const StudioHeader& header, const Stu
             }
 
             for (int32_t f = 0; f < seq.num_frames; ++f) {
-                const ir::IRPose frame = sample_pose(mdl, anim_offset, bones, header.num_bones, f);
+                const ir::IRPose frame =
+                    sample_pose(*track_file, anim_offset, bones, header.num_bones, f);
                 const float time = static_cast<float>(f) / anim.fps;
 
                 for (size_t b = 0; b < frame.positions.size(); ++b) {
@@ -293,10 +315,21 @@ bool decode_embedded_texture(const ByteReader& mdl, const StudioTexture& tex,
 
 } // namespace
 
+int32_t MDL10Parser::sequence_group_count(std::span<const std::byte> mdl_bytes) {
+    const ByteReader mdl(mdl_bytes);
+    const auto header = mdl.array_at<StudioHeader>(0, 1);
+    if (header.empty() || std::memcmp(header[0].magic, kMdl10Magic.data(), 4) != 0
+        || header[0].version != kMdl10Version) {
+        return 0;
+    }
+    return header[0].num_seq_groups;
+}
+
 std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
     std::span<const std::byte> mdl_bytes,
     std::span<const std::byte> texture_mdl_bytes,
-    const std::vector<std::string>& animate
+    const std::vector<std::string>& animate,
+    const std::vector<std::span<const std::byte>>& sequence_groups
 ) {
     const ByteReader mdl(mdl_bytes);
 
@@ -340,7 +373,8 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
             result.skeleton_data.bones.push_back(std::move(ir_b));
         }
 
-        read_sequences(mdl, *header, bones, result.skeleton_data, result.animations, animate);
+        read_sequences(mdl, *header, bones, result.skeleton_data, result.animations, animate,
+                       sequence_groups);
         }
     }
 

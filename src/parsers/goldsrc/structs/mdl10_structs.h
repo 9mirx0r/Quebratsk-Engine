@@ -159,6 +159,33 @@ struct StudioEvent {
     char options[64];   // a sound path relative to sound/, for sound events
 };
 
+/// mstudioseqgroup_t (104 bytes). One per file a model spreads its animations across.
+///
+/// Group 0 is the model itself. Any other is a sidecar sitting beside it, named for the model
+/// with the group number appended: player.mdl keeps group 1 in player01.mdl. `name` holds the
+/// path the compiler wrote, which is worth reading but not trusting, since renaming a model
+/// without recompiling it leaves that path pointing at the old name.
+struct StudioSeqGroup {
+    char label[32];
+    char name[64];
+    int32_t unused;
+    int32_t unused2;
+};
+
+/// The header a sidecar animation file starts with, before its track data.
+///
+/// Offsets in a sequence descriptor are counted from the start of the file that holds the
+/// tracks, this header included, so it is never skipped past. It is spelled out because a
+/// file that does not begin with "IDSQ" is not one of these and must not be read as one.
+struct StudioSeqHeader {
+    char magic[4];      // "IDSQ"
+    int32_t version;    // 10, as in the model
+    char name[64];
+    int32_t length;
+};
+
+inline constexpr std::array<char, 4> kSeqGroupMagic = {'I', 'D', 'S', 'Q'};
+
 /// mstudioanim_t (12 bytes). One per bone, six offsets relative to this struct itself.
 ///
 /// Channels 0 to 2 are position, 3 to 5 are Euler rotation. An offset of zero means the
@@ -197,6 +224,8 @@ static_assert(sizeof(StudioModel) == 112, "StudioModel size mismatch");
 static_assert(sizeof(StudioMesh) == 20, "StudioMesh size mismatch");
 static_assert(sizeof(StudioTexture) == 80, "StudioTexture size mismatch");
 static_assert(sizeof(StudioSeqDesc) == 176, "StudioSeqDesc size mismatch");
+static_assert(sizeof(StudioSeqGroup) == 104, "StudioSeqGroup size mismatch");
+static_assert(sizeof(StudioSeqHeader) == 76, "StudioSeqHeader size mismatch");
 static_assert(sizeof(StudioEvent) == 76, "StudioEvent size mismatch");
 static_assert(sizeof(StudioAnim) == 12, "StudioAnim size mismatch");
 static_assert(sizeof(StudioAnimValue) == 2, "StudioAnimValue size mismatch");

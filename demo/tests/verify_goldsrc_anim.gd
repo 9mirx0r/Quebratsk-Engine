@@ -61,6 +61,8 @@ func _ready() -> void:
 		if result["sounds"] > 0:
 			with_sounds += 1
 
+	_check_sidecars(hit["files"])
+
 	print("\n=== SUMMARY ===")
 	print("  %d GoldSrc models read" % checked)
 	print("  %d expose more than one sequence" % with_sequences)
@@ -69,6 +71,109 @@ func _ready() -> void:
 	if checked > 0 and animating == 0:
 		print("  ** every model still stands still **")
 	get_tree().quit()
+
+
+## Models that keep their animations in a separate file.
+##
+## A Half-Life player model is almost entirely this: the .mdl holds the mesh and one or two
+## sequences, and every stance the game shows lives in a sidecar named for it. Those sequences
+## used to come back named and motionless, which reads as a model that simply does not
+## animate rather than as a file that was never opened.
+func _check_sidecars(files: PackedStringArray) -> void:
+	print("\n=== SEQUENCES KEPT IN A SEPARATE FILE ===")
+
+	var looked := 0
+	var moving := 0
+	for entry in files:
+		if looked >= 6:
+			break
+		var uri := str(entry)
+		# A model with a sidecar has one sitting beside it under the same name.
+		if not _vfs.file_exists(uri.replace(".mdl", "01.mdl")):
+			continue
+		if not _is_goldsrc(uri):
+			continue
+
+		var poses: PackedStringArray = _importer.list_poses(uri)
+		if poses.is_empty():
+			continue
+		looked += 1
+
+		# Sequences in the model itself are the first few, so look further in: that is where
+		# the sidecar's own begin. Several are tried rather than one, because plenty of these
+		# are held poses by design. "lying_on_back" moving nothing is a death pose doing its
+		# job, and reading that as a failed decode would be reading luck as evidence.
+		var moved := 0
+		var largest := 0.0
+		var wanted := ""
+
+		for step in 4:
+			var index: int = poses.size() / 2 + step * maxi(poses.size() / 8, 1)
+			if index >= poses.size():
+				break
+			var name := str(poses[index])
+			var result: Dictionary = _play(uri, name)
+			if result.is_empty():
+				continue
+			if result["moved"] > moved:
+				moved = result["moved"]
+				largest = result["largest"]
+				wanted = name
+			if moved > 0:
+				break
+
+		if moved > 0:
+			moving += 1
+		if wanted.is_empty():
+			print("   %-26s %d sequences, none of the four tried moves a bone"
+				% [uri.get_file(), poses.size()])
+		else:
+			print("   %-26s %d sequences, '%s' moves %d bones (%.1f deg)"
+				% [uri.get_file(), poses.size(), wanted, moved, largest])
+
+	if looked == 0:
+		print("   no model with a sidecar found among the ones scanned")
+	else:
+		print("\n   %d of %d animate out of their sidecar" % [moving, looked])
+		if moving == 0:
+			print("   ** the sidecars are not being read **")
+
+
+## Play one sequence and report how far it moves the skeleton.
+func _play(uri: String, sequence: String) -> Dictionary:
+	var node: Node3D = _importer.load_model(uri, "", PackedStringArray([sequence]))
+	if node == null:
+		return {}
+	add_child(node)
+
+	var moved := 0
+	var largest := 0.0
+	var skel := node as Skeleton3D
+	var player: AnimationPlayer = node.get_node_or_null("AnimationPlayer")
+
+	if skel != null and player != null and not player.get_animation_list().is_empty():
+		var name := str(player.get_animation_list()[0])
+		var anim: Animation = player.get_animation(name)
+		player.play(name)
+		player.seek(0.0, true)
+		var first := []
+		for b in skel.get_bone_count():
+			first.append(skel.get_bone_pose_rotation(b))
+
+		# Halfway and near the end, since a sequence can return to where it started.
+		for frac in [0.5, 0.9]:
+			player.seek(anim.get_length() * frac, true)
+			var count := 0
+			for b in skel.get_bone_count():
+				var delta := rad_to_deg((first[b] as Quaternion).angle_to(
+					skel.get_bone_pose_rotation(b)))
+				largest = maxf(largest, delta)
+				if delta > 0.5:
+					count += 1
+			moved = maxi(moved, count)
+
+	node.queue_free()
+	return {"moved": moved, "largest": largest}
 
 
 ## Both engines write "IDST" and only the version field after it tells them apart. Guessing

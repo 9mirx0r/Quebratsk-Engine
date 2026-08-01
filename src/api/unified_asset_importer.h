@@ -55,6 +55,11 @@ struct AssetBundleBytes {
     std::vector<std::byte> textures;  // GoldSrc "<name>T.mdl", likewise
     std::vector<std::byte> animations; // Source .ani animation blocks, likewise
 
+    /// GoldSrc sidecar animation files, index 0 holding sequence group 1. A model that keeps
+    /// its stances in "<name>01.mdl" has almost nothing in the model itself, so without these
+    /// its sequence list is full of names that resolve to the bind pose.
+    std::vector<std::vector<std::byte>> sequence_groups;
+
     /// Source animation models named by the .mdl's includemodel table. Their paths are
     /// only known after reading the header, so they are fetched in a second pass.
     std::vector<IncludedModelBytes> include_models;
