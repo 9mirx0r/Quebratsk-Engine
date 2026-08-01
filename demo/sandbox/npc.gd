@@ -76,8 +76,13 @@ func _physics_process(delta: float) -> void:
 	var can_see := distance < SIGHT and _player_visible()
 
 	# Face the player whenever it knows where they are, so it shoots the way it is looking.
+	#
+	# Godot's front is -Z, so the angle is taken to the vector pointing away from the target.
+	# Written the other way round this aimed +Z at the player: with the old broken axis remap
+	# that came out ninety degrees off and looked like standing sideways, and once the remap
+	# was fixed it became a clean hundred and eighty, so they turned their backs instead.
 	if can_see and distance > 0.1:
-		var yaw := atan2(to_target.x, to_target.z)
+		var yaw := atan2(-to_target.x, -to_target.z)
 		rotation.y = lerp_angle(rotation.y, yaw, 0.15)
 
 	var moving := false

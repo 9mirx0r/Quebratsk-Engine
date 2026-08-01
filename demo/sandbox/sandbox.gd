@@ -54,6 +54,7 @@ var _pool := PackedStringArray()
 
 ## The map that is open, and the games worth drawing the rest of the scene from.
 var _map_uri := ""
+var _view_camera: Camera3D
 var _scope := PackedStringArray()
 var _hud: Label
 var _rng := RandomNumberGenerator.new()
@@ -87,6 +88,7 @@ func _ready() -> void:
 	_spawn_player()
 	_spawn_enemies()
 	_refresh_hud()
+	_report_footing()
 
 
 # ------------------------------------------------------------------- mounting ----
@@ -515,22 +517,18 @@ func _spawn_player() -> void:
 	if skeleton != null and head < 0:
 		print("[sandbox] no head bone on this model, the view stays at a fixed height")
 
-	# In the hand, where a weapon is. Mounting it to the camera put it in the same place on
-	# screen no matter what the body did, which is what made it look pasted on.
-	var hand := _bone_like(skeleton, ["r_hand", "r hand", "righthand", "hand_r"])
-	var mount: Node3D = camera
-	var offset := Vector3(0.18, -0.16, -0.5)
-	var size := 0.42
-	if skeleton != null and hand >= 0:
-		var socket := BoneAttachment3D.new()
-		socket.name = "WeaponHand"
-		socket.bone_name = skeleton.get_bone_name(hand)
-		skeleton.add_child(socket)
-		mount = socket
-		offset = Vector3.ZERO
-		size = 0.6
+	# Your own body is not drawn from your own eyes. That is not a shortcut, it is how these
+	# games work: R_DrawViewModel returns early in first person and the player entity is never
+	# rendered, so nothing about a p_ model was ever meant to be seen from the inside. It stays
+	# in the scene casting its shadow, which is what makes a figure feel present without being
+	# a wall in front of the camera.
+	if skeleton != null:
+		for child in skeleton.get_children():
+			if child is MeshInstance3D:
+				(child as MeshInstance3D).cast_shadow = \
+					GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 
-	var weapon: Dictionary = _give_weapon(mount, offset, size)
+	var weapon: Dictionary = _build_view_model(camera)
 	_built["weapon"] = weapon["name"]
 	_player.arm(weapon)
 
@@ -540,6 +538,174 @@ func _spawn_player() -> void:
 ## View models (v_*) are the ones held in front of a camera; world models (w_*) are what a
 ## weapon looks like lying on the ground or in someone's hands. Either will do, and which
 ## exist depends on which games are installed.
+## Is everyone standing on the floor rather than in it?
+##
+## Reported rather than assumed. A figure sunk to the waist and a figure whose death animation
+## reaches through the floor look identical in a screenshot, and they are different problems.
+func _report_footing() -> void:
+	await get_tree().create_timer(1.5).timeout
+	print("[sandbox] footing, after settling:")
+	for child in get_children():
+		if not (child is CharacterBody3D):
+			continue
+		var who := child as CharacterBody3D
+		var collider: CollisionShape3D = who.get_node_or_null("CollisionShape3D")
+		if collider == null:
+			continue
+		var shape := collider.shape as CapsuleShape3D
+		if shape == null:
+			continue
+
+		# Where the capsule ends and where the lowest bone is, both in world space. If the
+		# bone is well below the capsule, the body hangs out of its own collider.
+		var capsule_bottom: float = collider.global_position.y - shape.height * 0.5
+		var lowest := INF
+		for grandchild in who.get_children():
+			if grandchild is Skeleton3D:
+				var skel := grandchild as Skeleton3D
+				for b in skel.get_bone_count():
+					lowest = minf(lowest,
+						(skel.global_transform * skel.get_bone_global_pose(b)).origin.y)
+		if lowest == INF:
+			continue
+		print("   %-26s floor %s, capsule bottom %.2f, lowest bone %.2f, hanging %.2f m"
+			% [who.name, "yes" if who.is_on_floor() else "NO ",
+			   capsule_bottom, lowest, capsule_bottom - lowest])
+
+
+## Keep the weapon's camera on the eye.
+##
+## The weapon is a child of that camera, so moving the camera moves the weapon with the view
+## and nothing has to be synchronised piece by piece. Done in _process rather than in physics
+## because the view turns with the mouse, not with the simulation.
+func _process(_delta: float) -> void:
+	if _view_camera == null or _player == null:
+		return
+	var eye: Camera3D = _player.get_node_or_null("Camera3D")
+	if eye != null:
+		_view_camera.global_transform = eye.global_transform
+
+
+## The arms and the weapon, drawn the way these games draw them.
+##
+## Not a model hung off the body. In GoldSrc the view model is its own entity rendered in a
+## pass of its own after the world, with the depth range squeezed into the front of the buffer
+## so the barrel never pokes through a wall. Godot has no depth range knob, but it has the
+## thing that trick is standing in for: a second camera with its own depth buffer, seeing only
+## the weapon, composited on top. Same result, and it is the usual way to do this in Godot.
+##
+## The model is a v_ one, which is arms and gun together with its own draw, fire and reload
+## sequences and the sound events that go with them. A p_ model has none of that: it is the
+## shape other players see and it does not animate on its own.
+const VIEW_MODEL_LAYER := 2
+
+
+func _build_view_model(camera: Camera3D) -> Dictionary:
+	var empty := {"name": "", "sound": null, "fire": "", "node": null}
+
+	# Only the weapon goes on that layer, and the world camera is told to ignore it, so
+	# neither render sees the other's geometry.
+	camera.cull_mask &= ~(1 << (VIEW_MODEL_LAYER - 1))
+
+	var holder := SubViewportContainer.new()
+	holder.name = "ViewModelPass"
+	holder.stretch = true
+	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var layer := CanvasLayer.new()
+	layer.name = "ViewModelLayer"
+	# Below the HUD, which builds its own layer at the default zero.
+	layer.layer = -1
+	layer.add_child(holder)
+	add_child(layer)
+
+	var viewport := SubViewport.new()
+	viewport.transparent_bg = true
+	viewport.handle_input_locally = false
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	# The same world, so the weapon is lit by the level rather than floating in a void.
+	viewport.world_3d = get_viewport().world_3d
+	holder.add_child(viewport)
+
+	_view_camera = Camera3D.new()
+	_view_camera.name = "ViewCamera"
+	_view_camera.cull_mask = 1 << (VIEW_MODEL_LAYER - 1)
+	_view_camera.fov = camera.fov
+	# Close, because the whole model is within arm's reach.
+	_view_camera.near = 0.01
+	_view_camera.far = 4.0
+	_view_camera.current = true
+	viewport.add_child(_view_camera)
+
+	var uri := _pick_view_model()
+	if uri.is_empty():
+		print("[sandbox] no v_ model found in %s" % _names_of(_scope))
+		return empty
+
+	var fire := _fire_sequence(uri)
+	var sequences := PackedStringArray()
+	for role in ["idle", "draw", "deploy"]:
+		for pose in importer.list_poses(uri):
+			if str(pose).to_lower().begins_with(role):
+				sequences.append(str(pose))
+				break
+	if not fire.is_empty():
+		sequences.append(fire)
+
+	var model: Node3D = importer.load_model(uri, "", sequences)
+	if model == null:
+		print("[sandbox] %s could not be loaded" % uri.get_file())
+		return empty
+
+	# A view model has no business colliding with anything.
+	for child in model.get_children():
+		if child is StaticBody3D:
+			model.remove_child(child)
+			child.queue_free()
+	_set_layer(model, VIEW_MODEL_LAYER)
+
+	# Authored to sit at the eye, so near enough to identity. Nudged down and right because
+	# these were drawn for a 4:3 screen with the gun clear of the crosshair.
+	model.position = Vector3(0.0, -0.06, -0.08)
+	_view_camera.add_child(model)
+
+	print("[sandbox] view model %s   (%s)" % [uri.get_file(), _which_game(uri)])
+	return {
+		"name": uri.get_file(),
+		"sound": _weapon_sound(uri, fire),
+		"fire": fire,
+		"node": model,
+	}
+
+
+## Everything on a layer, so one camera can be told to see it and the other not to.
+func _set_layer(node: Node, layer: int) -> void:
+	if node is VisualInstance3D:
+		(node as VisualInstance3D).layers = 1 << (layer - 1)
+	for child in node.get_children():
+		_set_layer(child, layer)
+
+
+## A first-person weapon from the map's own game.
+func _pick_view_model() -> String:
+	var hit: Dictionary = vfs.find_files("models/v_", PackedStringArray(["mdl"]),
+		PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 0, _scope)
+	var guns := PackedStringArray()
+	for entry in hit["files"]:
+		var file := str(entry).get_file().to_lower()
+		# Not everything with a v_ is a gun somebody carries.
+		var skip := false
+		for word in ["shell", "casing", "hand", "arm", "bomb", "c4", "rcontrol"]:
+			if file.contains(str(word)):
+				skip = true
+				break
+		# A weapon with no sequences is a lump; the interesting ones have draw and fire.
+		if not skip and importer.list_poses(str(entry)).size() >= 3:
+			guns.append(str(entry))
+	return _pick(guns)
+
+
 ## Attach a weapon and return everything that belongs to it.
 ##
 ## Returns { "name": file, "sound": AudioStream or null, "fire": sequence or "" }. The sound

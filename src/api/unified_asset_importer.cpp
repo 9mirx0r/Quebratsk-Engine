@@ -569,7 +569,18 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
 
     attach_animations(skeleton, parsed);
 
-    if (StaticBody3D* body = capsule_body(mesh->get_aabb()); body != nullptr) {
+    // The mesh bound describes the rest pose, and the pose that was just applied need not
+    // fit inside it. One Condition Zero model came out with its bones hanging 0.93 m below
+    // its own capsule, which looks exactly like a figure sunk to the waist in the floor:
+    // the collider rested on the ground correctly and the body it was meant to describe was
+    // somewhere else. Measured across five characters, four agreed to within a centimetre
+    // and that one did not, so this is a property of the model rather than of the maths.
+    AABB bounds = mesh->get_aabb();
+    for (int b = 0; b < skeleton->get_bone_count(); ++b) {
+        bounds = bounds.expand(skeleton->get_bone_global_pose(b).origin);
+    }
+
+    if (StaticBody3D* body = capsule_body(bounds); body != nullptr) {
         skeleton->add_child(body);
     }
 

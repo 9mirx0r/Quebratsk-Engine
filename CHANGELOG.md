@@ -109,6 +109,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The first-person view is built the way these games build it.** A weapon was hung off the
+  player model's hand bone and the player's own body was left in front of the camera, which is
+  not how any of this works. In GoldSrc the view model is a separate entity drawn in a pass of
+  its own after the world, with the depth range squeezed into the front of the buffer so the
+  barrel never pokes through a wall, and the player's own body is not drawn at all.
+
+  There is now a second camera with its own depth buffer seeing only the weapon, composited on
+  top, which is what that depth-range trick stands in for and the usual way to do it in Godot.
+  The model is a `v_` one, which is arms and gun together with its own draw and fire sequences
+  and the sound events that belong to them. The body stays in the scene casting its shadow.
+
+  Worth stating plainly: **body awareness of the kind DayZ has cannot be built from these
+  assets.** No model in Half-Life or Counter-Strike shows your own body from your own eyes. A
+  `v_` model is arms only, a `p_` model is what other players see, and a GoldSrc mesh is a
+  single surface so a head cannot be hidden to reuse one from the inside.
+
+- **NPCs turned their backs.** The yaw aimed +Z at the player and Godot's front is -Z. It was
+  written to compensate for the broken axis remap below, so it read as ninety degrees off
+  before that was fixed and as a clean hundred and eighty after.
+
+- **A character could hang out of its own collider.** The capsule was measured from the mesh's
+  rest-pose bound, and the pose actually applied need not fit inside it. One Condition Zero
+  model came out with its bones 0.93 m below its capsule, which looks exactly like a figure
+  sunk to the waist in the floor. Measured across five characters, four agreed to within a
+  centimetre and one did not, so it was the model rather than the arithmetic. The capsule now
+  covers the pose it was given, and all five agree.
+
 - **Every imported model faced ninety degrees away from Godot's front.** The axis remap sent
   Valve's forward to Godot's right instead of to Godot's forward. Both mappings are orthogonal
   and both preserve triangle winding, so geometry and entities agreed with each other and maps
