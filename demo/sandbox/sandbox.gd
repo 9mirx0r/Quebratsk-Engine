@@ -29,6 +29,12 @@ var vfs: VFSManager
 var importer: UnifiedAssetImporter
 
 var _map: Node3D
+## Where the map says people begin, by classname. Counter-Strike puts counter-terrorists at
+## info_player_start and terrorists at info_player_deathmatch, and uses about thirteen of
+## each; Half-Life uses info_player_start for the single player and only writes the
+## deathmatch ones into its deathmatch maps. Surveyed rather than assumed, in
+## demo/tests/verify_entities.gd.
+var _spawns := {}
 var _player: CharacterBody3D
 var _hud: Label
 var _rng := RandomNumberGenerator.new()
@@ -141,8 +147,62 @@ func _load_random_map() -> bool:
 		_map = map
 		add_child(map)
 		_built["map"] = uri.get_file()
+		_read_spawns(uri)
 		return true
 	return false
+
+
+## Sort the map's own player starts by classname.
+##
+## This is the difference between putting a fight where the level was built for one and
+## scattering it wherever a downward ray happened to hit. A ray finds floor; it does not
+## know that the floor is inside a wall cavity, or that the level's designer put the spawns
+## on the other side of the map facing each other.
+func _read_spawns(uri: String) -> void:
+	_spawns.clear()
+	for e in importer.load_map_entities(uri):
+		var entity: Dictionary = e
+		var cls := str(entity.get("classname", ""))
+		if not entity.has("position") or not cls.begins_with("info_player"):
+			continue
+		if not _spawns.has(cls):
+			_spawns[cls] = []
+		# Raised slightly: a spawn point is written at floor level and a body placed exactly
+		# there starts the frame intersecting the ground.
+		_spawns[cls].append((entity["position"] as Vector3) + Vector3(0, 0.2, 0))
+
+	var summary := []
+	for cls in _spawns:
+		summary.append("%d %s" % [(_spawns[cls] as Array).size(), cls])
+	print("[sandbox] %s declares: %s"
+		% [uri.get_file(), "no player starts" if summary.is_empty() else ", ".join(summary)])
+
+
+## One of the map's own spawn points for the given side, or Vector3.INF if it has none.
+##
+## `preferred` is tried first and the other classname second, so a map that only writes one
+## kind still puts everybody somewhere sensible rather than nobody anywhere.
+func _spawn_for(preferred: String, taken: Array) -> Vector3:
+	var order := [preferred]
+	for cls in _spawns:
+		if str(cls) != preferred:
+			order.append(str(cls))
+
+	for cls in order:
+		if not _spawns.has(cls):
+			continue
+		var points: Array = (_spawns[cls] as Array).duplicate()
+		points.shuffle()
+		for point in points:
+			var spot: Vector3 = point
+			var clear := true
+			for other in taken:
+				if spot.distance_to(other as Vector3) < 1.5:
+					clear = false
+					break
+			if clear:
+				return spot
+	return Vector3.INF
 
 
 ## A point just above a floor somewhere inside the level.
@@ -201,7 +261,12 @@ func _floor_inside(exclude: Array = [], min_apart := 4.0, near := Vector3.INF,
 # ---------------------------------------------------------------------- actors ----
 
 func _spawn_player() -> void:
-	var spot := _floor_inside()
+	# info_player_start is where Counter-Strike puts the counter-terrorists and where
+	# Half-Life puts the player. Falling back to a raycast only when the map declares
+	# nothing at all, which on a GoldSrc map is rare.
+	var spot := _spawn_for("info_player_start", [])
+	if spot == Vector3.INF:
+		spot = _floor_inside()
 	if spot == Vector3.INF:
 		_say("Could not find anywhere to stand in that map.")
 		return
@@ -241,8 +306,24 @@ func _give_weapon(mount: Node3D, offset: Vector3, apparent_size := 0.4) -> Strin
 	var hit: Dictionary = vfs.find_files("weapons/", PackedStringArray(["mdl"]),
 		PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 0)
 
+	# Not everything under weapons/ is a weapon. c_arms_citizen.mdl is a pair of forearms
+	# meant to be composited with a gun, and on its own it is two hands floating in the air,
+	# which is what the first playtest was handed to shoot with.
+	var guns := PackedStringArray()
+	for entry in hit["files"]:
+		var file := str(entry).get_file().to_lower()
+		var rejected := false
+		for word in ["arms", "hands", "hand_", "sleeve", "shell", "casing", "ammo"]:
+			if file.contains(str(word)):
+				rejected = true
+				break
+		if not rejected:
+			guns.append(str(entry))
+	if guns.is_empty():
+		guns = hit["files"]
+
 	for attempt in 10:
-		var uri := _pick(hit["files"])
+		var uri := _pick(guns)
 		if uri.is_empty():
 			break
 		var model: Node3D = importer.load_model(uri)
@@ -321,17 +402,32 @@ func _spawn_enemies() -> void:
 		if uri.is_empty():
 			break
 
-		# A walking animation if the model has one, so an enemy closing on you is not
-		# sliding along in a T-pose.
-		var walk := _walk_sequence(uri)
-		var who: Node3D = importer.load_character(uri, "", walk)
+		# Is this a person? A playable character carries hundreds of sequences, because it
+		# has to stand, walk, crouch, reload and die. A vent grille carries one. Without
+		# this the pool of "characters" included Vine_wall2 and vent01, and both were duly
+		# spawned as enemies.
+		if importer.list_poses(uri).size() < 20:
+			continue
+
+		# Everything the enemy will need to do, imported together. Standing, walking,
+		# running, firing and dying: with only one of them it slides toward you frozen in a
+		# single pose, which is what the first playtest looked like.
+		var moves := _animation_set(uri)
+		var sequences := PackedStringArray()
+		for role in moves:
+			sequences.append(str(moves[role]))
+		var who: Node3D = importer.load_character(uri, "", sequences)
 		if who == null or not (who is CharacterBody3D):
 			if who != null:
 				who.queue_free()
 			continue
 
-		# Close enough to meet, far enough not to be standing on you.
-		var spot := _floor_inside(taken, 4.0, _player.position if _player != null else Vector3.INF, 18.0)
+		# The other team's spawn points. On a Counter-Strike map that is the far side of
+		# the level facing you, which is what the level was designed around.
+		var spot := _spawn_for("info_player_deathmatch", taken)
+		if spot == Vector3.INF:
+			spot = _floor_inside(taken, 4.0,
+				_player.position if _player != null else Vector3.INF, 18.0)
 		if spot == Vector3.INF:
 			who.queue_free()
 			break
@@ -343,8 +439,7 @@ func _spawn_enemies() -> void:
 		names.append("%-22s %s" % [uri.get_file(), _which_game(uri)])
 
 		var weapon := _give_weapon(who, Vector3(0.25, 1.3, -0.25), 0.7)
-		(who as CharacterBody3D).setup(self, _player,
-			"" if walk.is_empty() else str(walk[0]), weapon)
+		(who as CharacterBody3D).setup(self, _player, moves, weapon)
 		placed += 1
 
 	_built["enemies"] = names
@@ -365,14 +460,37 @@ func _spawn_enemies() -> void:
 				   meshes])
 
 
-## The name of a sequence that looks like walking, if the model has one.
-func _walk_sequence(uri: String) -> PackedStringArray:
+## One sequence per thing an enemy does, chosen from whatever the model happens to carry.
+##
+## Returns { "idle": name, "walk": name, ... }, with missing roles simply absent. Sequence
+## naming is not standardised across twenty-five years of games, so each role is matched
+## against the words that tend to be used for it.
+##
+## Deliberately a handful rather than all 426 a player model carries: a sequence costs a
+## keyframe per bone per frame, so importing everything would be tens of megabytes per
+## enemy for animations nobody will ever see.
+func _animation_set(uri: String) -> Dictionary:
 	var poses: PackedStringArray = importer.list_poses(uri)
-	for hint in ["walk_all", "walk", "run_all", "run"]:
-		for p in poses:
-			if str(p).to_lower().begins_with(hint):
-				return PackedStringArray([str(p)])
-	return PackedStringArray()
+	var wanted := {
+		"idle": ["idle_all_01", "idle_all", "idle1", "idle"],
+		"walk": ["walk_all", "walkall", "walk1", "walk"],
+		"run": ["run_all", "runall", "run1", "run"],
+		"shoot": ["shoot", "fire", "attack"],
+		"die": ["die_simple", "death", "die", "dead"],
+	}
+
+	var chosen := {}
+	for role in wanted:
+		for hint in wanted[role]:
+			var found := ""
+			for p in poses:
+				if str(p).to_lower().begins_with(str(hint)):
+					found = str(p)
+					break
+			if found != "":
+				chosen[role] = found
+				break
+	return chosen
 
 
 ## Which mount a URI came out of, in words. With models drawn from four games and a pile of
