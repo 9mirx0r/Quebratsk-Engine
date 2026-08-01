@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A level says what is in it.** A `.bsp` showed a filename and a size, which tells you
+  nothing about whether you are looking at a bomb site or a corridor. The map's own entity
+  list is the only description of it that exists and it was being read and discarded.
+
+  Picking a level now reports what it contains: *21 Player deathmatch start, 20 Wall, 15
+  Player 1 start, 10 Trigger player hurt, 9 Ladder, 8 Plays Sounds/Sentences*. Those names
+  come from `data/goldsrc_entities.json`, generated from the FGD files the level editors
+  used: **520 entity classes** across Half-Life, Counter-Strike, Condition Zero and its
+  Deleted Scenes, Opposing Force, Blue Shift and Day of Defeat.
+
+  The schema caught a defect on the day it arrived. How far an `ambient_generic` carries is a
+  spawnflag, not a key, and the sandbox read a `radius` key that no GoldSrc entity has, so
+  every map sound played at the default reach regardless of what the mapper chose.
+
 - **A weapon knows what it is.** A model does not say which weapon it is: it carries a mesh,
   a skeleton and some sequences, and everything that makes an AK an AK rather than a shape
   lives in the game's code. Quebratsk inferred it from filenames, and the rule for firing
