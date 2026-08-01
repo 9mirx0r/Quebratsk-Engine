@@ -17,6 +17,8 @@ extends Node3D
 const ModelPreset := preload("res://addons/quebratsk_editor/model_preset.gd")
 const EntityCatalogue := preload("res://addons/quebratsk_editor/entity_catalogue.gd")
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
+const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
+const WeatherScript := preload("res://lab/weather.gd")
 const PlayerScript := preload("res://lab/player.gd")
 const NpcScript := preload("res://lab/npc.gd")
 
@@ -45,6 +47,11 @@ var _player: CharacterBody3D
 var _map_uri := ""
 var _spawns: Array[Vector3] = []
 var _hud: Label
+var _weather: Node3D
+var _thunder_zones: Array[Vector3] = []
+var _thunder_ready := 0.0
+var _thunder_interval := 0.0
+var _triggered_sounds := {}
 var _built := {}
 var _rng := RandomNumberGenerator.new()
 
@@ -119,6 +126,7 @@ func _open_map() -> bool:
 	_read_spawns(entities)
 	_place_ambience(entities)
 	_apply_sky(entities)
+	_build_weather(entities, map)
 	return true
 
 
@@ -169,7 +177,11 @@ func _place_ambience(entities: Array) -> void:
 
 		var node := AudioStreamPlayer3D.new()
 		node.stream = stream
-		node.autoplay = true
+		# A sound with a targetname is one somebody triggers, and on de_aztec that is the
+		# thunder: it starts silent and waits. Playing everything on sight would have the
+		# storm crashing continuously from the moment the level opens.
+		var triggered := not str(entity.get("targetname", "")).is_empty()
+		node.autoplay = not triggered
 		# health is the volume, out of ten, which is a fact about the game that the map file
 		# never states and the entity schema does.
 		var volume := clampf(float(entity.get("health", 10)) / 10.0, 0.05, 1.0)
@@ -178,18 +190,140 @@ func _place_ambience(entities: Array) -> void:
 			node.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
 		node.position = entity.get("position", Vector3.ZERO)
 		add_child(node)
-		placed += 1
+		if triggered:
+			_triggered_sounds[str(entity.get("targetname", ""))] = node
+		else:
+			placed += 1
 
 	_built["ambience"] = "%d sound(s)" % placed
-	print("[lab] %s: %d ambient sound(s) playing" % [_map_uri.get_file(), placed])
+	print("[lab] %s: %d ambient sound(s) playing, %d waiting to be triggered"
+		% [_map_uri.get_file(), placed, _triggered_sounds.size()])
 
 
+## The game's own skybox, six .tga faces named after what worldspawn asks for.
+##
+## de_aztec asks for "doom1", which sounds like a mistake and is not: that is the name of the
+## sky Valve shipped with it. Reading the name and not the faces is what the first version of
+## this lab did, and it left every level under Godot's default grey.
 func _apply_sky(entities: Array) -> void:
+	var named := SkyLoader.sky_name(entities)
+	if named.is_empty():
+		return
+	_built["sky"] = named
+
+	var report := []
+	var sky: Sky = SkyLoader.load_sky(vfs, entities, report)
+	if sky == null:
+		_built["sky"] = "%s (faces not found)" % named
+		for line in report:
+			print("[lab] %s" % str(line))
+		return
+
+	var environment := Environment.new()
+	environment.background_mode = Environment.BG_SKY
+	environment.sky = sky
+	# The level's own lightmaps already carry its lighting, so ambient light from the sky
+	# would double it. The sky is there to be seen, not to light anything.
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.ambient_light_sky_contribution = 0.35
+	environment.ambient_light_energy = 0.6
+	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+
+	var camera_env := WorldEnvironment.new()
+	camera_env.name = "WorldEnvironment"
+	camera_env.environment = environment
+	add_child(camera_env)
+	if _weather != null:
+		_weather.set_environment(environment)
+	_built["sky"] = named
+
+
+## The weather the map declares: its sun, its rain, and where its thunder is set off.
+##
+## All of it read out of the entity list rather than authored. de_aztec is a storm and has been
+## saying so since 1999 in keys nothing had ever looked at.
+func _build_weather(entities: Array, map: Node3D) -> void:
+	_weather = WeatherScript.new()
+	_weather.name = "Weather"
+	add_child(_weather)
+
+	if _weather.build_sun(entities) == null:
+		print("[lab] %s declares no light_environment, so it has no sun" % _map_uri.get_file())
+
+	# How big the level is, for deciding where rain belongs.
+	var extent := AABB(Vector3.ZERO, Vector3(60, 30, 60))
+	for child in map.get_children():
+		if child is MeshInstance3D:
+			extent = (child as MeshInstance3D).get_aabb()
+			break
+	_weather.build_rain(entities, extent)
+
+	# Where walking sets the storm off. A trigger_multiple targeting a multi_manager that
+	# fires the thunder: two places on this map, and forty-five seconds between strikes.
 	for e in entities:
 		var entity: Dictionary = e
-		if str(entity.get("classname", "")) == "worldspawn" and entity.has("skyname"):
-			_built["sky"] = str(entity["skyname"])
-			return
+		if str(entity.get("classname", "")) != "trigger_multiple":
+			continue
+		# The manager it points at is what actually holds the sound, so a trigger aimed
+		# anywhere else is somebody's door and not the weather.
+		if not _fires_thunder(entities, str(entity.get("target", ""))):
+			continue
+
+		if entity.has("position"):
+			_thunder_zones.append(entity["position"] as Vector3)
+		else:
+			# A trigger_multiple is a brush entity: it has no origin, it has model "*71", and
+			# its position IS that volume. Resolving brush models is not done yet, so the
+			# place the mapper chose is lost and only the interval survives.
+			#
+			# Falling back to that interval rather than to nothing: de_aztec says wait 45, so
+			# the storm cracks every forty-five seconds instead of when you walk under it.
+			# That is the map's own number and the wrong half of its intent, and it is worth
+			# saying which half is missing.
+			_thunder_interval = maxf(float(entity.get("wait", 45.0)), 5.0)
+
+	for named in _triggered_sounds:
+		# The one the multi_manager fires. On this map there is exactly one and it is called
+		# "boom", but the name is the mapper's and not something to hard-code.
+		_weather.arm_thunder(_triggered_sounds[named])
+		break
+
+	if not _thunder_zones.is_empty():
+		_built["storm"] = "thunder in %d place(s)" % _thunder_zones.size()
+		print("[lab] %s: %d place(s) set off thunder"
+			% [_map_uri.get_file(), _thunder_zones.size()])
+	elif _thunder_interval > 0.0:
+		_built["storm"] = "thunder every %ds" % int(_thunder_interval)
+		print("[lab] %s: thunder is triggered by a brush volume this cannot resolve yet, "
+			% _map_uri.get_file() + "so it strikes on the map's own %d second interval"
+			% int(_thunder_interval))
+		_thunder_ready = _thunder_interval * 0.4
+	else:
+		print("[lab] %s sets off no thunder" % _map_uri.get_file())
+
+
+## Does what this trigger points at end up playing a sound?
+##
+## A trigger_multiple names a multi_manager, and the manager names the ambient_generic. Two
+## hops, and following them is the difference between "the map has triggers" and "these are
+## the ones that make it thunder".
+func _fires_thunder(entities: Array, target: String) -> bool:
+	if target.is_empty():
+		return false
+	for e in entities:
+		var manager: Dictionary = e
+		if str(manager.get("classname", "")) != "multi_manager":
+			continue
+		if str(manager.get("targetname", "")) != target:
+			continue
+		for key in manager:
+			for f in entities:
+				var sound: Dictionary = f
+				if str(sound.get("classname", "")) != "ambient_generic":
+					continue
+				if str(sound.get("targetname", "")) == str(key):
+					return true
+	return false
 
 
 # -------------------------------------------------------------------- people ----
@@ -278,6 +412,34 @@ func _place_enemies() -> void:
 		placed += 1
 
 	_built["enemies"] = "%d" % placed
+
+
+## Set the storm off where the mapper put the switch.
+##
+## The real entity is a brush volume and this is a radius around its centre, because the brush
+## models a trigger occupies are not resolved yet. Named as the approximation it is: the place
+## is the map's, the shape is mine.
+const THUNDER_REACH := 14.0
+
+func _process(delta: float) -> void:
+	if _weather == null or _player == null or not is_instance_valid(_player):
+		return
+	_weather.follow(_player)
+
+	_thunder_ready -= delta
+	if _thunder_ready > 0.0:
+		return
+
+	for spot in _thunder_zones:
+		if _player.global_position.distance_to(spot) < THUNDER_REACH:
+			# wait 45 on the trigger: the mapper's own interval, not a number I liked.
+			_thunder_ready = 45.0
+			_weather.strike()
+			return
+
+	if _thunder_interval > 0.0:
+		_thunder_ready = _thunder_interval
+		_weather.strike()
 
 
 func _spawn_point() -> Vector3:
