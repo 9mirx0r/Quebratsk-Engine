@@ -19,6 +19,11 @@ const FIRE_INTERVAL := 1.8
 const DAMAGE := 7
 const KEEP_AWAY := 6.0
 
+## How long the feet may leave the ground before it counts as being in the air. Walking over
+## the ridges of a real map loses contact for a frame at a time, and treating each of those as
+## a jump starts a two second animation several times a second.
+const COYOTE := 0.12
+
 var health := 100
 
 var _lab: Node3D
@@ -31,6 +36,7 @@ var _gunshot: AudioStream
 var _audio: AudioStreamPlayer3D
 var _cooldown := 0.0
 var _dead := false
+var _airborne := 0.0
 
 
 func setup(lab: Node3D, target: CharacterBody3D, preset: Dictionary,
@@ -114,8 +120,10 @@ func _hold(weapon: Dictionary) -> void:
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
+		_airborne += delta
 	else:
 		velocity.y = 0.0
+		_airborne = 0.0
 
 	if _dead or _target == null or not is_instance_valid(_target):
 		velocity.x = 0.0
@@ -155,7 +163,7 @@ func _physics_process(delta: float) -> void:
 func _stance(walking: bool) -> String:
 	if _dead:
 		return "die"
-	if not is_on_floor():
+	if _airborne > COYOTE:
 		return "jump"
 	return "walk" if walking else "idle"
 
@@ -166,7 +174,11 @@ func _play(role: String) -> void:
 	var wanted := AnimationSets.best(_stances, role)
 	if wanted.is_empty() or not _body_anim.has_animation(wanted):
 		return
-	if _body_anim.current_animation != wanted:
+	# `is_playing()` as well as the name. A stance that does not loop — jump is two seconds
+	# and ends, die ends by design — leaves current_animation empty when it finishes, the
+	# mixer stops writing to the skeleton, and the model snaps back to its bind pose. That is
+	# the T-pose that appeared after a movement: not a missing animation, an ended one.
+	if _body_anim.current_animation != wanted or not _body_anim.is_playing():
 		_body_anim.play(wanted)
 
 
