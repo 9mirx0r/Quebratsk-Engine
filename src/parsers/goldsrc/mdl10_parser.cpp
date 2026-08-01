@@ -209,16 +209,25 @@ void read_sequences(const ByteReader& mdl, const StudioHeader& header, const Stu
         // What the sequence plays. GoldSrc writes the path itself here, relative to sound/,
         // rather than the soundscript entry name Source uses.
         std::vector<std::string> sounds;
+        std::vector<float> sound_times;
         if (seq.num_events > 0 && seq.event_index > 0) {
             const auto events = mdl.array_at<StudioEvent>(static_cast<size_t>(seq.event_index),
                                                           static_cast<size_t>(seq.num_events));
+            // Frames per second, needed to turn a frame number into a moment. A sequence that
+            // declares none is played at thirty, which is what the engine assumes.
+            const float fps = seq.fps > 0.0f ? seq.fps : 30.0f;
+
             for (const StudioEvent& ev : events) {
                 if (ev.event != kEventClientSound && ev.event != kEventScriptSound
                     && ev.event != kEventScriptSoundVoice) {
                     continue;
                 }
                 const size_t len = strnlen(ev.options, sizeof(ev.options));
-                if (len > 0) sounds.emplace_back(ev.options, len);
+                if (len == 0) continue;
+                sounds.emplace_back(ev.options, len);
+                // Clamped at zero: a negative frame is a hand-edited file, and a sound that
+                // plays at the start is better than one that never plays.
+                sound_times.push_back(std::max(static_cast<float>(ev.frame), 0.0f) / fps);
             }
         }
 
@@ -243,6 +252,7 @@ void read_sequences(const ByteReader& mdl, const StudioHeader& header, const Stu
                               : rest_pose(bones, header.num_bones);
         pose.name = std::move(label);
         pose.sounds = std::move(sounds);
+        pose.sound_times = std::move(sound_times);
 
         // Where this sequence says the body reaches. Every sequence declares its own, and the
         // union of them is the only description in the file of where the model actually is

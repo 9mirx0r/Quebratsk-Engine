@@ -133,6 +133,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A model says *when* each of its sounds happens, and now so does the importer.**
+  `list_sound_events()` returns `{ sequence, sound, time }` — the event carries the frame it
+  fires on, the sequence carries its frame rate, so the moment is exact and was being read and
+  thrown away.
+
+  How much that matters, measured on the weapons themselves:
+
+  ```
+  v_ak47  reload  @0.35s clipout   @1.54s clipin
+  v_usp   reload  @0.46s clipout   @1.08s clipin   @2.22s sliderelease
+  v_m3    insert  @0.00s insertshell        after_reload @0.00s pump
+  ```
+
+  Spreading them evenly, which is what the first version did for want of this, put the AK's
+  two at 0.00 s and 0.81 s. The animator put them at 0.35 s and 1.54 s. Not an approximation
+  of the same thing — a different thing that happens to use the same sounds.
+
 - **Brush entities have a place now.** Half of what a GoldSrc map contains is not a point: a
   door, a lift, a trigger volume, a pool of water carry no `origin` at all. They carry
   `"model" "*71"`, and where they are *is* that model — lump 14, one box per brush entity.

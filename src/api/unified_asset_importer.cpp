@@ -82,6 +82,8 @@ void UnifiedAssetImporter::_bind_methods() {
     ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
     ClassDB::bind_method(D_METHOD("list_sounds", "vfs_uri", "sequence"),
                          &UnifiedAssetImporter::list_sounds, DEFVAL(String()));
+    ClassDB::bind_method(D_METHOD("list_sound_events", "vfs_uri", "sequence"),
+                         &UnifiedAssetImporter::list_sound_events, DEFVAL(String()));
     ClassDB::bind_method(D_METHOD("list_body_groups", "vfs_uri"),
                          &UnifiedAssetImporter::list_body_groups);
     ClassDB::bind_method(D_METHOD("list_attachments", "vfs_uri"),
@@ -434,6 +436,48 @@ PackedStringArray UnifiedAssetImporter::list_sounds(const String& vfs_uri,
         UtilityFunctions::printerr("[QuebratskImporter] ", vfs_uri, " asks for the sound \"",
                                    String(resolver.missing()[i].c_str()),
                                    "\", which is not on this machine");
+    }
+
+    m_last_error_code = ERR_OK;
+    return out;
+}
+
+Array UnifiedAssetImporter::list_sound_events(const String& vfs_uri, const String& sequence) {
+    Array out;
+    if (!m_vfs) {
+        m_last_error_code = ERR_VFS_NOT_SET;
+        return out;
+    }
+
+    const AssetBundleBytes bundle = read_asset_bundle(vfs_uri, /*with_geometry=*/false);
+    if (bundle.empty()) {
+        m_last_error_code = ERR_ASSET_UNREADABLE;
+        return out;
+    }
+
+    const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
+    const ParsedAssetIR ir = parse_asset_ir(bundle, uri_lower, /*pose_names_only=*/true);
+
+    if (!m_sounds) m_sounds = std::make_unique<converters::SoundResolver>(m_vfs);
+    converters::SoundResolver& resolver = *m_sounds;
+
+    const std::string wanted = sequence.utf8().get_data();
+    for (const auto& pose : ir.skeleton.poses) {
+        if (!wanted.empty() && pose.name != wanted) continue;
+
+        for (size_t i = 0; i < pose.sounds.size(); ++i) {
+            // A name the model wrote that resolves to nothing is left out rather than
+            // published with no file, because a caller asked what it can play.
+            for (const auto& uri : resolver.resolve(pose.sounds[i],
+                                                     vfs_uri.utf8().get_data())) {
+                Dictionary event;
+                event["sequence"] = String(pose.name.c_str());
+                event["sound"] = String(uri.c_str());
+                event["time"] = i < pose.sound_times.size() ? pose.sound_times[i] : 0.0f;
+                out.append(event);
+                break;
+            }
+        }
     }
 
     m_last_error_code = ERR_OK;
