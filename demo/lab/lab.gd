@@ -212,7 +212,10 @@ func _apply_sky(entities: Array) -> void:
 	_built["sky"] = named
 
 	var report := []
-	var sky: Sky = SkyLoader.load_sky(vfs, entities, report)
+	# The map's own name, so a replacement skybox in res://assets/skyboxes/de_aztec/ is used
+	# instead of the game's 256-pixel Targas when somebody has made one.
+	var report_name := _map_uri.get_file().get_basename()
+	var sky: Sky = SkyLoader.load_sky(vfs, entities, report, report_name)
 	if sky == null:
 		_built["sky"] = "%s (faces not found)" % named
 		for line in report:
