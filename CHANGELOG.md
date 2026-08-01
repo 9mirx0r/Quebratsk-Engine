@@ -48,6 +48,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   animation plays, and carry a right hand bone an arm's length away.** Both naming
   conventions are handled, `ValveBiped.Bip01_Head1` and `Bip01 Head`.
 
+- **A saved scene weighs what it should.** Everything an import builds lives only in memory,
+  so packing it wrote all of it into the scene file: a model with two 1024-pixel textures came
+  out as a **six megabyte .tscn**, most of it one image spelled out as text. Fifty models would
+  have been three hundred megabytes of scene files that Godot cannot compress and parses as
+  text on load. Textures and meshes are written as their own resource files beside the scene
+  and referenced, which also means two models sharing a texture share the file. The same model
+  is now **118 KiB**, and four of four saved scenes reload with every surface, texture, bone
+  and animation key they had.
+
+- **Saving printed an error on every attempt.** The scene root was told to own itself, which
+  Godot refuses. Harmless to the result and noisy enough to hide something that was not.
+
 - **The game dropdown lists the games, by the names they call themselves.** It listed what
   mounting a folder happened to be called, and Steam keeps four games in the folder it calls
   Half-Life: Half-Life, Counter-Strike, Condition Zero and its Deleted Scenes. Picking

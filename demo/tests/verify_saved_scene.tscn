@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dokeprubgssn3"]
+
+[ext_resource type="Script" path="res://tests/verify_saved_scene.gd" id="1_versave"]
+
+[node name="VerifySavedScene" type="Node"]
+script = ExtResource("1_versave")
