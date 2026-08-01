@@ -96,6 +96,7 @@ var _cycle := 0.0
 var _next_shot := 0.0
 var _bob_time := 0.0
 var _eye_rest := Vector3.ZERO
+var _complained := false
 
 
 func setup(sandbox: Node3D, camera: Camera3D, skeleton: Skeleton3D = null,
@@ -115,6 +116,17 @@ func setup(sandbox: Node3D, camera: Camera3D, skeleton: Skeleton3D = null,
 		camera.position = Vector3(0, EYE_HEIGHT, 0)
 		_eye_rest = camera.position
 	_head = -1
+
+
+func _ready() -> void:
+	_audio = AudioStreamPlayer3D.new()
+	# The player's own weapon is at the camera, so at default settings 3D attenuation puts
+	# it right on top of the listener. Pulled well down: this is a gunshot fired next to
+	# someone's ear.
+	_audio.volume_db = -14.0
+	_audio.unit_size = 3.0
+	add_child(_audio)
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
 ## Play the stance that matches what the body is doing.
@@ -140,14 +152,6 @@ func _drive_animation() -> void:
 		return
 	if _body_anim.current_animation != wanted:
 		_body_anim.play(wanted)
-	_audio = AudioStreamPlayer3D.new()
-	# The player's own weapon is at the camera, so at default settings 3D attenuation puts
-	# it right on top of the listener. Pulled well down: this is a gunshot fired next to
-	# someone's ear.
-	_audio.volume_db = -14.0
-	_audio.unit_size = 3.0
-	add_child(_audio)
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
 ## Take the weapon the sandbox built, with the sound and the animation that belong to it.
@@ -315,6 +319,14 @@ func _shoot() -> void:
 	if _gunshot != null and _audio != null:
 		_audio.stream = _gunshot
 		_audio.play()
+	elif not _complained:
+		# Firing in silence used to be indistinguishable from firing correctly, and that is
+		# how a missing audio player survived: nothing anywhere said the shot made no noise.
+		_complained = true
+		if _audio == null:
+			push_warning("[player] no audio player, so nothing this weapon does will be heard")
+		else:
+			push_warning("[player] no firing sound was resolved for this weapon")
 
 	# The weapon's own firing animation, restarted on every shot: unlike a walk cycle, this
 	# one is meant to play from the top each time the trigger goes.

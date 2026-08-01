@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The player fired in silence.** `_ready()` had gone missing from the sandbox player: the
+  lines that create its audio player and capture the mouse had ended up glued to the tail of
+  `_drive_animation()`, which returns early whenever the body has no matching stance. So the
+  audio player was either never created — and `_shoot()` checks for it and says nothing — or
+  created **once per frame** and hung off the player node.
+
+  A missing sound is invisible to every check that reads files, which is why this survived the
+  work that resolved the sounds correctly in the first place. `_shoot()` now warns once when
+  it has nothing to play instead of going quiet.
+
 ### Added
 
 - **A model says which of its pieces you are not seeing.** A GoldSrc model can have parts that
@@ -22,6 +34,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   skeleton where a muzzle flash or a shell ejection belongs, which nothing else in the file
   records. Across forty weapon and player models, three hide a piece each and **30 carry
   attachment points**, none of which were read before.
+
+- **And you can ask for the other one.** `load_model()` and `load_character()` take a
+  `body_choices` dictionary keyed by the part's own name — `{"scope": 1}` builds the .357 with
+  the laser sight — and the dock grows a dropdown per part, so a model with something to
+  choose says so where you are looking at it. A part left out keeps what the game shows, so
+  nothing about an ordinary import changes.
+
+  Verified by counting vertices rather than by looking, because these are small pieces on
+  models with thousands of triangles. Eight of eight models with alternatives built different
+  geometry when asked: the laser sight is +98 vertices on CS 1.6's `v_357.mdl` and +174 on
+  Condition Zero's, the silencer is +59 on `v_9mmhandgun.mdl`, and `arctic.mdl` — the player
+  model — turned out to carry the **C4 backpack** as the alternative version of its back, at
+  +42. That is the pack that marks the bomb carrier, and there was no way to ask for it.
 
 - **A level says what is in it.** A `.bsp` showed a filename and a size, which tells you
   nothing about whether you are looking at a bomb site or a corridor. The map's own entity

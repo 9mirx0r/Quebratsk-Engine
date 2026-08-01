@@ -43,6 +43,22 @@ std::string to_lower_ascii(std::string_view str) {
     return result;
 }
 
+/// A GDScript { "scope": 1 } turned into what the parser wants, lowercased to match.
+///
+/// A value that is not a number is dropped rather than coerced: `{"scope": "yes"}` is a
+/// caller mistake, and 0 is a real answer that would hide it.
+std::map<std::string, int32_t> to_body_choices(const Dictionary& from) {
+    std::map<std::string, int32_t> out;
+    const Array keys = from.keys();
+    for (int i = 0; i < keys.size(); ++i) {
+        const Variant& key = keys[i];
+        const Variant value = from[key];
+        if (value.get_type() != Variant::INT && value.get_type() != Variant::FLOAT) continue;
+        out[to_lower_ascii(String(key).utf8().get_data())] = static_cast<int32_t>(value);
+    }
+    return out;
+}
+
 } // namespace
 
 void UnifiedAssetImporter::_bind_methods() {
@@ -51,15 +67,17 @@ void UnifiedAssetImporter::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_material", "vfs_uri"), &UnifiedAssetImporter::load_material);
     ClassDB::bind_method(D_METHOD("load_terrain", "vfs_uri"), &UnifiedAssetImporter::load_terrain);
     ClassDB::bind_method(D_METHOD("load_texture", "texture_ref"), &UnifiedAssetImporter::load_texture);
-    ClassDB::bind_method(D_METHOD("load_model", "vfs_uri", "pose_name", "animations"),
+    ClassDB::bind_method(D_METHOD("load_model", "vfs_uri", "pose_name", "animations",
+                                  "body_choices"),
                          &UnifiedAssetImporter::load_model,
-                         DEFVAL(String()), DEFVAL(PackedStringArray()));
+                         DEFVAL(String()), DEFVAL(PackedStringArray()), DEFVAL(Dictionary()));
     ClassDB::bind_method(D_METHOD("load_map", "vfs_uri"), &UnifiedAssetImporter::load_map);
     ClassDB::bind_method(D_METHOD("load_map_entities", "vfs_uri"),
                          &UnifiedAssetImporter::load_map_entities);
-    ClassDB::bind_method(D_METHOD("load_character", "vfs_uri", "pose_name", "animations"),
+    ClassDB::bind_method(D_METHOD("load_character", "vfs_uri", "pose_name", "animations",
+                                  "body_choices"),
                          &UnifiedAssetImporter::load_character,
-                         DEFVAL(String()), DEFVAL(PackedStringArray()));
+                         DEFVAL(String()), DEFVAL(PackedStringArray()), DEFVAL(Dictionary()));
     ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
     ClassDB::bind_method(D_METHOD("list_sounds", "vfs_uri", "sequence"),
                          &UnifiedAssetImporter::list_sounds, DEFVAL(String()));
@@ -252,7 +270,8 @@ AssetBundleBytes UnifiedAssetImporter::read_asset_bundle(const String& vfs_uri,
 ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundle,
                                                   const std::string& lowercase_uri,
                                                   bool pose_names_only,
-                                                  const std::vector<std::string>& animate) {
+                                                  const std::vector<std::string>& animate,
+                                                  const std::map<std::string, int32_t>& body_choices) {
     ParsedAssetIR out;
     const std::span<const std::byte> data(bundle.primary);
     if (data.empty()) {
@@ -269,7 +288,8 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
         }
 
         if (auto gs_res = parsers::goldsrc::MDL10Parser::parse(
-                data, std::span<const std::byte>(bundle.textures), animate, groups);
+                data, std::span<const std::byte>(bundle.textures), animate, groups,
+                body_choices);
             gs_res.has_value()) {
             out.mesh = std::move(gs_res->mesh_data);
             out.skeleton = std::move(gs_res->skeleton_data);
@@ -493,7 +513,8 @@ PackedStringArray UnifiedAssetImporter::resolve_sound(const String& name,
 }
 
 Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& pose_name,
-                                         const PackedStringArray& animations) {
+                                         const PackedStringArray& animations,
+                                         const Dictionary& body_choices) {
     if (!m_vfs) {
         m_last_error_code = ERR_VFS_NOT_SET;
         UtilityFunctions::printerr("[QuebratskImporter] VFSManager not set!");
@@ -514,7 +535,8 @@ Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& po
     }
 
     const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
-    ParsedAssetIR parsed = parse_asset_ir(bundle, uri_lower, /*pose_names_only=*/false, animate);
+    ParsedAssetIR parsed = parse_asset_ir(bundle, uri_lower, /*pose_names_only=*/false, animate,
+                                         to_body_choices(body_choices));
 
     return build_model_node(parsed, pose_name, vfs_uri);
 }
@@ -693,8 +715,9 @@ StaticBody3D* UnifiedAssetImporter::capsule_body(const AABB& bounds) {
 }
 
 Node3D* UnifiedAssetImporter::load_character(const String& vfs_uri, const String& pose_name,
-                                             const PackedStringArray& animations) {
-    Node3D* model = load_model(vfs_uri, pose_name, animations);
+                                             const PackedStringArray& animations,
+                                             const Dictionary& body_choices) {
+    Node3D* model = load_model(vfs_uri, pose_name, animations, body_choices);
     if (model == nullptr) return nullptr;
 
     Skeleton3D* skeleton = Object::cast_to<Skeleton3D>(model);

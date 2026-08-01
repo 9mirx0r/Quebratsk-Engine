@@ -1,0 +1,4 @@
+[gd_scene format=3 uid="uid://c2wq7v8bodych"]
+[ext_resource type="Script" path="res://tests/verify_body_choice.gd" id="1_b"]
+[node name="VerifyBodyChoice" type="Node"]
+script = ExtResource("1_b")
