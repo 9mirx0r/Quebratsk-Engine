@@ -58,6 +58,8 @@ void UnifiedAssetImporter::_bind_methods() {
                          &UnifiedAssetImporter::load_character,
                          DEFVAL(String()), DEFVAL(PackedStringArray()));
     ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
+    ClassDB::bind_method(D_METHOD("list_sounds", "vfs_uri", "sequence"),
+                         &UnifiedAssetImporter::list_sounds, DEFVAL(String()));
     ClassDB::bind_method(D_METHOD("get_last_error_code"), &UnifiedAssetImporter::get_last_error_code);
     ClassDB::bind_method(D_METHOD("get_last_missing_companions"),
                          &UnifiedAssetImporter::get_last_missing_companions);
@@ -329,6 +331,37 @@ PackedStringArray UnifiedAssetImporter::list_poses(const String& vfs_uri) {
 
     m_last_error_code = ERR_OK;
     return pose_names;
+}
+
+PackedStringArray UnifiedAssetImporter::list_sounds(const String& vfs_uri,
+                                                    const String& sequence) {
+    PackedStringArray out;
+    if (!m_vfs) {
+        m_last_error_code = ERR_VFS_NOT_SET;
+        return out;
+    }
+
+    // Events live beside the sequences, so the pose-only read is enough: no vertex data is
+    // touched to answer this.
+    const AssetBundleBytes bundle = read_asset_bundle(vfs_uri, /*with_geometry=*/false);
+    if (bundle.empty()) {
+        m_last_error_code = ERR_ASSET_UNREADABLE;
+        return out;
+    }
+
+    const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
+    const ParsedAssetIR ir = parse_asset_ir(bundle, uri_lower, /*pose_names_only=*/true);
+
+    const std::string wanted = sequence.utf8().get_data();
+    for (const auto& pose : ir.skeleton.poses) {
+        if (!wanted.empty() && pose.name != wanted) continue;
+        for (const auto& sound : pose.sounds) {
+            out.push_back(String(sound.c_str()));
+        }
+    }
+
+    m_last_error_code = ERR_OK;
+    return out;
 }
 
 Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& pose_name,

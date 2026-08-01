@@ -393,6 +393,30 @@ void extract_poses(const ByteReader& mdl, const ByteReader& ani,
             pose.name = "sequence_" + std::to_string(s);
         }
 
+        // What the sequence does besides move bones. A sound event carries its filename in
+        // `options`, and that is the only record in the file of which noise belongs to
+        // which action.
+        if (seq.num_events > 0 && seq.event_index > 0) {
+            const auto events = at_relative<SourceEvent>(mdl, seq_ofs, seq.event_index,
+                                                         static_cast<size_t>(seq.num_events));
+            for (int32_t e = 0; events != nullptr && e < seq.num_events; ++e) {
+                const char* raw = events[e].options;
+                // Fixed-size and not guaranteed terminated, so bound the scan.
+                const size_t len = ::strnlen(raw, sizeof(events[e].options));
+                if (len == 0) continue;
+
+                std::string option(raw, len);
+                // Only the ones that name a sound. Other events carry bodygroup numbers,
+                // attachment names and the like, and a .wav is recognisable on sight.
+                std::string lower = option;
+                std::transform(lower.begin(), lower.end(), lower.begin(),
+                               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                if (lower.ends_with(".wav") || lower.ends_with(".mp3")) {
+                    pose.sounds.push_back(std::move(option));
+                }
+            }
+        }
+
         const ByteReader& track_data = loc->external ? ani : mdl;
 
         if (detail == PoseDetail::NamesOnly) {

@@ -11,6 +11,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A map's tool brushes were drawn as walls.** `AAATRIGGER` is the texture Half-Life puts
+  on trigger volumes so a mapper can see them in the editor, and the engine never draws it.
+  It is a 16x16 magenta tile with a lambda on it, and a map with a few triggers came out
+  with solid magenta slabs standing in rooms that are open in the game. `CLIP`, `ORIGIN`,
+  `HINT`, `SKIP` and the sky brushes are all skipped now.
+
+  Two hypotheses died first. It was not a missing `.wad`: de_survivor embeds all 95 of its
+  textures. It was not the masked `{` family either: those decode correctly, and 12 of its
+  surfaces come back with working transparency, one with 4,096 transparent pixels out of
+  4,096. The answer only appeared when the textures were written to disk and looked at.
+
+- **A downloaded map's `.wad` files were indexed rather than opened.** Mounting a folder
+  indexes a `.wad` as one file; it does not read the textures inside. A map bundle whose
+  textures live in its own archives therefore reported every `.wad` present and rendered
+  more than half of itself blank. `de_caminito` went from **68 of 123 surfaces textured to
+  122 of 123** once its four archives were opened as containers.
+
+### Added
+
+- **A map brings its own sky.** `worldspawn` names it as `skyname` and the six images sit
+  in `gfx/env`. None of that was read, so every level rendered against flat grey. The sky
+  also lights the scene now, rather than a level being lit by one directional light.
+
+- **`load_map_entities()`**, which parses the entity lump the parser had always read and
+  thrown away. One Dictionary per entity with the map's own keys, plus `position` converted
+  to Godot's axes so it lines up with the geometry.
+
+  Surveyed rather than assumed: Counter-Strike 1.6 writes `info_player_start` for
+  counter-terrorists and `info_player_deathmatch` for terrorists, about 13 of each in all 12
+  maps read. Half-Life uses the first for its single player and the second only in its three
+  deathmatch maps. Half-Life 2 and Garry's Mod write neither that this can read, because
+  their maps are VBSP.
+
+- **`list_sounds()`**, the sounds a named sequence plays. A model's sequences carry an event
+  list, and a sound event holds the filename in its options field. That is the only record
+  in any of these files of which noise belongs to which action: a weapon's firing animation
+  names its own gunshot, and picking one any other way is picking at random.
+
+- **`load_character()`**, a `CharacterBody3D` with the capsule at the root and the skeleton
+  beneath it, which is the layout Godot expects of something that moves.
+
+- **Materials carry the name of the texture they came from**, so a surface that looks wrong
+  can be traced to a file instead of showing an unnamed material.
+
+
 - **Source models imported without their textures, and nothing said so.** Two links in the
   same chain were missing, and each one hid the other.
 

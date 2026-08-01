@@ -34,6 +34,13 @@ struct IRPose {
     std::vector<godot::Vector3> positions;
     std::vector<godot::Quaternion> rotations;
 
+    /// Sounds this sequence plays, in the order it plays them.
+    ///
+    /// A weapon's firing animation names its own gunshot here, and nothing else in these
+    /// files does: a .mdl says which sound goes with which action only through its events.
+    /// Picking a gunshot any other way is picking one at random and hoping.
+    std::vector<std::string> sounds;
+
     [[nodiscard]] bool matches(size_t bone_count) const {
         return positions.size() == bone_count && rotations.size() == bone_count;
     }
