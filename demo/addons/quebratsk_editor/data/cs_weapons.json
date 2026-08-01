@@ -53,7 +53,9 @@
       "reload_time": 3.3,
       "clip_size": 30,
       "weight": 25,
-      "price": 3500
+      "price": 3500,
+      "cycle_time": 0.2,
+      "rounds_per_minute": 300
     },
     "awp": {
       "name": "awp",
@@ -93,7 +95,9 @@
         "weapons/c4_click.wav"
       ],
       "max_speed": 250,
-      "weight": 3
+      "weight": 3,
+      "cycle_time": 1.0,
+      "rounds_per_minute": 60
     },
     "deagle": {
       "name": "deagle",
@@ -226,7 +230,9 @@
       ],
       "max_speed": 250,
       "weight": 1,
-      "price": 200
+      "price": 200,
+      "cycle_time": 0.5,
+      "rounds_per_minute": 120
     },
     "g3sg1": {
       "name": "g3sg1",
@@ -311,8 +317,8 @@
       "clip_size": 20,
       "weight": 5,
       "price": 400,
-      "cycle_time": 0.5,
-      "rounds_per_minute": 120
+      "cycle_time": 0.2,
+      "rounds_per_minute": 300
     },
     "hegrenade": {
       "name": "hegrenade",
@@ -334,7 +340,9 @@
       ],
       "max_speed": 250,
       "weight": 2,
-      "price": 300
+      "price": 300,
+      "cycle_time": 0.5,
+      "rounds_per_minute": 120
     },
     "knife": {
       "name": "knife",
@@ -359,7 +367,9 @@
         "weapons/knife_slash2.wav"
       ],
       "max_speed": 250,
-      "weight": 0
+      "weight": 0,
+      "cycle_time": 1.0,
+      "rounds_per_minute": 60
     },
     "m249": {
       "name": "m249",
@@ -410,7 +420,9 @@
       "max_speed": 230,
       "clip_size": 8,
       "weight": 20,
-      "price": 1700
+      "price": 1700,
+      "cycle_time": 0.875,
+      "rounds_per_minute": 69
     },
     "m4a1": {
       "name": "m4a1",
@@ -622,7 +634,9 @@
       "reload_time": 3,
       "clip_size": 30,
       "weight": 25,
-      "price": 3500
+      "price": 3500,
+      "cycle_time": 0.2,
+      "rounds_per_minute": 300
     },
     "smokegrenade": {
       "name": "smokegrenade",
@@ -637,7 +651,9 @@
       ],
       "max_speed": 250,
       "weight": 1,
-      "price": 300
+      "price": 300,
+      "cycle_time": 0.5,
+      "rounds_per_minute": 120
     },
     "tmp": {
       "name": "tmp",
@@ -739,7 +755,9 @@
       "max_speed": 240,
       "clip_size": 7,
       "weight": 20,
-      "price": 3000
+      "price": 3000,
+      "cycle_time": 0.25,
+      "rounds_per_minute": 240
     }
   }
 }

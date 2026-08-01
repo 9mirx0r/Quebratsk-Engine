@@ -150,6 +150,15 @@ def parse_weapon(name: str, text: str, constants: dict[str, float]) -> dict:
     # times for its different stances, all with the same delay, so the most frequent value is
     # taken rather than the first in case one of them is a special case.
     delays = [float(x) for x in re.findall(r"\w*Fire\([^;]*?,\s*([0-9]*\.[0-9]+)\s*[,)]", text)]
+
+    # Scoped rifles pass a variable rather than a number, because the delay changes with the
+    # scope up, so the literal is wherever that variable was assigned.
+    delays += [float(x) for x in
+               re.findall(r"flCycleTime\s*=\s*([0-9]*\.[0-9]+)", text)]
+
+    # Shotguns do not use that call shape at all. They set the next attack time directly.
+    delays += [float(x) for x in
+               re.findall(r"GetNextAttackDelay\(\s*([0-9]*\.?[0-9]+)\s*\)", text)]
     if delays:
         common = max(set(delays), key=delays.count)
         if common > 0.0:
