@@ -68,6 +68,32 @@ against a retail install and someone counted the result. So nothing here is call
 working without a measurement beside it, and those are in
 [CHANGELOG.md](CHANGELOG.md).
 
+## How this is built
+
+This repository is written in pair-programming with **Claude Code** and **Google Antigravity
+IDE**, under human direction throughout, and we would rather say so plainly than have anybody
+wonder.
+
+Open-source developers are right to be wary of projects that generate code nobody read and
+flood a repository with boilerplate that has never run. This one works the other way round:
+
+- **A human decides what gets built and judges whether it worked.** Every feature here was
+  asked for, and every claim of success was accepted or rejected by someone looking at the
+  result on their own machine.
+- **Verification is against retail installs, by hand as well as by harness.** The most
+  valuable checks in this project's history were screenshots. Four separate defects survived
+  every automated test and fell to somebody noticing that a character was standing sideways or
+  a body was buried to the waist. Two unit tests had the bug written into them as the expected
+  answer.
+- **Structures are pinned, not assumed.** `#pragma pack(push, 1)` with `static_assert` on
+  every offset the code indexes by, so a layout that drifts stops compiling rather than
+  quietly reading the wrong bytes.
+- **Nothing is called working without a number.** Those numbers are in the changelog beside
+  the change that produced them.
+
+Modern C++23, memory-mapped I/O, zero-copy `std::span` over the mapped bytes, and bounds
+checks written by subtraction so an offset cannot overflow its way past them.
+
 ---
 
 <p align="center">
