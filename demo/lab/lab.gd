@@ -18,6 +18,8 @@ const ModelPreset := preload("res://addons/quebratsk_editor/model_preset.gd")
 const EntityCatalogue := preload("res://addons/quebratsk_editor/entity_catalogue.gd")
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
+const RoomAcoustics := preload("res://addons/quebratsk_editor/room_acoustics.gd")
+const AcousticsScript := preload("res://lab/acoustics.gd")
 const WeatherScript := preload("res://lab/weather.gd")
 const PlayerScript := preload("res://lab/player.gd")
 const NpcScript := preload("res://lab/npc.gd")
@@ -53,6 +55,16 @@ var _thunder_ready := 0.0
 var _thunder_interval := 0.0
 var _triggered_sounds := {}
 var _water_shader: Shader
+
+## Where the level says it sounds like somewhere: an origin, a radius and a room type. Sorted
+## smallest first, so standing inside a cupboard inside a hall gives you the cupboard.
+var _rooms: Array = []
+var _room_now := -1
+var _acoustics: Node
+
+## Sounds built before the buses existed, waiting to be put on one. The map's ambience is
+## placed while the level is being read and the listener does not exist until the player does.
+var _pending_tracked: Array = []
 var _storm_sky: Sky
 var _built := {}
 var _rng := RandomNumberGenerator.new()
@@ -82,6 +94,9 @@ func _ready() -> void:
 	await get_tree().physics_frame
 
 	_place_player()
+
+	# The buses exist before anything that makes a noise is built, so every sound can be put
+	# on the right one as it is created rather than moved afterwards.
 	_place_enemies()
 	_refresh_hud()
 
@@ -192,6 +207,7 @@ func _place_ambience(entities: Array) -> void:
 			node.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
 		node.position = entity.get("position", Vector3.ZERO)
 		add_child(node)
+		_pending_tracked.append(node)
 		if triggered:
 			_triggered_sounds[str(entity.get("targetname", ""))] = node
 		else:
@@ -258,6 +274,7 @@ func _build_weather(entities: Array, map: Node3D) -> void:
 	_weather.name = "Weather"
 	add_child(_weather)
 
+	_build_rooms(entities)
 	_weather.set_storm_sky(_storm_sky)
 	if _weather.build_sun(entities) == null:
 		print("[lab] %s declares no light_environment, so it has no sun" % _map_uri.get_file())
@@ -310,6 +327,93 @@ func _build_weather(entities: Array, map: Node3D) -> void:
 			% [_map_uri.get_file(), _thunder_zones.size(), int(_thunder_interval)])
 	else:
 		print("[lab] %s sets off no thunder" % _map_uri.get_file())
+
+
+## Follow this sound, so a wall between it and the listener is heard as a wall.
+func track_sound(sound: AudioStreamPlayer3D) -> void:
+	if _acoustics != null:
+		_acoustics.track(sound)
+	else:
+		_pending_tracked.append(sound)
+
+
+## What the level says it sounds like, room by room.
+##
+## env_sound is a point with a radius and a room type from 0 to 28, and standing inside one
+## changes how everything sounds: a gunshot in a tunnel is not a gunshot in the open.
+## cs_siege places forty of them and de_dust two, and every import until now read none, so
+## every level sounded like a field.
+func _build_rooms(entities: Array) -> void:
+	for e in entities:
+		var entity: Dictionary = e
+		if str(entity.get("classname", "")) != "env_sound" or not entity.has("position"):
+			continue
+		var kind := int(entity.get("roomtype", 0))
+		var named := RoomAcoustics.name_of(kind, EntityCatalogue)
+		_rooms.append({
+			"at": entity["position"] as Vector3,
+			# The map's radius is in its own units; a Hammer unit is an inch.
+			"radius": maxf(float(entity.get("radius", 500.0)) * 0.0254, 1.0),
+			"type": kind,
+			"name": named,
+			"reverb": RoomAcoustics.reverb_for(kind, named),
+		})
+	if _rooms.is_empty():
+		return
+
+	var counted := {}
+	for room in _rooms:
+		counted[str(room["name"])] = int(counted.get(str(room["name"]), 0)) + 1
+	var parts := PackedStringArray()
+	for label in counted:
+		parts.append("%d %s" % [counted[label], label])
+	_built["rooms"] = "%d (%s)" % [_rooms.size(), ", ".join(parts)]
+	print("[lab] %s declares %d room(s): %s"
+		% [_map_uri.get_file(), _rooms.size(), ", ".join(parts)])
+
+
+## Put the player in whichever room the level says they are in.
+##
+## Three rules, all the game's own, out of CEnvSound::Think in ReGameDLL's sound.cpp:
+##
+##   It sticks. "A client's room_type will remain set to its prior value until a new
+##   in-range, visible sound entity resets a new room_type." Walking out of one changes
+##   nothing; walking into another does. That is why the radii are a metre or two — these are
+##   markers you pass through, not volumes you stand in, and reading them as volumes meant
+##   the reverberation flickered on and off as you crossed a doorway.
+##
+##   You have to see it. FEnvSoundInRange traces from the entity to the player and gives up
+##   if anything is in the way.
+##
+##   The nearest of several wins.
+func _update_room() -> void:
+	if _acoustics == null or _player == null or _rooms.is_empty():
+		return
+
+	var ear := _player.global_position
+	var space := get_world_3d().direct_space_state
+	var best := -1
+	var best_range := INF
+
+	for i in _rooms.size():
+		var room: Dictionary = _rooms[i]
+		var at: Vector3 = room["at"]
+		var distance := ear.distance_to(at)
+		if distance > float(room["radius"]) or distance >= best_range:
+			continue
+		var query := PhysicsRayQueryParameters3D.create(at, ear)
+		query.exclude = [_player.get_rid()]
+		if not space.intersect_ray(query).is_empty():
+			continue   # something in the way; the game does not hear this one either
+		best = i
+		best_range = distance
+
+	# Nothing in range and visible leaves the room as it was, which is the sticky part.
+	if best < 0 or best == _room_now:
+		return
+	_room_now = best
+	_acoustics.set_room((_rooms[best] as Dictionary)["reverb"])
+	print("[lab] room: %s" % str((_rooms[best] as Dictionary)["name"]))
 
 
 ## The water the map declares, as something you can see rather than an invisible brush.
@@ -450,6 +554,14 @@ func _place_player() -> void:
 					(m as MeshInstance3D).cast_shadow = \
 						GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 
+	_acoustics = AcousticsScript.new()
+	_acoustics.name = "Acoustics"
+	add_child(_acoustics)
+	_acoustics.setup(camera)
+	for waiting in _pending_tracked:
+		_acoustics.track(waiting)
+	_pending_tracked.clear()
+
 	_player.setup(self, camera, preset, weapon)
 	_built["player"] = "%s with %s" % [preset.get("name", "?"), weapon.get("name", "?")]
 
@@ -480,6 +592,7 @@ func _process(delta: float) -> void:
 	if _weather == null or _player == null or not is_instance_valid(_player):
 		return
 	_weather.follow(_player)
+	_update_room()
 
 	_thunder_ready -= delta
 	if _thunder_ready > 0.0:

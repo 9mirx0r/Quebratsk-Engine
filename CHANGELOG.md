@@ -133,6 +133,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A level sounds like the place it is.** A GoldSrc map places `env_sound` markers — a point,
+  a radius and a room type from 0 to 28 — and every import read none of them, so every level
+  sounded like a field. `cs_siege` places **40**, and reports them now: *10 Big 3, 12 Concrete
+  Medium, 6 Concrete Small, 5 Concrete Large, 2 Cavern Medium, 2 Metal Medium, 3 off*.
+
+  The room *names* are the game's own, out of the FGD. The reverberation behind each is not:
+  those coefficients live in the closed GoldSrc engine. So `room_acoustics.gd` derives them
+  from the names, which are systematic — a material and a size. Metal gives back almost
+  everything, concrete swallows the top end, a cavern is enormous and soft. Anyone who
+  disagrees with a number can change it in one table and hear the difference.
+
+  Three rules, all taken from `CEnvSound::Think` rather than guessed. It **sticks**: *"a
+  client's room_type will remain set to its prior value until a new in-range, visible sound
+  entity resets a new room_type"* — which is why the radii are a metre or two. These are
+  markers you walk through, not volumes you stand in, and reading them as volumes made the
+  reverberation flicker every time you crossed a doorway. You have to **see** it: the game
+  traces from the entity to the player and gives up if anything is between. And the **nearest**
+  of several wins.
+
+- **A wall between you and a sound is heard as a wall.** Thunder outside, heard from indoors,
+  should be muffled and distant rather than simply quieter. Two buses do it: `Rooms` carries
+  the reverberation of wherever you are standing, `Occluded` is the same with 11 dB off and
+  everything above 900 Hz taken away, and it feeds *through* `Rooms` so something heard
+  through a wall still picks up the room it is heard in.
+
+  A tracked sound moves between them on a ray from it to the listener — the same test the game
+  itself uses for `env_sound`. Not a simulation: real sound diffracts round corners and one ray
+  cannot know that. It is the difference between "outside" and "outside, heard from in here".
+
 - **A model says *when* each of its sounds happens, and now so does the importer.**
   `list_sound_events()` returns `{ sequence, sound, time }` — the event carries the frame it
   fires on, the sequence carries its frame rate, so the moment is exact and was being read and
