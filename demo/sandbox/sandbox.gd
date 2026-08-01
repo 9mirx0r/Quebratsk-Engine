@@ -1181,8 +1181,9 @@ func _spawn_enemies() -> void:
 ## Deliberately a handful rather than all 426 a player model carries: a sequence costs a
 ## keyframe per bone per frame, so importing everything would be tens of megabytes per
 ## enemy for animations nobody will ever see.
-func _animation_set(uri: String) -> Dictionary:
-	return AnimationSets.usual_moves(importer.list_poses(uri))
+func _animation_set(uri: String, weapon := "") -> Dictionary:
+	return AnimationSets.usual_moves(importer.list_poses(uri),
+		WeaponManifest.animation_extension(weapon))
 
 
 ## Which mount a URI came out of, in words. With models drawn from four games and a pile of

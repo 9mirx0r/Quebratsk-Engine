@@ -35,7 +35,22 @@ const ROLES := [
 ## A role with nothing matching is left out rather than filled with something approximate: a
 ## model with no death animation is better described as having none than as dying by standing
 ## still under a name that says otherwise.
-static func usual_moves(poses: PackedStringArray) -> Dictionary:
+static func usual_moves(poses: PackedStringArray, weapon_extension := "") -> Dictionary:
+	# Counter-Strike does not have one walk. It has one per weapon, named by suffix, so a
+	# player carrying an AK plays walk_ak47 and one holding a knife plays walk_knife. They
+	# differ: the arms are in a different place and the body leans differently. Taking the
+	# unsuffixed sequence gives everybody the same neutral stance no matter what they hold,
+	# which is why every character in the sandbox ran identically with a rifle and a knife.
+	#
+	# The suffix comes from the game's own weapon table, not from the filename.
+	if not weapon_extension.is_empty():
+		var armed := _match_roles(poses, "_" + weapon_extension.to_lower())
+		if armed.size() >= 2:
+			return armed
+	return _match_roles(poses, "")
+
+
+static func _match_roles(poses: PackedStringArray, suffix: String) -> Dictionary:
 	var lowered := PackedStringArray()
 	for p in poses:
 		lowered.append(str(p).to_lower())
@@ -47,6 +62,9 @@ static func usual_moves(poses: PackedStringArray) -> Dictionary:
 		for hint in (entry as Dictionary)["hints"]:
 			var found := -1
 			for i in lowered.size():
+				# With a suffix asked for, only sequences carrying it count.
+				if not suffix.is_empty() and not lowered[i].ends_with(suffix):
+					continue
 				# One sequence cannot stand for two roles. Without this, a model whose only
 				# match for "run" is the same file that already answered "walk" imports one
 				# animation under two names and looks like it has both.
@@ -63,8 +81,8 @@ static func usual_moves(poses: PackedStringArray) -> Dictionary:
 
 
 ## Just the sequence names, in role order, for handing straight to load_model().
-static func usual_move_names(poses: PackedStringArray) -> PackedStringArray:
-	var moves := usual_moves(poses)
+static func usual_move_names(poses: PackedStringArray, weapon_extension := "") -> PackedStringArray:
+	var moves := usual_moves(poses, weapon_extension)
 	var out := PackedStringArray()
 	for entry in ROLES:
 		var role := str((entry as Dictionary)["role"])
