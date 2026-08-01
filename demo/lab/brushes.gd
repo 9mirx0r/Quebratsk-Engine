@@ -19,12 +19,29 @@ const UNIT := 0.0254
 const MOVE_SOUNDS := "doors/doormove%d.wav"
 const STOP_SOUNDS := "doors/doorstop%d.wav"
 
+## What a button, a lever or a latch sounds like, by the number a map writes.
+##
+## From ButtonSound() in buttons.cpp. Doors use this table too: a func_door's `locked_sound`
+## is a button sound and not a door one, which is why the two func_door_rotating on cs_siege
+## came back silent when they were looked for among doors/doormove*.
+const BUTTON_SOUNDS := {
+	1: "buttons/button1.wav", 2: "buttons/button2.wav", 3: "buttons/button3.wav",
+	4: "buttons/button4.wav", 5: "buttons/button5.wav", 6: "buttons/button6.wav",
+	7: "buttons/button7.wav", 8: "buttons/button8.wav", 9: "buttons/button9.wav",
+	10: "buttons/button10.wav", 11: "buttons/button11.wav",
+	12: "buttons/latchlocked1.wav", 13: "buttons/latchunlocked1.wav",
+	14: "buttons/lightswitch2.wav",
+	21: "buttons/lever1.wav", 22: "buttons/lever2.wav", 23: "buttons/lever3.wav",
+	24: "buttons/lever4.wav", 25: "buttons/lever5.wav",
+}
+
 ## SF_DOOR_USE_ONLY. Without it a func_door opens when you walk into it, which is why nearly
 ## every door in Counter-Strike has no button.
 const USE_ONLY := 256
 
 var _lab: Node3D
 var _doors: Array = []
+var _buttons: Array = []
 
 
 func setup(lab: Node3D, map: Node3D, entities: Array) -> void:
@@ -50,6 +67,21 @@ func setup(lab: Node3D, map: Node3D, entities: Array) -> void:
 				passable += 1
 			"func_door", "func_door_rotating":
 				_build_door(node, entity, cls == "func_door_rotating")
+			"func_button":
+				# Pressed by walking into it when SF_BUTTON_TOUCH_ONLY is set, which is what
+				# all three of cs_siege's are: spawnflags 1. Each fires a `target`, and on
+				# that map all three call the same lift.
+				_buttons.append({
+					"node": node,
+					"target": str(entity.get("target", "")),
+					"sound": _named_sound(BUTTON_SOUNDS.get(int(entity.get("sounds", 0)), "")),
+					"wait": maxf(float(entity.get("wait", 1.0)), 0.5),
+					"delay": float(entity.get("delay", 0.0)),
+					"reach": maxf((entity.get("bounds", AABB()) as AABB).size.length() * 0.5,
+						1.0) + 1.0,
+					"ready": 0.0,
+					"audio": null,
+				})
 			"func_water":
 				# The surface is drawn separately and prettier; this is the brush behind it,
 				# which you swim through rather than walk into.
@@ -58,7 +90,12 @@ func setup(lab: Node3D, map: Node3D, entities: Array) -> void:
 	if passable > 0:
 		print("[brushes] %d brush(es) made passable" % passable)
 	if not _doors.is_empty():
-		print("[brushes] %d door(s)" % _doors.size())
+		var voiced := 0
+		for d in _doors:
+			if (d as Dictionary)["move_sound"] != null: voiced += 1
+		print("[brushes] %d door(s), %d with a sound" % [_doors.size(), voiced])
+	if not _buttons.is_empty():
+		print("[brushes] %d button(s)" % _buttons.size())
 
 
 ## Take the collider off, leaving what you can see.
@@ -105,16 +142,24 @@ func _build_door(node: MeshInstance3D, entity: Dictionary, rotating: bool) -> vo
 		"state": "shut",
 		"at": 0.0,
 		"hold": 0.0,
-		"move_sound": _door_sound(MOVE_SOUNDS, int(entity.get("movesnd", 0))),
+		# A rotating door declares neither movesnd nor stopsnd; what it has is locked_sound,
+		# which is a button sound. Falling back to it is what gives those two a voice.
+		"move_sound": _door_sound(MOVE_SOUNDS, int(entity.get("movesnd", 0))) 			if int(entity.get("movesnd", 0)) > 0 			else _named_sound(BUTTON_SOUNDS.get(int(entity.get("locked_sound", 0)), "")),
 		"stop_sound": _door_sound(STOP_SOUNDS, int(entity.get("stopsnd", 0))),
 		"audio": null,
 	})
 
 
 func _door_sound(pattern: String, index: int) -> AudioStream:
-	if index <= 0 or _lab == null:
+	if index <= 0:
 		return null
-	var hit: Dictionary = _lab.vfs.find_files("sound/" + (pattern % index),
+	return _named_sound(pattern % index)
+
+
+func _named_sound(named: String) -> AudioStream:
+	if named.is_empty() or _lab == null:
+		return null
+	var hit: Dictionary = _lab.vfs.find_files("sound/" + named,
 		PackedStringArray(["wav"]), PackedStringArray(), PackedStringArray(), 1)
 	var files: PackedStringArray = hit["files"]
 	if files.is_empty():
@@ -136,6 +181,25 @@ func _physics_process(delta: float) -> void:
 	var who: Node3D = _lab.get("_player") if _lab != null else null
 	if who == null or not is_instance_valid(who):
 		return
+
+	var now := Time.get_ticks_msec() / 1000.0
+	for bt in _buttons:
+		var button: Dictionary = bt
+		var pressed: MeshInstance3D = button["node"]
+		if not is_instance_valid(pressed) or now < float(button["ready"]):
+			continue
+		if who.global_position.distance_to(pressed.global_position) >= float(button["reach"]):
+			continue
+		button["ready"] = now + float(button["wait"])
+		_play(button, button["sound"], pressed)
+		# What it targets. Doors are all this map's buttons call, and a door that has been
+		# told to open stays open: that is what `wait -1` on the lift means.
+		if not str(button["target"]).is_empty():
+			for d2 in _doors:
+				var aimed: Dictionary = d2
+				if aimed["state"] == "shut":
+					aimed["state"] = "opening"
+					_play(aimed, aimed["move_sound"], aimed["node"])
 
 	for d in _doors:
 		var door: Dictionary = d
