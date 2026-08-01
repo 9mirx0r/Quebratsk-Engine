@@ -12,6 +12,23 @@
 
 namespace quebratsk::ir {
 
+/// A bone name Godot will accept, derived from what the file says.
+///
+/// Skeleton3D rejects an empty name and any name holding ':' or '/', because both are
+/// separators in the node paths animation tracks are written as. Several stock GoldSrc
+/// models have unnamed bones, and a rejected bone is not skipped: it shifts every parent
+/// index after it, so one nameless bone in the middle scatters the rest of the skeleton.
+///
+/// The index makes the fallback unique, and running it over both the skeleton and the
+/// animation tracks is what keeps the two agreeing on what to call a bone.
+[[nodiscard]] inline std::string sanitise_bone_name(std::string name, size_t index) {
+    for (char& c : name) {
+        if (c == ':' || c == '/') c = '_';
+    }
+    if (name.empty()) name = "bone_" + std::to_string(index);
+    return name;
+}
+
 struct IRBone {
     std::string name;
     int32_t parent_index = -1;  // -1 for root joint

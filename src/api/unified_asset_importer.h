@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../converters/sound_resolver.h"
 #include "../core/vfs/vfs_manager.h"
 #include "../core/ir/ir_animation_data.h"
 #include "../core/ir/ir_skeleton_data.h"
@@ -18,6 +19,7 @@
 
 #include <cstddef>
 #include <span>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -160,12 +162,16 @@ public:
     /// map was building the MeshInstance3D by hand and none of them added a body.
     godot::Node3D* load_map(const godot::String& vfs_uri);
 
-    /// The sounds a named sequence plays, in order.
+    /// VFS URIs of the sounds a named sequence plays, in order.
     ///
     /// A weapon's firing animation names its own gunshot, a footstep animation names the
     /// footstep. This is the only place in these files that ties an action to a noise: a
     /// .mdl says nothing else about it, so any other way of choosing a sound for a weapon
     /// is choosing one at random.
+    ///
+    /// The names in the model are followed to real files before they are returned, because
+    /// they are not files as written: Source names a soundscript entry, "Weapon_357.Single".
+    /// Anything that cannot be found is left out and reported.
     ///
     /// Pass an empty `sequence` to get every sound the model can make.
     godot::PackedStringArray list_sounds(const godot::String& vfs_uri,
@@ -245,6 +251,11 @@ public:
 private:
     vfs::VFSManager* m_vfs = nullptr;
     mutable int m_last_error_code = 0;
+
+    /// Kept rather than made per call: building it reads every soundscript the mounted
+    /// games ship, which is dozens of files, and a scene asking about twenty weapons would
+    /// otherwise pay for that twenty times.
+    std::unique_ptr<converters::SoundResolver> m_sounds;
     mutable godot::PackedStringArray m_last_missing;
 };
 

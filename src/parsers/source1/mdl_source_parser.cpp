@@ -62,6 +62,10 @@ void fill_skeleton(const ByteReader& mdl, const SourceStudioHeader* header,
             }
         }
         if (!named) ir_b.name = "ValveBiped.Bip01_Bone_" + std::to_string(i);
+        // A colon or a slash in a bone name is a separator in the track paths Godot writes,
+        // so it is rejected there. Rare in Source, but the tracks below copy these names and
+        // both sides have to arrive at the same answer.
+        ir_b.name = ir::sanitise_bone_name(std::move(ir_b.name), static_cast<size_t>(i));
 
         ir_b.parent_index = b.parent;
         ir_b.position = math::source_to_godot(godot::Vector3(b.pos[0], b.pos[1], b.pos[2]));
@@ -206,6 +210,24 @@ struct TrackLocation {
 /// up through the section that holds it and then addressed relative to that section's
 /// start. Whatever block that yields, a non-zero one means the bytes live in the companion
 /// .ani at `data_start + anim_index` instead of next to the descriptor.
+/// Does this event mean "play a sound"?
+///
+/// Two eras of the format answer differently. A model compiled with named events says so in
+/// text, "AE_CL_PLAYSOUND", reachable through name_index. An older one carries only a number,
+/// and the numbers that mean sound are a short fixed list.
+bool is_sound_event(const ByteReader& mdl, const SourceEvent& ev, size_t event_offset) {
+    if ((ev.type & kEventNewStyle) != 0 && ev.name_index != 0) {
+        const auto name = mdl.cstr_at(event_offset + static_cast<size_t>(ev.name_index));
+        if (!name.has_value()) return false;
+        std::string lower = *name;
+        std::transform(lower.begin(), lower.end(), lower.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return lower.find("sound") != std::string::npos;
+    }
+    return ev.event == kEventClientSound || ev.event == kEventScriptSound
+        || ev.event == kEventScriptSoundVoice;
+}
+
 std::optional<TrackLocation> locate_tracks(const ByteReader& mdl, size_t adesc_ofs,
                                            const SourceAnimDesc& adesc,
                                            std::span<const SourceAnimBlock> blocks,
@@ -393,27 +415,25 @@ void extract_poses(const ByteReader& mdl, const ByteReader& ani,
             pose.name = "sequence_" + std::to_string(s);
         }
 
-        // What the sequence does besides move bones. A sound event carries its filename in
-        // `options`, and that is the only record in the file of which noise belongs to
-        // which action.
+        // What the sequence does besides move bones, which is where the sound lives.
+        //
+        // Telling a sound event from a muzzle flash or a footstep is not a matter of looking
+        // at `options`: a firing sequence carries "357 muzzle" and "Weapon_357.Single" side
+        // by side and neither looks like a filename. The event's own identity is what says
+        // which is which, so that is what gets read.
         if (seq.num_events > 0 && seq.event_index > 0) {
             const auto events = at_relative<SourceEvent>(mdl, seq_ofs, seq.event_index,
                                                          static_cast<size_t>(seq.num_events));
             for (int32_t e = 0; events != nullptr && e < seq.num_events; ++e) {
+                const size_t here = seq_ofs + static_cast<size_t>(seq.event_index)
+                                  + static_cast<size_t>(e) * sizeof(SourceEvent);
+                if (!is_sound_event(mdl, events[e], here)) continue;
+
                 const char* raw = events[e].options;
                 // Fixed-size and not guaranteed terminated, so bound the scan.
                 const size_t len = ::strnlen(raw, sizeof(events[e].options));
                 if (len == 0) continue;
-
-                std::string option(raw, len);
-                // Only the ones that name a sound. Other events carry bodygroup numbers,
-                // attachment names and the like, and a .wav is recognisable on sight.
-                std::string lower = option;
-                std::transform(lower.begin(), lower.end(), lower.begin(),
-                               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-                if (lower.ends_with(".wav") || lower.ends_with(".mp3")) {
-                    pose.sounds.push_back(std::move(option));
-                }
+                pose.sounds.emplace_back(raw, len);
             }
         }
 

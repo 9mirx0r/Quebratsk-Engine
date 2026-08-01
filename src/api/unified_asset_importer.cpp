@@ -7,6 +7,7 @@
 #include "../parsers/rv_enfusion/p3d_mlod_parser.h"
 #include "../parsers/rv_enfusion/wrp_parser.h"
 #include "../converters/animation_converter.h"
+#include "../converters/sound_resolver.h"
 #include "../converters/texture_loader.h"
 #include "../core/math/axis_remap.h"
 
@@ -75,6 +76,8 @@ void UnifiedAssetImporter::_bind_methods() {
 
 void UnifiedAssetImporter::set_vfs(vfs::VFSManager* vfs) {
     m_vfs = vfs;
+    // What it indexed belongs to the old mount set.
+    m_sounds.reset();
 }
 
 std::vector<std::byte> UnifiedAssetImporter::read_asset_bytes(const String& vfs_uri) const {
@@ -233,10 +236,11 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
         // GoldSrc and Source share the "IDST" magic, so route on the version field.
         // GoldSrc is self-contained; Source needs its .vvd and .vtx companions.
         if (auto gs_res = parsers::goldsrc::MDL10Parser::parse(
-                data, std::span<const std::byte>(bundle.textures));
+                data, std::span<const std::byte>(bundle.textures), animate);
             gs_res.has_value()) {
             out.mesh = std::move(gs_res->mesh_data);
             out.skeleton = std::move(gs_res->skeleton_data);
+            out.animations = std::move(gs_res->animations);
             return out;
         }
 
@@ -352,12 +356,29 @@ PackedStringArray UnifiedAssetImporter::list_sounds(const String& vfs_uri,
     const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
     const ParsedAssetIR ir = parse_asset_ir(bundle, uri_lower, /*pose_names_only=*/true);
 
+    // What the model names and what can be played are two different things: a Source event
+    // says "Weapon_357.Single", which is an entry in a soundscript rather than a file. The
+    // caller wants something it can read, so the names are followed here rather than left
+    // for every caller to work out on its own.
+    if (!m_sounds) m_sounds = std::make_unique<converters::SoundResolver>(m_vfs);
+    converters::SoundResolver& resolver = *m_sounds;
+    const size_t missing_before = resolver.missing().size();
+
     const std::string wanted = sequence.utf8().get_data();
     for (const auto& pose : ir.skeleton.poses) {
         if (!wanted.empty() && pose.name != wanted) continue;
         for (const auto& sound : pose.sounds) {
-            out.push_back(String(sound.c_str()));
+            for (const auto& uri : resolver.resolve(sound)) {
+                out.push_back(String(uri.c_str()));
+            }
         }
+    }
+
+    // Only what this call could not find; the resolver keeps the whole history.
+    for (size_t i = missing_before; i < resolver.missing().size(); ++i) {
+        UtilityFunctions::printerr("[QuebratskImporter] ", vfs_uri, " asks for the sound \"",
+                                   String(resolver.missing()[i].c_str()),
+                                   "\", which is not on this machine");
     }
 
     m_last_error_code = ERR_OK;

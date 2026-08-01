@@ -5,7 +5,9 @@
 #include <godot_cpp/variant/basis.hpp>
 #include <godot_cpp/variant/transform3d.hpp>
 
+#include <algorithm>
 #include <cstring>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -48,6 +50,191 @@ std::vector<godot::Transform3D> build_bone_rest_transforms(const StudioBone* bon
         }
     }
     return world;
+}
+
+/// One channel of one bone, sampled at a frame.
+///
+/// The samples are run-length encoded, so a track cannot be indexed: reaching frame 40 means
+/// walking the runs until the one that contains it. A run is a {valid, total} header followed
+/// by `valid` samples covering `total` frames, with the remainder repeating the last sample,
+/// which is how a bone that holds still for two seconds costs four bytes.
+///
+/// An offset of zero means the channel never moves, and the bone's rest value stands in.
+float sample_channel(const ByteReader& mdl, size_t anim_offset, const StudioAnim& anim,
+                     int channel, int32_t frame, float base, float scale) {
+    if (anim.offset[channel] == 0) return base;
+
+    size_t at = anim_offset + anim.offset[channel];
+    int32_t left = frame;
+
+    auto run = mdl.read_at<StudioAnimValue>(at);
+    if (!run.has_value()) return base;
+
+    // Walk to the run holding this frame. A `total` of zero would consume no frames and
+    // never advance, so it ends the walk; every other step moves `at` forward by at least
+    // one value, which is what guarantees this terminates on a corrupt file.
+    while (run->num.total <= left) {
+        if (run->num.total == 0) return base;
+        left -= run->num.total;
+        at += static_cast<size_t>(run->num.valid + 1) * sizeof(StudioAnimValue);
+        run = mdl.read_at<StudioAnimValue>(at);
+        if (!run.has_value()) return base;
+    }
+
+    // Inside the run. Frames past the stored samples hold the last one.
+    const int32_t index = (run->num.valid > left) ? (left + 1) : run->num.valid;
+    const auto sample =
+        mdl.read_at<StudioAnimValue>(at + static_cast<size_t>(index) * sizeof(StudioAnimValue));
+    if (!sample.has_value()) return base;
+
+    return base + static_cast<float>(sample->value) * scale;
+}
+
+/// The bind pose as an IRPose: every bone at its own rest value.
+///
+/// Stands in for a sequence whose tracks are in a sidecar file this parser was not given.
+/// The alternative is a pose with no transforms in it, which every consumer would have to
+/// special-case.
+ir::IRPose rest_pose(const StudioBone* bones, int32_t num_bones) {
+    ir::IRPose pose;
+    pose.positions.reserve(static_cast<size_t>(num_bones));
+    pose.rotations.reserve(static_cast<size_t>(num_bones));
+
+    for (int32_t b = 0; b < num_bones; ++b) {
+        const StudioBone& bone = bones[b];
+        pose.positions.push_back(
+            math::source_to_godot(godot::Vector3(bone.value[0], bone.value[1], bone.value[2])));
+        pose.rotations.push_back(math::source_quat_to_godot(
+            godot::Quaternion(studio_euler_to_basis(bone.value[3], bone.value[4], bone.value[5]))));
+    }
+    return pose;
+}
+
+/// One frame of a sequence, as parent-relative transforms in Godot's axes.
+///
+/// Channels 0 to 2 are position and 3 to 5 are Euler rotation in radians, each stored as a
+/// signed offset from the bone's rest value in units of that bone's own scale. The scale is
+/// per bone and per channel, which is how the format fits a whole skeleton into 16-bit
+/// samples without the fingers inheriting the hips' precision.
+ir::IRPose sample_pose(const ByteReader& mdl, size_t anim_offset, const StudioBone* bones,
+                       int32_t num_bones, int32_t frame) {
+    ir::IRPose pose;
+    pose.positions.reserve(static_cast<size_t>(num_bones));
+    pose.rotations.reserve(static_cast<size_t>(num_bones));
+
+    for (int32_t b = 0; b < num_bones; ++b) {
+        const StudioBone& bone = bones[b];
+        const size_t here = anim_offset + static_cast<size_t>(b) * sizeof(StudioAnim);
+        const auto anim = mdl.read_at<StudioAnim>(here);
+
+        float channel[6];
+        for (int c = 0; c < 6; ++c) {
+            channel[c] = anim.has_value()
+                             ? sample_channel(mdl, here, *anim, c, frame, bone.value[c],
+                                              bone.scale[c])
+                             : bone.value[c];
+        }
+
+        pose.positions.push_back(
+            math::source_to_godot(godot::Vector3(channel[0], channel[1], channel[2])));
+        pose.rotations.push_back(math::source_quat_to_godot(
+            godot::Quaternion(studio_euler_to_basis(channel[3], channel[4], channel[5]))));
+    }
+    return pose;
+}
+
+/// A sequence longer than this is taken as a corrupt frame count rather than an animation.
+/// The longest sequences in the stock games are a few hundred frames.
+constexpr int32_t kMaxSequenceFrames = 4096;
+
+/// Read every sequence: its label, the sounds it plays, and a pose for it.
+///
+/// Until this existed, every Half-Life 1 and Counter-Strike 1.6 model imported frozen in its
+/// bind pose, because the bind pose was the only pose the parser could produce. The stances a
+/// game actually shows all live here.
+void read_sequences(const ByteReader& mdl, const StudioHeader& header, const StudioBone* bones,
+                    ir::IRSkeletonData& skeleton,
+                    std::vector<ir::IRAnimationData>& animations,
+                    const std::vector<std::string>& animate) {
+    if (bones == nullptr || header.num_bones <= 0 || header.num_seq <= 0 || header.seq_index <= 0) {
+        return;
+    }
+    const auto sequences = mdl.array_at<StudioSeqDesc>(static_cast<size_t>(header.seq_index),
+                                                       static_cast<size_t>(header.num_seq));
+    if (sequences.empty()) return;
+
+    for (size_t s = 0; s < sequences.size(); ++s) {
+        const StudioSeqDesc& seq = sequences[s];
+
+        std::string label(seq.label, strnlen(seq.label, sizeof(seq.label)));
+        if (label.empty()) label = "sequence_" + std::to_string(s);
+
+        // What the sequence plays. GoldSrc writes the path itself here, relative to sound/,
+        // rather than the soundscript entry name Source uses.
+        std::vector<std::string> sounds;
+        if (seq.num_events > 0 && seq.event_index > 0) {
+            const auto events = mdl.array_at<StudioEvent>(static_cast<size_t>(seq.event_index),
+                                                          static_cast<size_t>(seq.num_events));
+            for (const StudioEvent& ev : events) {
+                if (ev.event != kEventClientSound && ev.event != kEventScriptSound
+                    && ev.event != kEventScriptSoundVoice) {
+                    continue;
+                }
+                const size_t len = strnlen(ev.options, sizeof(ev.options));
+                if (len > 0) sounds.emplace_back(ev.options, len);
+            }
+        }
+
+        // Where the bone tracks are. Group 0 means this file; anything else means a sidecar
+        // "<name>01.mdl" that this parser was not handed, so those sequences keep their name
+        // and their sounds and stand in the bind pose.
+        const size_t anim_offset = static_cast<size_t>(seq.anim_index);
+        const bool tracks_here =
+            seq.seq_group == 0 && seq.anim_index > 0 &&
+            !mdl.array_at<StudioAnim>(anim_offset, static_cast<size_t>(header.num_bones)).empty();
+
+        ir::IRPose pose = tracks_here
+                              ? sample_pose(mdl, anim_offset, bones, header.num_bones, 0)
+                              : rest_pose(bones, header.num_bones);
+        pose.name = std::move(label);
+        pose.sounds = std::move(sounds);
+
+        const bool wanted = std::find(animate.begin(), animate.end(), pose.name) != animate.end();
+
+        if (wanted && tracks_here && seq.num_frames > 0 && seq.num_frames <= kMaxSequenceFrames) {
+            ir::IRAnimationData anim;
+            anim.source_engine = ir::SourceEngine::GoldSrc;
+            anim.name = pose.name;
+            anim.fps = seq.fps > 0.0f ? seq.fps : 30.0f;
+            anim.looping = (seq.flags & kSeqLooping) != 0;
+            // A one-frame sequence is a still, but a zero-length animation is not something a
+            // player can hold, so it gets one frame's worth of time.
+            anim.duration = static_cast<float>(std::max(seq.num_frames - 1, 1)) / anim.fps;
+
+            anim.bone_tracks.resize(static_cast<size_t>(header.num_bones));
+            for (int32_t b = 0; b < header.num_bones; ++b) {
+                anim.bone_tracks[static_cast<size_t>(b)].bone_name = ir::sanitise_bone_name(
+                    std::string(bones[b].name, strnlen(bones[b].name, sizeof(bones[b].name))),
+                    static_cast<size_t>(b));
+            }
+
+            for (int32_t f = 0; f < seq.num_frames; ++f) {
+                const ir::IRPose frame = sample_pose(mdl, anim_offset, bones, header.num_bones, f);
+                const float time = static_cast<float>(f) / anim.fps;
+
+                for (size_t b = 0; b < frame.positions.size(); ++b) {
+                    ir::IRAnimKeyframe key;
+                    key.time = time;
+                    key.position = frame.positions[b];
+                    key.rotation = frame.rotations[b];
+                    anim.bone_tracks[b].keyframes.push_back(key);
+                }
+            }
+            animations.push_back(std::move(anim));
+        }
+
+        skeleton.poses.push_back(std::move(pose));
+    }
 }
 
 /// One corner emitted by the triangle command stream.
@@ -108,7 +295,8 @@ bool decode_embedded_texture(const ByteReader& mdl, const StudioTexture& tex,
 
 std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
     std::span<const std::byte> mdl_bytes,
-    std::span<const std::byte> texture_mdl_bytes
+    std::span<const std::byte> texture_mdl_bytes,
+    const std::vector<std::string>& animate
 ) {
     const ByteReader mdl(mdl_bytes);
 
@@ -143,13 +331,16 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
         for (int32_t i = 0; i < header->num_bones; ++i) {
             const auto& b = bones[i];
             ir::IRBone ir_b;
-            ir_b.name = std::string(b.name, strnlen(b.name, sizeof(b.name)));
+            ir_b.name = ir::sanitise_bone_name(
+                std::string(b.name, strnlen(b.name, sizeof(b.name))), static_cast<size_t>(i));
             ir_b.parent_index = b.parent;
             ir_b.position = math::source_to_godot(godot::Vector3(b.value[0], b.value[1], b.value[2]));
             ir_b.rotation = math::source_quat_to_godot(
                 godot::Quaternion(studio_euler_to_basis(b.value[3], b.value[4], b.value[5])));
             result.skeleton_data.bones.push_back(std::move(ir_b));
         }
+
+        read_sequences(mdl, *header, bones, result.skeleton_data, result.animations, animate);
         }
     }
 
