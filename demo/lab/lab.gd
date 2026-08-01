@@ -21,6 +21,7 @@ const SoundCatalogue := preload("res://addons/quebratsk_editor/sound_catalogue.g
 const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
 const RoomAcoustics := preload("res://addons/quebratsk_editor/room_acoustics.gd")
 const AcousticsScript := preload("res://lab/acoustics.gd")
+const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd")
 const BrushesScript := preload("res://lab/brushes.gd")
 const MarksScript := preload("res://lab/marks.gd")
 const WeatherScript := preload("res://lab/weather.gd")
@@ -116,6 +117,7 @@ func _ready() -> void:
 	await get_tree().physics_frame
 
 	_place_player()
+	_place_hostages()
 
 	# The buses exist before anything that makes a noise is built, so every sound can be put
 	# on the right one as it is created rather than moved afterwards.
@@ -650,6 +652,69 @@ func _place_player() -> void:
 	if _brushes != null:
 		_player.set_volumes(_brushes.ladders, _brushes.water)
 	_built["player"] = "%s with %s" % [preset.get("name", "?"), weapon.get("name", "?")]
+
+
+## The people a level puts in it that are not there to shoot at.
+##
+## cs_siege declares four hostage_entity and one func_hostage_rescue, and no import had placed
+## any of them: the level's own reason to exist was missing from it. Each names its own model
+## and where it stands.
+##
+## They stand and look about, and nothing more. Following you when used is the rest of the
+## entity and belongs with whatever plays the round; what is here is that they are there.
+##
+## Each declares `skin 1`, which selects a skin family — a second full set of textures the
+## model carries. The importer builds family 0 and only family 0, so these come out wearing the
+## wrong clothes. Named rather than quietly accepted: it is a real gap in the reader.
+func _place_hostages() -> void:
+	var placed := 0
+	for e in importer.load_map_entities(_map_uri):
+		var entity: Dictionary = e
+		if str(entity.get("classname", "")) != "hostage_entity":
+			continue
+		var named := str(entity.get("model", "models/hostage.mdl"))
+		var hit: Dictionary = vfs.find_files(named, PackedStringArray(["mdl"]),
+			PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 1)
+		var files: PackedStringArray = hit["files"]
+		if files.is_empty():
+			print("[lab] hostage model not found: %s" % named)
+			continue
+
+		var poses: PackedStringArray = importer.list_poses(str(files[0]))
+		var stances: Dictionary = AnimationSets.usual_moves(poses)
+		var wanted := PackedStringArray()
+		if stances.has("idle"):
+			wanted.append(str(stances["idle"]))
+
+		var body: Node3D = importer.load_character(str(files[0]), "", wanted)
+		if body == null or not (body is CharacterBody3D):
+			continue
+		var person := body as CharacterBody3D
+		person.name = "hostage_%d" % placed
+		add_child(person)
+		_stand_on_floor(person, entity.get("position", Vector3.ZERO) as Vector3)
+
+		# Facing where the mapper pointed them. angles is pitch yaw roll, and a model's forward
+		# is -Z in Godot.
+		var raw = entity.get("angles", "")
+		var yaw := 0.0
+		if raw is String:
+			var parts := str(raw).split(" ", false)
+			if parts.size() >= 2:
+				yaw = float(parts[1])
+		person.rotation.y = deg_to_rad(yaw + 180.0)
+
+		for c in person.get_children():
+			if c is Skeleton3D:
+				var anim: AnimationPlayer = c.get_node_or_null("AnimationPlayer")
+				if anim != null and not wanted.is_empty():
+					anim.play(wanted[0])
+		placed += 1
+
+	if placed > 0:
+		_built["hostages"] = "%d" % placed
+		print("[lab] %s: %d hostage(s), wearing skin family 0 because that is all the reader "
+			% [_map_uri.get_file(), placed] + "builds")
 
 
 func _place_enemies() -> void:
