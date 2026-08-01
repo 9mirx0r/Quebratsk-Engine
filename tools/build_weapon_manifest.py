@@ -144,6 +144,18 @@ def parse_weapon(name: str, text: str, constants: dict[str, float]) -> dict:
                 weapon[key] = int(value) if value == int(value) else value
                 break
 
+    # Rate of fire, which is a literal in the firing call rather than a named constant:
+    #     AK47Fire(0.04 + (0.4 * m_flAccuracy), 0.0955, FALSE);
+    # The second argument is the delay between shots in seconds. A weapon calls this several
+    # times for its different stances, all with the same delay, so the most frequent value is
+    # taken rather than the first in case one of them is a special case.
+    delays = [float(x) for x in re.findall(r"\w*Fire\([^;]*?,\s*([0-9]*\.[0-9]+)\s*[,)]", text)]
+    if delays:
+        common = max(set(delays), key=delays.count)
+        if common > 0.0:
+            weapon["cycle_time"] = common
+            weapon["rounds_per_minute"] = round(60.0 / common)
+
     # The silenced variant, which several weapons carry as a second damage figure.
     if (value := constants.get(upper + "_DAMAGE_SIL")) is not None:
         weapon["damage_silenced"] = int(value) if value == int(value) else value

@@ -92,6 +92,8 @@ var _weapon_node: Node3D
 var _moves: Dictionary = {}
 var _body_anim: AnimationPlayer
 var _speed := SPEED
+var _cycle := 0.0
+var _next_shot := 0.0
 var _bob_time := 0.0
 var _eye_rest := Vector3.ZERO
 
@@ -158,6 +160,11 @@ func arm(weapon: Dictionary) -> void:
 	# Half-Life's: a knife runs at 250 units per second, an AK at 221, an AWP at 210. It is
 	# most of why picking up the sniper rifle feels like a decision, and the number comes from
 	# the game rather than from anything guessable about the model.
+	# How fast it can be fired. Without this every weapon empties as fast as the button is
+	# pressed, and an AWP behaves like a machine gun.
+	_cycle = WeaponManifest.cycle_time(str(weapon.get("name", "")))
+	_next_shot = 0.0
+
 	var declared: float = WeaponManifest.max_speed(str(weapon.get("name", "")))
 	if declared > 0.0:
 		_speed = declared
@@ -301,6 +308,10 @@ func _apply_friction(delta: float) -> void:
 func _shoot() -> void:
 	if _camera == null:
 		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if _cycle > 0.0 and now < _next_shot:
+		return
+	_next_shot = now + _cycle
 	if _gunshot != null and _audio != null:
 		_audio.stream = _gunshot
 		_audio.play()

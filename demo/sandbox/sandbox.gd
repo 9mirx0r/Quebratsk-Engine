@@ -95,7 +95,8 @@ func _ready() -> void:
 	_spawn_player()
 	_spawn_enemies()
 	_refresh_hud()
-	_report_footing()
+	if REPORT_FOOTING:
+		_report_footing()
 
 
 # ------------------------------------------------------------------- mounting ----
@@ -652,6 +653,13 @@ func _process(_delta: float) -> void:
 ## The model is a v_ one, which is arms and gun together with its own draw, fire and reload
 ## sequences and the sound events that go with them. A p_ model has none of that: it is the
 ## shape other players see and it does not animate on its own.
+## Print where everybody ended up standing, a second and a half after the scene builds.
+##
+## It found a real defect once: bodies sunk to the waist that three earlier measurements had
+## called fine. Off by default because a demo somebody opens should not pause to talk to a
+## console they are not reading.
+const REPORT_FOOTING := false
+
 const VIEW_MODEL_LAYER := 2
 
 
