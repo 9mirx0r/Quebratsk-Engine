@@ -17,8 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reads the sequence table, decodes the run-length encoded bone tracks and reports the sound
   events. `arctic.mdl`, the Counter-Strike terrorist, went from **1 pose to 111**; across a
   sample of twelve models, ten have a sequence that moves a bone and the two that do not are
-  single-pose props. Sequences kept in a sidecar `<name>01.mdl` keep their name and their
-  sounds and stand in the bind pose.
+  single-pose props.
+
+  A model can also spread its sequences across several files, keeping only the first few in
+  itself and the rest in `<name>01.mdl` beside it. That is most of a Half-Life character:
+  `hgrunt.mdl` has 82 sequences and `hostage.mdl` 129, and almost none of them are in the
+  model. Those files are fetched and read too, so **6 of 6 models with a sidecar animate out
+  of it.** One that is not on disk leaves its sequences named, with their sounds, standing in
+  the bind pose, and says which file was wanted.
 
 - **A weapon's sound is the one the weapon names.** A model's animation events are the only
   record in these files of which noise belongs to which action, and they are now read and

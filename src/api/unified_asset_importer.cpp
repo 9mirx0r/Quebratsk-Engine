@@ -1,5 +1,7 @@
 #include "unified_asset_importer.h"
 
+#include <cstdio>
+
 #include "../parsers/goldsrc/bsp30_parser.h"
 #include "../parsers/goldsrc/mdl10_parser.h"
 #include "../parsers/source1/mdl_source_parser.h"
@@ -201,6 +203,25 @@ AssetBundleBytes UnifiedAssetImporter::read_asset_bundle(const String& vfs_uri,
 
     bundle.animations = read_anim_blocks(bundle.primary, stem);
 
+    // GoldSrc sidecar animation files. The model says how many it spreads its sequences
+    // over, and the names follow from its own: player.mdl, player01.mdl, player02.mdl. That
+    // is how the engine builds them too, deliberately, because the path written inside the
+    // file is stale the moment someone renames a model without recompiling it.
+    if (const int32_t groups = parsers::goldsrc::MDL10Parser::sequence_group_count(bundle.primary);
+        groups > 1) {
+        for (int32_t g = 1; g < groups && g < 100; ++g) {
+            char suffix[8];
+            std::snprintf(suffix, sizeof(suffix), "%02d.mdl", g);
+            std::vector<std::byte> bytes = read_companion({suffix});
+            if (bytes.empty()) {
+                UtilityFunctions::printerr("[QuebratskImporter] ", vfs_uri,
+                                           " keeps sequences in a file that is not here: ",
+                                           String((stem + suffix).c_str()));
+            }
+            bundle.sequence_groups.push_back(std::move(bytes));
+        }
+    }
+
     // Source animation models. Their paths live inside the .mdl header, so this is a
     // second pass: read the includemodel table, then fetch what it names. A GMod player
     // model ships only a "ragdoll" sequence of its own and borrows every real stance —
@@ -235,8 +256,14 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
     if (lowercase_uri.ends_with(".mdl")) {
         // GoldSrc and Source share the "IDST" magic, so route on the version field.
         // GoldSrc is self-contained; Source needs its .vvd and .vtx companions.
+        std::vector<std::span<const std::byte>> groups;
+        groups.reserve(bundle.sequence_groups.size());
+        for (const auto& group : bundle.sequence_groups) {
+            groups.emplace_back(group);
+        }
+
         if (auto gs_res = parsers::goldsrc::MDL10Parser::parse(
-                data, std::span<const std::byte>(bundle.textures), animate);
+                data, std::span<const std::byte>(bundle.textures), animate, groups);
             gs_res.has_value()) {
             out.mesh = std::move(gs_res->mesh_data);
             out.skeleton = std::move(gs_res->skeleton_data);

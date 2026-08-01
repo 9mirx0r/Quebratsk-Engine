@@ -39,11 +39,22 @@ public:
     /// `animate` names sequences to decode in full rather than sample a single frame from.
     /// Every sequence's label and sound events are read either way; only the bone tracks are
     /// conditional, because those are what cost anything.
+    ///
+    /// `sequence_groups` are the sidecar animation files, index 0 holding group 1. A model
+    /// that spreads its sequences across several files keeps only the first group in itself;
+    /// without the rest, most of a Half-Life player model's stances resolve to nothing.
     [[nodiscard]] static std::expected<ParsedMDL10Model, MDL10ParseError> parse(
         std::span<const std::byte> mdl_bytes,
         std::span<const std::byte> texture_mdl_bytes = {},
-        const std::vector<std::string>& animate = {}
+        const std::vector<std::string>& animate = {},
+        const std::vector<std::span<const std::byte>>& sequence_groups = {}
     );
+
+    /// How many files this model spreads its animations across, itself included.
+    ///
+    /// Returns 1 or less when everything is in the one file, which is the common case. The
+    /// caller needs this before parsing, because it is what says how many siblings to fetch.
+    [[nodiscard]] static int32_t sequence_group_count(std::span<const std::byte> mdl_bytes);
 };
 
 } // namespace quebratsk::parsers::goldsrc
