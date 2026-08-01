@@ -28,6 +28,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The floating was the camera, not the body — and it had been reported five times.** Every
+  measurement of the body was right: feet on the floor, `is_on_floor()` true, shadow beneath,
+  and photographed from outside to be certain. Nobody was hovering.
+
+  The eye was **94 cm too high**. `VEC_VIEW` is 64 units measured from the **soles**, and the
+  camera was put 64 units above the body's *origin* — which in GoldSrc is the centre of the
+  hull, most of a metre up. So the view sat at 2.57 m instead of 1.63 m and the ground was a
+  metre further away than a person's is. Nothing about the body moves when that is wrong,
+  which is why five rounds of measuring the body found nothing.
+
+  It is the same confusion that made the collider 2.67 m tall, in a second place. The eye is
+  measured up from the bottom of the collider now: **64.0 units exactly**.
+
 - **A reload made no sound, and the model had been carrying it all along.** An AK's reload
   sequence names `weapons/ak47_clipout.wav` and `weapons/ak47_clipin.wav` as animation events,
   a USP names three including the slide release, and the M3 keeps its shell noises on
