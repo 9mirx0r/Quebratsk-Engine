@@ -251,3 +251,70 @@ static func make_storm_sky(map: String, painted: Sky) -> Sky:
 	sky.process_mode = Sky.PROCESS_MODE_REALTIME
 	sky.radiance_size = Sky.RADIANCE_SIZE_256
 	return sky
+
+
+## Where the sun is in a panorama, as a direction, found by looking for it.
+##
+## A sky that shows a sun and a light that comes from somewhere else is the thing that makes a
+## scene read as assembled. So rather than choosing three numbers and hoping they match the
+## picture, the picture is asked: the brightest place in the upper half of an equirectangular
+## image is the sun, and its position maps back to a direction exactly.
+##
+## The upper half only. The lower half of this one is a river valley in full afternoon light
+## and comfortably outshines the sky if allowed to compete.
+##
+## Returns Vector3.ZERO when there is no panorama, or when nothing in it is bright enough to
+## be a sun — an overcast sky has no disc and should not be given one.
+static func sun_direction(map: String) -> Vector3:
+	var panorama := _load_panorama(map)
+	if panorama == null:
+		return Vector3.ZERO
+
+	# Scanned small. Eight thousand pixels across is thirty-three million to read and a sun is
+	# not a subtle feature; five hundred is plenty to place one within a degree.
+	var image := panorama.get_image()
+	if image == null:
+		return Vector3.ZERO
+	image = image.duplicate()
+	image.resize(512, 256, Image.INTERPOLATE_BILINEAR)
+
+	var width := image.get_width()
+	var height := image.get_height()
+	var sky := height / 2
+
+	var peak := 0.0
+	for y in sky:
+		for x in width:
+			var c := image.get_pixel(x, y)
+			peak = maxf(peak, 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b)
+	# Nothing bright enough to be a disc. An overcast sky reads as evenly lit and gets no sun.
+	if peak < 0.82:
+		return Vector3.ZERO
+
+	# The centroid of what is nearly as bright as the brightest, so a disc with a halo gives
+	# its middle rather than whichever single pixel happened to be highest.
+	var threshold := peak * 0.97
+	var total := 0.0
+	var cx := 0.0
+	var cy := 0.0
+	for y in sky:
+		for x in width:
+			var c := image.get_pixel(x, y)
+			var lum := 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
+			if lum < threshold:
+				continue
+			var weight := lum - threshold
+			total += weight
+			cx += float(x) * weight
+			cy += float(y) * weight
+	if total <= 0.0:
+		return Vector3.ZERO
+
+	# Back through the projection the sky shader samples it with: longitude across the width,
+	# latitude down the height.
+	var u := (cx / total + 0.5) / float(width)
+	var v := (cy / total + 0.5) / float(height)
+	var theta := (u - 0.5) * TAU
+	var phi := v * PI
+	var flat := sin(phi)
+	return Vector3(sin(theta) * flat, cos(phi), -cos(theta) * flat).normalized()
