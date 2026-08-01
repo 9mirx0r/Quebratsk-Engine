@@ -11,6 +11,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Source models imported without their textures, and nothing said so.** Two links in the
+  same chain were missing, and each one hid the other.
+
+  A model states its materials in two halves: the names (`police`) in one table, and the
+  directories to look for them in (`models/player/police/`) in another. The second was never
+  read, so the loader had a bare name and searched the whole index for anything ending in
+  it, which finds another model's texture as readily as the right one, and often finds
+  nothing.
+
+  With the directories read the search landed on the correct file and still produced
+  nothing, because a `.vmt` is a material script rather than a picture: it *names* an image.
+  Those bytes were being handed to an image decoder. The reference is followed now.
+
+  Measured over 120 models drawn from every mounted game: **155 of 155 character surfaces,
+  56 of 56 weapon surfaces and 44 of 44 prop surfaces come back with an image**, where
+  before they came back flat. `demo/tests/verify_materials.gd` counts it, because a model
+  that renders grey and a model with no textures look identical from the outside and both
+  look like a successful import.
+
+- **A material that cannot be found is now named.** `get_last_missing_companions()` covered
+  the `.vvd` and `.vtx` a model cannot be built without; it also lists every material the
+  model asked for and did not get, so a flat-looking import can say which files are absent
+  rather than leaving it to be guessed.
+
+- **The gunshot that could deafen you.** RIFF stores 8-bit samples unsigned and Godot's
+  8-bit format wants them signed, so every sample was inverted around the midpoint and
+  played back as a full-amplitude blast instead of a sound. Most GoldSrc audio is 8-bit,
+  which made it almost everything Half-Life and Counter-Strike have, including in the dock's
+  preview.
+
+
 - **Every file inside a Real Virtuality PBO that was not at the archive root was
   unreachable by path.** PBOs store their paths with backslashes, and `index_pbo()` was the
   one container indexer that did not convert them, so a DayZ texture was filed under a name
