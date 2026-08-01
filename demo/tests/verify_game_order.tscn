@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://kehej4rgoo6h"]
+
+[ext_resource type="Script" path="res://tests/verify_game_order.gd" id="1_vergorder"]
+
+[node name="VerifyGameOrder" type="Node"]
+script = ExtResource("1_vergorder")

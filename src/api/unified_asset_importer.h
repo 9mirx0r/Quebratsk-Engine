@@ -189,8 +189,13 @@ public:
     ///
     /// Split out so AsyncAssetImporter can parse on a worker and construct here, instead
     /// of re-reading and re-parsing the asset on the main thread.
+    ///
+    /// `origin_uri` is where the asset came from. Material references in a model are bare
+    /// fragments that only a search can answer, and the search needs to know which game is
+    /// asking or it will answer from whichever one it reaches first.
     godot::Node3D* build_model_node(const ParsedAssetIR& parsed,
-                                    const godot::String& pose_name = godot::String());
+                                    const godot::String& pose_name = godot::String(),
+                                    const godot::String& origin_uri = godot::String());
 
 private:
     /// Hang an AnimationPlayer carrying every decoded sequence off the skeleton.

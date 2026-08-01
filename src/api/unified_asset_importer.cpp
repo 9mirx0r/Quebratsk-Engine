@@ -307,6 +307,7 @@ Ref<ArrayMesh> UnifiedAssetImporter::load_mesh(const String& vfs_uri) {
 
     m_last_error_code = 0; // OK
     converters::TextureLoader loader(m_vfs);
+    loader.set_origin(vfs_uri.utf8().get_data());
     loader.set_search_paths(parsed.mesh.material_search_paths);
     return converters::MeshConverter::convert(parsed.mesh, &loader);
 }
@@ -368,7 +369,7 @@ PackedStringArray UnifiedAssetImporter::list_sounds(const String& vfs_uri,
     for (const auto& pose : ir.skeleton.poses) {
         if (!wanted.empty() && pose.name != wanted) continue;
         for (const auto& sound : pose.sounds) {
-            for (const auto& uri : resolver.resolve(sound)) {
+            for (const auto& uri : resolver.resolve(sound, vfs_uri.utf8().get_data())) {
                 out.push_back(String(uri.c_str()));
             }
         }
@@ -409,11 +410,12 @@ Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& po
     const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
     ParsedAssetIR parsed = parse_asset_ir(bundle, uri_lower, /*pose_names_only=*/false, animate);
 
-    return build_model_node(parsed, pose_name);
+    return build_model_node(parsed, pose_name, vfs_uri);
 }
 
 Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
-                                               const String& pose_name) {
+                                               const String& pose_name,
+                                               const String& origin_uri) {
     if (!m_vfs) {
         m_last_error_code = ERR_VFS_NOT_SET;
         UtilityFunctions::printerr("[QuebratskImporter] VFSManager not set!");
@@ -428,6 +430,7 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
     }
 
     converters::TextureLoader loader(m_vfs);
+    loader.set_origin(origin_uri.utf8().get_data());
     loader.set_search_paths(parsed.mesh.material_search_paths);
     Ref<ArrayMesh> mesh = converters::MeshConverter::convert(parsed.mesh, &loader);
     if (mesh.is_null()) {

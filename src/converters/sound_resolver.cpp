@@ -1,5 +1,7 @@
 #include "sound_resolver.h"
 
+#include "../core/io/keyvalues.h"
+
 #include <godot_cpp/variant/packed_string_array.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
@@ -16,54 +18,12 @@ std::string to_lower(std::string s) {
     return s;
 }
 
-/// One token of a KeyValues file: a quoted string, a bare word, or a brace.
-struct Token {
-    std::string text;
-    bool brace = false;
-};
-
-/// Split a soundscript into tokens.
-///
-/// KeyValues is small enough to read directly: quoted strings, bare words, braces, and
-/// // comments to end of line. Nothing here needs a general parser, and writing one would
-/// mean handling #base includes and conditionals that these files do not use.
-std::vector<Token> tokenize(const std::string& text) {
-    std::vector<Token> out;
-    size_t i = 0;
-
-    while (i < text.size()) {
-        const char c = text[i];
-
-        if (std::isspace(static_cast<unsigned char>(c))) {
-            ++i;
-        } else if (c == '/' && i + 1 < text.size() && text[i + 1] == '/') {
-            while (i < text.size() && text[i] != '\n') ++i;
-        } else if (c == '{' || c == '}') {
-            out.push_back({std::string(1, c), true});
-            ++i;
-        } else if (c == '"') {
-            const size_t start = ++i;
-            while (i < text.size() && text[i] != '"') ++i;
-            out.push_back({text.substr(start, i - start), false});
-            if (i < text.size()) ++i; // closing quote
-        } else {
-            const size_t start = i;
-            while (i < text.size() && !std::isspace(static_cast<unsigned char>(text[i]))
-                   && text[i] != '{' && text[i] != '}' && text[i] != '"') {
-                ++i;
-            }
-            out.push_back({text.substr(start, i - start), false});
-        }
-    }
-    return out;
-}
-
 /// Collect every "wave" value inside the block starting at `i` (which must be on its `{`),
 /// leaving `i` on the token after the matching `}`.
 ///
 /// Recursive because a sound with several takes nests them under rndwave, and those are the
 /// interesting ones: they are why the same weapon does not sound identical on every shot.
-void read_waves(const std::vector<Token>& t, size_t& i, std::vector<std::string>& waves) {
+void read_waves(const std::vector<io::KVToken>& t, size_t& i, std::vector<std::string>& waves) {
     if (i >= t.size() || t[i].text != "{") return;
     ++i;
 
@@ -114,7 +74,7 @@ void SoundResolver::build_index() {
         if (bytes.empty()) continue;
 
         const std::string text(reinterpret_cast<const char*>(bytes.data()), bytes.size());
-        const std::vector<Token> tokens = tokenize(text);
+        const std::vector<io::KVToken> tokens = io::tokenize_keyvalues(text);
 
         for (size_t t = 0; t + 1 < tokens.size();) {
             if (tokens[t].brace) {
@@ -139,7 +99,7 @@ void SoundResolver::build_index() {
                                    " soundscript entries from ", read, " script file(s)");
 }
 
-std::string SoundResolver::locate_wave(std::string wave) const {
+std::string SoundResolver::locate_wave(std::string wave, const std::string& origin_uri) const {
     if (_vfs == nullptr || wave.empty()) return {};
 
     // A leading punctuation character is a playback flag, not part of the path: ')' for
@@ -155,12 +115,13 @@ std::string SoundResolver::locate_wave(std::string wave) const {
     if (wave.empty()) return {};
 
     // Paths in a soundscript are relative to sound/, which is where the archives keep them.
-    std::string uri = _vfs->find_by_suffix("sound/" + to_lower(wave));
-    if (uri.empty()) uri = _vfs->find_by_suffix("/" + to_lower(wave));
+    std::string uri = _vfs->find_by_suffix("sound/" + to_lower(wave), origin_uri);
+    if (uri.empty()) uri = _vfs->find_by_suffix("/" + to_lower(wave), origin_uri);
     return uri;
 }
 
-std::vector<std::string> SoundResolver::resolve(const std::string& event_name) {
+std::vector<std::string> SoundResolver::resolve(const std::string& event_name,
+                                                const std::string& origin_uri) {
     std::vector<std::string> out;
     if (_vfs == nullptr || event_name.empty()) return out;
 
@@ -168,7 +129,7 @@ std::vector<std::string> SoundResolver::resolve(const std::string& event_name) {
     // directly and there is nothing to look up.
     const std::string lower = to_lower(event_name);
     if (lower.ends_with(".wav") || lower.ends_with(".mp3") || lower.ends_with(".ogg")) {
-        if (std::string uri = locate_wave(event_name); !uri.empty()) {
+        if (std::string uri = locate_wave(event_name, origin_uri); !uri.empty()) {
             out.push_back(std::move(uri));
             return out;
         }
@@ -184,7 +145,7 @@ std::vector<std::string> SoundResolver::resolve(const std::string& event_name) {
     }
 
     for (const auto& wave : it->second) {
-        if (std::string uri = locate_wave(wave); !uri.empty()) {
+        if (std::string uri = locate_wave(wave, origin_uri); !uri.empty()) {
             out.push_back(std::move(uri));
         }
     }
