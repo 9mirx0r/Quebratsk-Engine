@@ -2,6 +2,11 @@ extends CharacterBody3D
 
 ## First-person controller for the sandbox. Deliberately plain: this is here to prove the
 ## imported world can be walked through and shot at, not to be a movement system.
+##
+## The view sits where the model's own head is, so looking down shows the body that is really
+## standing there: legs, arms, and the weapon in the hand holding it. Nothing is drawn twice
+## for the benefit of the camera. That is the whole point of doing it this way, and it only
+## works because the skeleton is animated rather than frozen.
 
 const SPEED := 5.0
 const GRAVITY := 22.0
@@ -15,10 +20,16 @@ const DAMAGE := 34   # three hits, so a fight lasts long enough to be a fight
 ## does with this the first few times.
 const IMMORTAL := true
 
+## Where the eyes are relative to the head bone, which sits at the base of the skull.
+const EYE_RAISE := 0.09
+const EYE_FORWARD := 0.07
+
 var health := 100
 
 var _sandbox: Node3D
 var _camera: Camera3D
+var _skeleton: Skeleton3D
+var _head := -1
 var _pitch := 0.0
 var _gunshot: AudioStream
 var _audio: AudioStreamPlayer3D
@@ -26,9 +37,12 @@ var _fire := ""
 var _weapon_node: Node3D
 
 
-func setup(sandbox: Node3D, camera: Camera3D) -> void:
+func setup(sandbox: Node3D, camera: Camera3D, skeleton: Skeleton3D = null,
+		head_bone := -1) -> void:
 	_sandbox = sandbox
 	_camera = camera
+	_skeleton = skeleton
+	_head = head_bone
 	_audio = AudioStreamPlayer3D.new()
 	# The player's own weapon is at the camera, so at default settings 3D attenuation puts
 	# it right on top of the listener. Pulled well down: this is a gunshot fired next to
@@ -44,6 +58,20 @@ func arm(weapon: Dictionary) -> void:
 	_gunshot = weapon.get("sound")
 	_fire = str(weapon.get("fire", ""))
 	_weapon_node = weapon.get("node")
+
+
+## Put the view where the head is, every frame, after the animation has moved it.
+##
+## The offset is taken along the body's facing rather than the camera's. Along the camera's,
+## looking at the floor would walk the viewpoint forward and down into the model's own chest,
+## which is the one direction a player in a first-person game looks deliberately.
+func _process(_delta: float) -> void:
+	if _camera == null or _skeleton == null or _head < 0:
+		return
+
+	var head := _skeleton.global_transform * _skeleton.get_bone_global_pose(_head)
+	var facing := -global_transform.basis.z
+	_camera.global_position = head.origin + Vector3.UP * EYE_RAISE + facing * EYE_FORWARD
 
 
 func _unhandled_input(event: InputEvent) -> void:

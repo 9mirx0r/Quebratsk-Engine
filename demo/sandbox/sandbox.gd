@@ -45,6 +45,7 @@ var _map: Node3D
 ## demo/tests/verify_entities.gd.
 var _spawns := {}
 var _player: CharacterBody3D
+var _pool := PackedStringArray()
 var _hud: Label
 var _rng := RandomNumberGenerator.new()
 
@@ -332,29 +333,89 @@ func _spawn_player() -> void:
 		_say("Could not find anywhere to stand in that map.")
 		return
 
-	_player = CharacterBody3D.new()
+	# The player gets a real body, not a capsule with a camera on top. Looking down at
+	# nothing is what made every screenshot read as a debug view rather than as a game, and
+	# a body is also the only way an arm or a weapon can be seen where it actually is.
+	var skeleton: Skeleton3D = null
+	var uri := ""
+	for attempt in 12:
+		uri = _pick(_character_pool())
+		if uri.is_empty():
+			break
+		# The same test the enemies get: a person carries hundreds of sequences because it
+		# has to stand, walk, crouch and die. A vent grille carries one.
+		if importer.list_poses(uri).size() < 20:
+			continue
+
+		var moves := _animation_set(uri)
+		var sequences := PackedStringArray()
+		for role in moves:
+			sequences.append(str(moves[role]))
+
+		var body: Node3D = importer.load_character(uri, "", sequences)
+		if body is CharacterBody3D:
+			_player = body as CharacterBody3D
+			for child in _player.get_children():
+				if child is Skeleton3D:
+					skeleton = child as Skeleton3D
+			break
+		if body != null:
+			body.queue_free()
+
+	if _player == null:
+		# Nothing usable was mounted. A capsule still walks and still shoots, and saying so
+		# beats a scene that silently fails to start.
+		_say("No character model could be loaded, so the player has no body.")
+		_player = CharacterBody3D.new()
+		var shape := CollisionShape3D.new()
+		var capsule := CapsuleShape3D.new()
+		capsule.height = 1.8
+		capsule.radius = 0.3
+		shape.shape = capsule
+		shape.position = Vector3(0, 0.9, 0)
+		_player.add_child(shape)
+	else:
+		_built["player"] = "%s %s" % [uri.get_file(), _which_game(uri)]
+
 	_player.name = "Player"
 	_player.set_script(PlayerScript)
 
-	var shape := CollisionShape3D.new()
-	var capsule := CapsuleShape3D.new()
-	capsule.height = 1.8
-	capsule.radius = 0.3
-	shape.shape = capsule
-	shape.position = Vector3(0, 0.9, 0)
-	_player.add_child(shape)
-
+	# Kept off the skeleton on purpose. A BoneAttachment3D would hand the camera the head
+	# bone's own orientation, which in these models points whichever way the artist left it,
+	# and the aim would inherit every nod of the walk cycle. Position follows the head; where
+	# it looks stays the player's.
 	var camera := Camera3D.new()
 	camera.name = "Camera3D"
-	camera.position = Vector3(0, 1.65, 0)   # eye height
+	camera.position = Vector3(0, 1.65, 0)
+	# Close, so the body's own chest and arms are not sliced away at arm's length.
+	camera.near = 0.04
 	camera.current = true
 	_player.add_child(camera)
 
 	add_child(_player)
 	_player.position = spot
-	_player.setup(self, camera)
 
-	var weapon: Dictionary = _give_weapon(camera, Vector3(0.18, -0.16, -0.5), 0.42)
+	var head := _bone_like(skeleton, ["head"])
+	_player.setup(self, camera, skeleton, head)
+	if skeleton != null and head < 0:
+		print("[sandbox] no head bone on this model, the view stays at a fixed height")
+
+	# In the hand, where a weapon is. Mounting it to the camera put it in the same place on
+	# screen no matter what the body did, which is what made it look pasted on.
+	var hand := _bone_like(skeleton, ["r_hand", "r hand", "righthand", "hand_r"])
+	var mount: Node3D = camera
+	var offset := Vector3(0.18, -0.16, -0.5)
+	var size := 0.42
+	if skeleton != null and hand >= 0:
+		var socket := BoneAttachment3D.new()
+		socket.name = "WeaponHand"
+		socket.bone_name = skeleton.get_bone_name(hand)
+		skeleton.add_child(socket)
+		mount = socket
+		offset = Vector3.ZERO
+		size = 0.6
+
+	var weapon: Dictionary = _give_weapon(mount, offset, size)
 	_built["weapon"] = weapon["name"]
 	_player.arm(weapon)
 
@@ -464,6 +525,32 @@ func _fire_sequence(uri: String) -> String:
 	return ""
 
 
+## The same weapon as seen by the other model classes, best first.
+##
+## Resolved against the asking model rather than searched blindly, so a Counter-Strike world
+## model finds the Counter-Strike view model and not a same-named one from another game.
+func _same_weapon(uri: String) -> PackedStringArray:
+	var file := uri.get_file()
+	var stem := ""
+	for prefix in ["w_", "v_", "c_"]:
+		if file.begins_with(prefix):
+			stem = file.substr(prefix.length())
+			break
+	if stem.is_empty():
+		return PackedStringArray()
+
+	var out := PackedStringArray()
+	# The view model first: it is the one with the firing animation and its events.
+	for prefix in ["v_", "c_", "w_"]:
+		var candidate: String = prefix + stem
+		if candidate == file:
+			continue
+		var found: String = vfs.resolve_reference("/" + candidate, uri)
+		if not found.is_empty():
+			out.append(found)
+	return out
+
+
 ## The sound the weapon itself says it makes.
 ##
 ## A sequence's event list is the only record of the pairing in any of these files. What it
@@ -474,6 +561,18 @@ func _weapon_sound(uri: String, fire: String) -> AudioStream:
 	var named: PackedStringArray = importer.list_sounds(uri, fire)
 	if named.is_empty():
 		named = importer.list_sounds(uri)   # any sound it makes at all
+
+	# A world model has no sequences at all, so it names no sounds: it is the shape a weapon
+	# has lying on the ground or held in someone's hand, and nothing more. The firing sound
+	# lives on the view model of the same gun. w_pist_glock18 and v_pist_glock18 are one
+	# weapon seen from outside and from behind it.
+	if named.is_empty():
+		for twin in _same_weapon(uri):
+			named = importer.list_sounds(twin)
+			if not named.is_empty():
+				print("[sandbox] %s takes its sound from %s"
+					% [uri.get_file(), twin.get_file()])
+				break
 
 	# These come back as VFS URIs, already followed from whatever the model called them:
 	# Source names a soundscript entry rather than a file, and the engine resolves it.
@@ -488,17 +587,23 @@ func _weapon_sound(uri: String, fire: String) -> AudioStream:
 	return find_gunshot()
 
 
-func _spawn_enemies() -> void:
-	# Every game lays its characters out differently, so one path pattern finds one game's
-	# worth. Half-Life keeps its NPCs loose in models/, Counter-Strike puts each player
-	# model in its own folder, Half-Life 2 and Garry\'s Mod use models/player/, and a
-	# workshop addon can put them anywhere at all.
+## Every model that might be a person, across every mounted game.
+##
+## Each game lays its characters out differently. Half-Life keeps its NPCs loose in models/,
+## Counter-Strike puts each player model in its own folder, Half-Life 2 and Garry's Mod use
+## models/player/, and a workshop addon can put them anywhere at all.
+##
+## Shared with the player, who is now a body rather than a floating camera and so has to be
+## chosen the same way.
+func _character_pool() -> PackedStringArray:
+	if not _pool.is_empty():
+		return _pool
+
 	const WHERE_PEOPLE_LIVE := [
 		"models/player/", "/humans/", "/npc_", "/zombie",
 		"scientist", "barney", "hgrunt", "gordon", "gman", "hassault",
 		"leet", "arctic", "guerilla", "militia", "gsg9", "sas", "urban", "phoenix",
 	]
-	var pool := PackedStringArray()
 	var seen := {}
 	for where in WHERE_PEOPLE_LIVE:
 		var found: Dictionary = vfs.find_files(where, PackedStringArray(["mdl"]),
@@ -506,9 +611,35 @@ func _spawn_enemies() -> void:
 		for entry in found["files"]:
 			if not seen.has(str(entry)):
 				seen[str(entry)] = true
-				pool.append(str(entry))
-	var hit := {"files": pool}
-	print("[sandbox] %d candidate characters across every mounted game" % pool.size())
+				_pool.append(str(entry))
+	print("[sandbox] %d candidate characters across every mounted game" % _pool.size())
+	return _pool
+
+
+## The bone whose name reads like one of `needles`, or -1.
+##
+## Bone names are the game's, not a standard: Source writes "ValveBiped.Bip01_Head1" and
+## GoldSrc writes "Bip01 Head". Matching on a fragment covers both, and the shortest match
+## wins because a skeleton that has a head usually also has a "head_null" or a "HeadNub"
+## hanging off it, and those are markers rather than the head.
+func _bone_like(skeleton: Skeleton3D, needles: Array) -> int:
+	if skeleton == null:
+		return -1
+	var best := -1
+	var best_length := 0
+	for b in skeleton.get_bone_count():
+		var name := skeleton.get_bone_name(b).to_lower()
+		for needle in needles:
+			if name.contains(str(needle)):
+				if best < 0 or name.length() < best_length:
+					best = b
+					best_length = name.length()
+				break
+	return best
+
+
+func _spawn_enemies() -> void:
+	var hit := {"files": _character_pool()}
 
 	var taken: Array = [] if _player == null else [_player.position]
 	var names: Array = []
