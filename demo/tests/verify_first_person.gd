@@ -40,6 +40,7 @@ func _ready() -> void:
 		PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 0)
 
 	var checked := 0
+	var facing_front := 0
 	var with_head := 0
 	var eye_level := 0
 	var moving := 0
@@ -52,6 +53,8 @@ func _ready() -> void:
 		if result.is_empty():
 			continue
 		checked += 1
+		if result["faces_front"]:
+			facing_front += 1
 		if result["head"]:
 			with_head += 1
 		if result["eye_level"]:
@@ -63,6 +66,7 @@ func _ready() -> void:
 
 	print("\n=== SUMMARY ===")
 	print("  %d character models checked" % checked)
+	print("  %d stand facing Godot's front rather than ninety degrees off it" % facing_front)
 	print("  %d have a head bone that can be found by name" % with_head)
 	print("  %d put that bone at eye level rather than somewhere else" % eye_level)
 	print("  %d move the head when the animation plays" % moving)
@@ -120,6 +124,29 @@ func _check(uri: String) -> Dictionary:
 	var head := _bone_like(skeleton, ["head"])
 	var hand := _bone_like(skeleton, ["r_hand", "r hand", "righthand", "hand_r"])
 
+	# Which way the figure faces, taken from the line between its shoulders.
+	#
+	# The first draft of this compared the model's overall width against its depth, on the
+	# reasoning that a person is wider than they are thick. That is true of someone standing
+	# still and false of someone mid-stride: a walk pose is 0.84 m deep and 0.53 m wide, and
+	# the check called every correctly built GoldSrc model sideways. The shoulders do not care
+	# what the legs are doing.
+	#
+	# This exists at all because the axis remap was wrong and nothing here caught it. Every
+	# other check measures counts, heights and distances, and a rotation changes none of those.
+	# What caught it was a screenshot of an NPC standing sideways while shooting at the player.
+	var left := _bone_like(skeleton, ["l_upperarm", "l upperarm", "l_clavicle", "l clavicle"])
+	var right := _bone_like(skeleton, ["r_upperarm", "r upperarm", "r_clavicle", "r clavicle"])
+	var faces_front := true
+	var shoulder_x := 0.0
+	var shoulder_z := 0.0
+	if left >= 0 and right >= 0:
+		var span: Vector3 = skeleton.get_bone_global_pose(left).origin 			- skeleton.get_bone_global_pose(right).origin
+		shoulder_x = absf(span.x)
+		shoulder_z = absf(span.z)
+		# Godot's front is -Z, so a figure facing it has its shoulders along X.
+		faces_front = shoulder_x > shoulder_z
+
 	# How tall the model is, taken from the bones rather than from a mesh AABB: the AABB of a
 	# skinned mesh in Godot is the rest-pose bound, which is not where the bones are now.
 	var lowest := INF
@@ -164,6 +191,11 @@ func _check(uri: String) -> Dictionary:
 
 	print("\n%s" % uri.get_file())
 	print("   %d bones, %.2f m tall, playing '%s'" % [skeleton.get_bone_count(), height, wanted])
+	if left < 0 or right < 0:
+		print("   no shoulder bones, cannot say which way it faces")
+	else:
+		print("   shoulders span %.2f m in X and %.2f m in Z%s"
+			% [shoulder_x, shoulder_z, "" if faces_front else "   ** standing sideways **"])
 	if head < 0:
 		print("   no head bone found")
 	else:
@@ -179,6 +211,7 @@ func _check(uri: String) -> Dictionary:
 
 	body.queue_free()
 	return {
+		"faces_front": faces_front and left >= 0 and right >= 0,
 		"head": head >= 0,
 		"eye_level": at_eye_level,
 		"moves": head_travel > 0.005,

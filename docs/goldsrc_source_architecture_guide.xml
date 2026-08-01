@@ -262,51 +262,39 @@
           src/core/math/unit_scale.h como kHammerUnitsToMeters.
         </scale_factor>
 
-        <implemented name="lo que Quebratsk hace hoy" source="src/core/math/axis_remap.h">
-          <mapping>P_Godot = (x, z, -y)</mapping>
-          <matrix_definition>
-            |  1   0   0 |
-            |  0   0   1 |
-            |  0  -1   0 |
-          </matrix_definition>
+        <implemented name="lo que Quebratsk hace" source="src/core/math/axis_remap.h"
+            verified="capturas del sandbox el 2026-08-01, y verify_first_person.gd">
+          <mapping>P_Godot = (-y, z, -x)</mapping>
           <determinant>+1</determinant>
           <notes>
-            Manda el arriba de Valve (Z) al arriba de Godot (Y), y el frente de Valve (X) al
-            +X de Godot. Determinante positivo, o sea que PRESERVA la orientacion: el winding
-            de los triangulos ya sale bien y no hay que invertirlo. Combinarla con una
+            Coincide con la matriz de arriba. Determinante positivo, o sea que PRESERVA la
+            orientacion: el winding ya sale bien y no hay que invertirlo. Combinarla con una
             inversion de winding deja toda la geometria del reves bajo backface culling.
           </notes>
         </implemented>
 
-        <conventional name="la convencion mas habitual">
-          <mapping>P_Godot = (-y, z, -x)</mapping>
-          <matrix_definition>
-            |  0  -1   0 |
-            |  0   0   1 |
-            | -1   0   0 |
-          </matrix_definition>
-          <determinant>+1</determinant>
-          <notes>
-            Manda el frente de Valve al -Z de Godot, que es lo que las herramientas de Godot
-            asumen como frente.
-          </notes>
-        </conventional>
+        <resolved status="cerrada" opened="2026-08-01" closed="2026-08-01">
+          Esta discrepancia estuvo abierta unas horas. La implementacion usaba (x, z, -y), que
+          tambien es ortogonal, tambien tiene determinante +1 y tambien preserva el winding, y
+          la anote como una eleccion de convencion y no como un error.
 
-        <discrepancy status="abierta" opened="2026-08-01">
-          Las dos son ortogonales y las dos tienen determinante +1, asi que ninguna invierte el
-          winding. Difieren en una rotacion de 90 grados sobre el eje vertical: no es que una
-          este mal, es que eligen distinto que direccion horizontal es el frente.
+          Era un error. Manda el frente de Valve al +X de Godot, o sea noventa grados fuera de
+          donde Godot considera el frente. Geometria y entidades coincidian entre si, asi que
+          los mapas se veian bien y nada reportaba nada. Solo aparecia cuando a un personaje se
+          le pedia mirar hacia algo: un NPC apuntandole al jugador con look_at orienta su -Z
+          hacia el y se quedaba de costado, y una camara en primera persona desplazada segun el
+          frente del cuerpo se metia dentro del hombro del propio modelo.
 
-          Como el motor entero usa la misma transformacion para geometria, huesos y origenes de
-          entidades, el resultado es internamente consistente y un mapa calza con sus entidades
-          de cualquiera de las dos formas. Lo que cambia es hacia donde mira un modelo importado
-          respecto de lo que Godot considera adelante.
+          Lo encontro una captura de pantalla. Cuatro bancos de pruebas que contaban modelos,
+          median alturas y distancias no lo vieron, porque una rotacion no cambia ninguna de
+          esas cosas. La leccion no es sobre ejes: es que medir mucho no sirve si nada de lo
+          que se mide puede salir mal por la causa que importa.
 
-          NO cambiar sin decidirlo explicitamente: rotaria 90 grados toda importacion existente
-          y toda escena ya guardada en res://imported/. Mientras la discrepancia siga abierta,
-          lo implementado es lo normativo y este documento describe la alternativa, no la
-          prescribe.
-        </discrepancy>
+          verify_first_person.gd ahora mide la linea entre los hombros, que es lo unico que
+          delata una rotacion sin depender de la pose. Su primera version comparaba ancho
+          contra fondo del esqueleto entero y llamaba "de costado" a todo modelo caminando,
+          porque una zancada es mas larga que anchos son los hombros.
+        </resolved>
       </math_transformation>
     </subsection>
 

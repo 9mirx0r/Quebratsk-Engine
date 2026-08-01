@@ -109,6 +109,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Every imported model faced ninety degrees away from Godot's front.** The axis remap sent
+  Valve's forward to Godot's right instead of to Godot's forward. Both mappings are orthogonal
+  and both preserve triangle winding, so geometry and entities agreed with each other and maps
+  looked correct. It only showed when something was asked to face: an NPC aiming at the player
+  with `look_at()` stood there sideways, and a first-person camera offset along the body's
+  facing walked into the model's own shoulder.
+
+  Four verification harnesses missed it because all of them measured counts, heights and
+  distances, and a rotation changes none of those. A screenshot found it. `verify_first_person`
+  now measures the line between a figure's shoulders, which is the one thing that betrays a
+  rotation without depending on the pose, and all eight sampled models pass.
+
+- **A body vanished after it fell.** An NPC played its death animation and was then deleted two
+  seconds later, so the animation ran and the evidence of it was removed. Corpses stay; they
+  stop being something to walk into without ceasing to be something to look at.
+
+- **No weapon at all on a GoldSrc map.** Weapons were searched for under `models/weapons/`,
+  which is where Source keeps them and where GoldSrc keeps nothing. GoldSrc files them loose in
+  `models/` behind a one-letter prefix, so `models/p_ak47.mdl`. Both layouts are searched now,
+  preferring the `p_` model, which is the one made to be held.
+
+- **The scene said everything came from Half-Life.** The label read the folder a file was
+  mounted under, and Steam keeps four games in the folder it calls Half-Life. It reads the
+  game now, so a Condition Zero map says Condition Zero.
+
 - **A lookup answered with whatever the hash table reached first.** A model names its textures
   as bare fragments, "metal/metalwall001a", which only a search can resolve, and with a dozen
   games mounted many files answer to the same fragment. The search returned the first entry

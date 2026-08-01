@@ -151,10 +151,15 @@ func take_damage(amount: int) -> void:
 	health = maxi(0, health - amount)
 	if health <= 0:
 		_drive_animation("die")
-		# Long enough for the death sequence to play. Freeing on the frame it dies means the
-		# animation that was just imported is never seen once.
+		# The body stays. Deleting it two seconds after it falls means the death animation is
+		# played and then the evidence of it is removed, which reads as the model vanishing.
+		# A corpse is also how a player knows what they hit.
 		set_physics_process(false)
-		await get_tree().create_timer(2.0).timeout
-		queue_free()
+		var shape: CollisionShape3D = get_node_or_null("CollisionShape3D")
+		if shape != null:
+			# Stops being something to walk into, without ceasing to be something to look at.
+			shape.disabled = true
+		if _audio != null:
+			_audio.stop()
 	if _sandbox != null:
 		_sandbox.on_state_changed()

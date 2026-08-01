@@ -547,10 +547,28 @@ func _spawn_player() -> void:
 ## rather than a gunshot picked at random from whichever game happened to be mounted. That
 ## was the whole complaint: a deagle that sounded like a shotgun from another game.
 func _give_weapon(mount: Node3D, offset: Vector3, apparent_size := 0.4) -> Dictionary:
-	# From the map's own game, so a Condition Zero level is fought over with Condition Zero
-	# weapons rather than with whatever else happens to be installed.
-	var hit: Dictionary = vfs.find_files("weapons/", PackedStringArray(["mdl"]),
-		PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 0, _scope)
+	# The two engines file weapons in completely different places, and searching only the
+	# Source layout found nothing at all in Half-Life or Condition Zero: GoldSrc keeps its
+	# weapons loose in models/ under a one-letter prefix, so models/p_ak47.mdl rather than
+	# models/weapons/w_ak47.mdl. That is why the weapon line of the HUD was blank on a
+	# Condition Zero map while the scene otherwise built fine.
+	#
+	# p_ is the model made to be held by a player, which is exactly what this needs; w_ is
+	# the one lying on the ground and v_ is a pair of arms for a first-person view.
+	var files := PackedStringArray()
+	var seen := {}
+	for needle in ["models/p_", "weapons/", "models/w_"]:
+		var found: Dictionary = vfs.find_files(needle, PackedStringArray(["mdl"]),
+			PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 0, _scope)
+		for entry in found["files"]:
+			if not seen.has(str(entry)):
+				seen[str(entry)] = true
+				files.append(str(entry))
+		# The first pattern that yields anything wins, so a game that has p_ models is not
+		# also offered the ground pickups.
+		if not files.is_empty():
+			break
+	var hit := {"files": files}
 
 	# Not everything under weapons/ is a weapon. c_arms_citizen.mdl is a pair of forearms
 	# meant to be composited with a gun, and on its own it is two hands floating in the air,
@@ -649,7 +667,7 @@ func _fire_sequence(uri: String) -> String:
 func _same_weapon(uri: String) -> PackedStringArray:
 	var file := uri.get_file()
 	var stem := ""
-	for prefix in ["w_", "v_", "c_"]:
+	for prefix in ["w_", "v_", "c_", "p_"]:
 		if file.begins_with(prefix):
 			stem = file.substr(prefix.length())
 			break
@@ -657,8 +675,9 @@ func _same_weapon(uri: String) -> PackedStringArray:
 		return PackedStringArray()
 
 	var out := PackedStringArray()
-	# The view model first: it is the one with the firing animation and its events.
-	for prefix in ["v_", "c_", "w_"]:
+	# The view model first: it is the one with the firing animation and its events. In GoldSrc
+	# the held model (p_) carries none either, for the same reason a w_ does not.
+	for prefix in ["v_", "c_", "w_", "p_"]:
 		var candidate: String = prefix + stem
 		if candidate == file:
 			continue
@@ -907,6 +926,18 @@ func _animation_set(uri: String) -> Dictionary:
 ## workshop addons, "male_02.mdl" alone does not say whether you are looking at Half-Life 2
 ## or something somebody uploaded.
 func _which_game(uri: String) -> String:
+	# From the game the file belongs to, not from the folder it was mounted under. Steam keeps
+	# Half-Life, Counter-Strike, Condition Zero and its Deleted Scenes in one folder called
+	# Half-Life, so reading the mount labelled every one of those four "Half-Life" and the HUD
+	# claimed a Condition Zero map and its Condition Zero soldiers were all Half-Life.
+	var game := vfs.get_game_of(uri)
+	if not game.is_empty():
+		var order: Dictionary = vfs.get_game_search_order()
+		if order.has(game):
+			return str((order[game] as Dictionary)["name"])
+		return game.get_file()
+
+	# Outside any game: a workshop addon or a folder somebody added by hand.
 	var rest := uri.trim_prefix("vfs://")
 	var slash := rest.find("/")
 	if slash < 0:
@@ -917,12 +948,7 @@ func _which_game(uri: String) -> String:
 		if str(entry.get("prefix", "")) != prefix:
 			continue
 		var path := str(entry.get("real_path", ""))
-		if path.contains("workshop"):
-			return "workshop"
-		for known in ["Half-Life 2", "GarrysMod", "cstrike", "Half-Life", "Team Fortress"]:
-			if path.contains(known):
-				return known
-		return path.get_base_dir().get_file()
+		return "workshop" if path.contains("workshop") else path.get_base_dir().get_file()
 	return ""
 
 
