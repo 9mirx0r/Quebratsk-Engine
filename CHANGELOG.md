@@ -15,9 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a sequence at all: it read the bone table and stopped, so every model from those games
   imported frozen in the modelling T-stance and asking for "run" changed nothing. It now
   reads the sequence table, decodes the run-length encoded bone tracks and reports the sound
-  events. `arctic.mdl`, the Counter-Strike terrorist, went from **1 pose to 111**; across a
-  sample of twelve models, ten have a sequence that moves a bone and the two that do not are
-  single-pose props.
+  events. `arctic.mdl`, the Counter-Strike terrorist, went from **1 pose to 111**, and its
+  Condition Zero counterpart to 494. Of ten models carrying more than one sequence, **ten
+  have one that moves a bone.**
 
   A model can also spread its sequences across several files, keeping only the first few in
   itself and the rest in `<name>01.mdl` beside it. That is most of a Half-Life character:
