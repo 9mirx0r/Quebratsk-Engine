@@ -14,6 +14,8 @@ extends Node3D
 ##
 ## Controls: WASD to move, mouse to look, left click to shoot, Escape to free the cursor.
 
+const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
+const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 const PlayerScript := preload("res://sandbox/player.gd")
 const NpcScript := preload("res://sandbox/npc.gd")
 
@@ -148,8 +150,43 @@ func _load_random_map() -> bool:
 		add_child(map)
 		_built["map"] = uri.get_file()
 		_read_spawns(uri)
+		_apply_sky(uri)
 		return true
 	return false
+
+
+## Put the map's own sky behind it.
+##
+## Without this a level renders against flat grey, which is most of why an imported map
+## looks like a model of a place rather than a place.
+func _apply_sky(uri: String) -> void:
+	var entities: Array = importer.load_map_entities(uri)
+	var name := SkyLoader.sky_name(entities)
+	var absent: Array = []
+	var sky := SkyLoader.load_sky(vfs, entities, absent)
+
+	if sky == null:
+		if name.is_empty():
+			print("[sandbox] %s names no sky" % uri.get_file())
+		else:
+			print("[sandbox] %s wants sky '%s', missing %s"
+				% [uri.get_file(), name, ", ".join(PackedStringArray(absent))])
+		return
+
+	var world := get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if world == null:
+		world = WorldEnvironment.new()
+		add_child(world)
+	var env := Environment.new()
+	env.background_mode = Environment.BG_SKY
+	env.sky = sky
+	# The sky lights the level as well as filling the horizon, which is what stops a map
+	# from being lit only by the one directional light in the scene.
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_sky_contribution = 0.6
+	world.environment = env
+	print("[sandbox] %s sky '%s' loaded" % [uri.get_file(), name])
+	_built["sky"] = name
 
 
 ## Sort the map's own player starts by classname.
@@ -525,7 +562,7 @@ func find_gunshot() -> AudioStream:
 			var uri := _pick(hit["files"])
 			if uri.is_empty():
 				break
-			var sound := QuebratskSoundLoader.load_sound(vfs, uri)
+			var sound := SoundLoader.load_sound(vfs, uri)
 			if sound != null:
 				return sound
 	return null
@@ -570,6 +607,7 @@ func _refresh_hud() -> void:
 	lines.append("")
 	lines.append("Map     %s" % str(_built.get("map", "?")))
 	lines.append("Weapon  %s" % str(_built.get("weapon", "unarmed")))
+	lines.append("Sky     %s" % str(_built.get("sky", "none")))
 	for n in _built.get("enemies", []):
 		lines.append("Enemy   %s" % str(n))
 	lines.append("")

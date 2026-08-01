@@ -19,6 +19,10 @@ const MOUNTS_FILE := "user://quebratsk_mounts.cfg"
 const ICON_DIR := "res://addons/quebratsk_editor/icons"
 const TRANSLATIONS := "res://addons/quebratsk_editor/i18n/dock.csv"
 
+## Reached by path rather than by global class name: a class_name lives in a cache the
+## editor generates, which a fresh clone does not have until it has scanned once.
+const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
+
 ## list_files() with no prefix returns every indexed entry — a Half-Life 2 plus Garry's
 ## Mod setup is over 100,000. Populating a Tree with that locks the editor.
 const MAX_RESULTS := 400
@@ -605,11 +609,11 @@ func _preview_texture(uri: String) -> bool:
 ## Any sound the dock lists, as something Godot can play. The RIFF walk lives in
 ## sound_loader.gd so the dock and anything built on the importer share one copy of it.
 func _load_sound(uri: String) -> AudioStream:
-	return QuebratskSoundLoader.load_sound(_vfs, uri)
+	return SoundLoader.load_sound(_vfs, uri)
 
 
 func _load_wav(uri: String) -> AudioStreamWAV:
-	return QuebratskSoundLoader.load_wav(_vfs, uri)
+	return SoundLoader.load_wav(_vfs, uri)
 
 
 func _on_play_pressed() -> void:
