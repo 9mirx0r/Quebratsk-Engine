@@ -83,3 +83,7 @@ demo/bin/~*.dll
 
 # Third-party writing skill installed for local use, not part of the project.
 .claude/skills/
+
+# What the dock writes when someone presses Save. Generated from games on the machine,
+# reproducible from them, and not something to carry in the repository.
+demo/imported/

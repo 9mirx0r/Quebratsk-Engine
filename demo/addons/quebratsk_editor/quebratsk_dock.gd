@@ -1618,10 +1618,12 @@ func _on_save_pressed() -> void:
 		if node == null:
 			continue
 
+		var base := uri.get_file().get_basename()
+		_externalise(node, base)
+
 		# PackedScene only keeps descendants owned by the node being packed, so ownership
 		# is assigned against the branch root rather than an edited scene.
 		_claim_ownership(node, node)
-		node.owner = null
 
 		var packed := PackedScene.new()
 		if packed.pack(node) != OK:
@@ -1820,10 +1822,70 @@ func _save_sound(uri: String) -> String:
 	return path
 
 
+## PackedScene only keeps descendants owned by the node being packed, so every child has to
+## be given an owner before packing. The root is not one of them: Godot refuses to let a node
+## own itself, and asking it to was printing an error on every single save.
 func _claim_ownership(node: Node, scene_root: Node) -> void:
-	node.owner = scene_root
+	if node != scene_root:
+		node.owner = scene_root
 	for child in node.get_children():
 		_claim_ownership(child, scene_root)
+
+
+## Write the heavy resources beside the scene instead of inside it.
+##
+## Everything an import builds lives only in memory, so PackedScene writes it into the scene
+## file: a model with two 1024-pixel textures came out as a six megabyte .tscn, most of it one
+## image spelled out in text. Fifty models is three hundred megabytes of scene files, none of
+## which Godot can compress, and every one of them is parsed as text on load.
+##
+## Saved as their own resource files and given those paths, the same textures and meshes are
+## referenced rather than embedded. Two models sharing a texture then share the file too.
+func _externalise(node: Node, base_name: String) -> void:
+	var dir := "%s/resources" % SAVE_DIR
+	DirAccess.make_dir_recursive_absolute(dir)
+
+	var written := {}
+	var n := 0
+
+	for child in _all_descendants(node):
+		if not (child is MeshInstance3D):
+			continue
+		var mesh: ArrayMesh = (child as MeshInstance3D).mesh as ArrayMesh
+		if mesh == null:
+			continue
+
+		for i in mesh.get_surface_count():
+			var mat := mesh.surface_get_material(i) as StandardMaterial3D
+			if mat == null or mat.albedo_texture == null:
+				continue
+			var texture := mat.albedo_texture
+			# A resource that already has a path is already a file somewhere.
+			if not texture.resource_path.is_empty():
+				continue
+			var key := texture.get_instance_id()
+			if written.has(key):
+				continue
+			n += 1
+			# The material's own name is the texture's name in the game, which is what makes
+			# these shareable between models rather than one copy per import.
+			var label := mat.resource_name if not mat.resource_name.is_empty() 				else "%s_%d" % [base_name, n]
+			var path := "%s/%s.res" % [dir, label.validate_filename()]
+			if ResourceSaver.save(texture, path) == OK:
+				texture.take_over_path(path)
+			written[key] = true
+
+		if mesh.resource_path.is_empty():
+			var mesh_path := "%s/%s_mesh.res" % [dir, base_name.validate_filename()]
+			if ResourceSaver.save(mesh, mesh_path) == OK:
+				mesh.take_over_path(mesh_path)
+
+
+func _all_descendants(root: Node) -> Array:
+	var out := [root]
+	for child in root.get_children():
+		out.append_array(_all_descendants(child))
+	return out
 
 
 ## Say what went wrong in terms of something the user can do about it.
