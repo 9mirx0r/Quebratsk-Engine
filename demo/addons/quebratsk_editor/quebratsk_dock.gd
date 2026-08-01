@@ -22,6 +22,7 @@ const TRANSLATIONS := "res://addons/quebratsk_editor/i18n/dock.csv"
 ## Reached by path rather than by global class name: a class_name lives in a cache the
 ## editor generates, which a fresh clone does not have until it has scanned once.
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
+const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd")
 
 ## list_files() with no prefix returns every indexed entry — a Half-Life 2 plus Garry's
 ## Mod setup is over 100,000. Populating a Tree with that locks the editor.
@@ -112,6 +113,7 @@ var _picked_kind: Label
 var _pose_row: VBoxContainer
 var _pose_picker: OptionButton
 var _animate_toggle: CheckBox
+var _animate_scope: OptionButton
 var _add_button: Button
 var _status: Label
 
@@ -493,6 +495,20 @@ func _build_ui() -> void:
 	_animate_toggle.toggled.connect(_on_animate_toggled)
 	_pose_row.add_child(_animate_toggle)
 
+	# One sequence is rarely what anybody wants. A character that can only stand there is not
+	# a character, and picking idle, then walk, then run by hand means three imports and three
+	# scenes to reconcile afterwards.
+	_animate_scope = OptionButton.new()
+	_animate_scope.tooltip_text = tr("How many of the model's own sequences to bring in")
+	_animate_scope.add_item(tr("just this one"))
+	_animate_scope.set_item_metadata(0, SCOPE_ONE)
+	_animate_scope.add_item(tr("the usual moves"))
+	_animate_scope.set_item_metadata(1, SCOPE_USUAL)
+	_animate_scope.select(1)
+	_animate_scope.visible = false
+	_animate_scope.item_selected.connect(func(_i: int) -> void: _preview_debounce.start())
+	_pose_row.add_child(_animate_scope)
+
 	var button_row := _row()
 
 	_star_button = Button.new()
@@ -712,13 +728,24 @@ func _chosen_pose() -> String:
 	return ""
 
 
-## The sequences to import as playable animation, which is either the chosen one or none.
+## The sequences to import as playable animation.
 ##
-## "Whatever the game uses by default" names no sequence, so there is nothing to animate:
-## the toggle needs a pose picked before it means anything.
+## Empty when nothing is to be animated, which is the default: a sequence is dozens of
+## keyframes per bone and most imports want a stance rather than a performance.
 func _chosen_animations() -> PackedStringArray:
 	if _animate_toggle == null or not _animate_toggle.button_pressed:
 		return PackedStringArray()
+
+	if _animate_scope != null and _animate_scope.selected >= 0 \
+			and str(_animate_scope.get_item_metadata(_animate_scope.selected)) == SCOPE_USUAL:
+		var wanted := AnimationSets.usual_move_names(_importer.list_poses(_selected_uri))
+		# A model with no recognisable stances still animates the one that was picked, so
+		# turning the toggle on always does something.
+		if wanted.is_empty():
+			var pose := _chosen_pose()
+			return PackedStringArray() if pose.is_empty() else PackedStringArray([pose])
+		return wanted
+
 	var pose := _chosen_pose()
 	if pose.is_empty():
 		return PackedStringArray()
@@ -726,8 +753,13 @@ func _chosen_animations() -> PackedStringArray:
 
 
 func _on_animate_toggled(pressed: bool) -> void:
-	if pressed and _chosen_pose().is_empty():
-		_say(tr("Pick a pose first — that is the sequence that will play."))
+	if _animate_scope != null:
+		_animate_scope.visible = pressed
+	# Only the single-sequence choice needs a pose named; the usual moves are found by name.
+	var needs_pose: bool = _animate_scope == null or _animate_scope.selected < 0 \
+		or str(_animate_scope.get_item_metadata(_animate_scope.selected)) == SCOPE_ONE
+	if pressed and needs_pose and _chosen_pose().is_empty():
+		_say(tr("Pick a pose first, or ask for the usual moves."))
 		return
 	_preview_debounce.start()
 
@@ -1588,6 +1620,10 @@ func _on_pose_chosen(_index: int) -> void:
 # ----------------------------------------------------------------------- import ----
 
 const SAVE_DIR := "res://imported"
+
+## What the "how much" dropdown can be set to.
+const SCOPE_ONE := "one"
+const SCOPE_USUAL := "usual"
 
 ## Write the selection to res://imported/<name>.tscn.
 ##

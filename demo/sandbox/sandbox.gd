@@ -16,6 +16,7 @@ extends Node3D
 
 const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
+const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd")
 const PlayerScript := preload("res://sandbox/player.gd")
 const NpcScript := preload("res://sandbox/npc.gd")
 
@@ -813,27 +814,7 @@ func _spawn_enemies() -> void:
 ## keyframe per bone per frame, so importing everything would be tens of megabytes per
 ## enemy for animations nobody will ever see.
 func _animation_set(uri: String) -> Dictionary:
-	var poses: PackedStringArray = importer.list_poses(uri)
-	var wanted := {
-		"idle": ["idle_all_01", "idle_all", "idle1", "idle"],
-		"walk": ["walk_all", "walkall", "walk1", "walk"],
-		"run": ["run_all", "runall", "run1", "run"],
-		"shoot": ["shoot", "fire", "attack"],
-		"die": ["die_simple", "death", "die", "dead"],
-	}
-
-	var chosen := {}
-	for role in wanted:
-		for hint in wanted[role]:
-			var found := ""
-			for p in poses:
-				if str(p).to_lower().begins_with(str(hint)):
-					found = str(p)
-					break
-			if found != "":
-				chosen[role] = found
-				break
-	return chosen
+	return AnimationSets.usual_moves(importer.list_poses(uri))
 
 
 ## Which mount a URI came out of, in words. With models drawn from four games and a pile of
