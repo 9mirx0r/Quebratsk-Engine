@@ -94,3 +94,7 @@ release_pack/
 # The owner's own research. It stays on disk and is used while working here, and it is not
 # theirs to publish for them.
 docs/goldsrc_source_architecture_guide.xml
+
+# Working instructions for the assistant. What in it is useful to anybody else lives in
+# CONTRIBUTING.md; the rest is tooling and stays local.
+CLAUDE.md
