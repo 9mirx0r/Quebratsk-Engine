@@ -46,6 +46,32 @@ GDScript.** Section 6 already lists the ones I know are missing.
 
 ---
 
+### Coordinates and units
+
+Everything this API returns is already in Godot's space. You never convert anything yourself,
+but you do need to know what happened, because it decides which way an imported thing faces.
+
+Valve puts **+X forward, +Y left, +Z up** and measures in Hammer units. Godot puts **+X right,
++Y up, -Z forward** and measures in metres. One Hammer unit is one inch, so:
+
+```
+P_godot = (-y, z, -x) * 0.0254
+```
+
+Forward becomes forward, left becomes left, up becomes up. The matrix has determinant +1, so
+it preserves orientation and triangle winding is already correct: do not pair it with a
+winding flip or every face renders inside out.
+
+That mapping matters more than it looks. Until 2.1.0 the engine used `(x, z, -y)`, which is
+also orthogonal and also preserves winding, and which sent Valve's forward to Godot's **right**
+instead. Geometry and entity origins agreed with each other, so maps looked correct and
+nothing reported an error; it only showed when something was asked to face, and an NPC aiming
+at the player with `look_at()` stood there sideways. If you built anything against a version
+before 2.1.0 that hardcodes an orientation, it is ninety degrees out.
+
+Map entity origins come back converted too, so they line up with the geometry `load_map()`
+returns rather than sitting in the game's own units.
+
 ## 2. Status legend
 
 | | Meaning |
@@ -104,11 +130,43 @@ bool             file_exists(vfs_uri: String)
 PackedStringArray list_files(prefix: String = "")
 Dictionary       find_files(needle: String, extensions := PackedStringArray(),
                             exclude := PackedStringArray(),
-                            prefixes := PackedStringArray(), limit := 0)
+                            prefixes := PackedStringArray(), limit := 0,
+                            games := PackedStringArray())
 PackedByteArray  read_file(vfs_uri: String)
 int              get_file_size(vfs_uri: String)   # -1 when not found
 Array            get_mounts_info()
 Dictionary       scan_game_directory(real_dir: String)
+
+String           get_game_of(vfs_uri: String)
+String           resolve_reference(fragment: String, origin_uri := "")
+Dictionary       get_game_search_order()
+```
+
+**`games` in `find_files()`** restricts the search to those game directories, as
+`get_game_of()` reports them. It is separate from `prefixes` because the two do not line up:
+one game is usually several mounts, and one mount can hold several games. Steam keeps
+Half-Life, Counter-Strike, Condition Zero and its Deleted Scenes in a single folder, so
+filtering by mount there offers all four at once with no way to ask for the one you meant.
+
+**`get_game_of()`** returns the game directory a file belongs to, as an absolute lowercase
+path, or an empty string for anything outside a game such as a downloaded map bundle. It is
+a path rather than a name because two different games can be called the same thing:
+Counter-Strike and Counter-Strike Source both live in a folder named `cstrike`.
+
+**`resolve_reference()`** answers a bare path fragment the way the games would. A model names
+its textures as fragments like `metal/metalwall001a`, and with several games mounted many
+files answer to one fragment. Pass the asset doing the asking as `origin_uri` and the search
+runs in its own archive first, then its game, then the games that game declares it falls back
+to, then everything else. Without an origin the order is still fixed, by mount order, so an
+answer never depends on chance.
+
+**`get_game_search_order()`** returns what each game draws on, read from its own manifest:
+`liblist.gam` for GoldSrc, `gameinfo.txt` for Source.
+
+```gdscript
+{ "c:/.../half-life/czero": { "name": "Condition Zero",
+                              "folder": "czero",
+                              "falls_back_to": ["Counter-Strike", "Half-Life"] } }
 ```
 
 **`get_mounts_info()`** returns one Dictionary **per prefix you mounted**, not per real
@@ -229,6 +287,8 @@ StandardMaterial3D  load_material(vfs_uri: String)
 HeightMapShape3D    load_terrain(vfs_uri: String)
 Texture2D           load_texture(texture_ref: String)
 PackedStringArray   list_poses(vfs_uri: String)
+PackedStringArray   list_sounds(vfs_uri: String, sequence := "")
+PackedStringArray   resolve_sound(name: String, origin_uri := "")
 int                 get_last_error_code()
 ```
 
@@ -352,6 +412,27 @@ namesake. Do not reimplement the matching in GDScript.
 (`"metal/metalwall001a"`, a WAD3 lump name), resolved by suffix search across every mount.
 
 ---
+
+**`list_sounds()`** returns VFS URIs of the sounds a sequence plays, ready to read. Pass an
+empty `sequence` for every sound the model can make.
+
+Note the return changed in 2.1.0. It used to hand back the raw names out of the model, which
+are not files: GoldSrc writes a path relative to `sound/` and Source writes a soundscript
+entry such as `Weapon_357.Single`, which only means anything after reading
+`scripts/game_sounds_*.txt`. Callers were each inventing their own resolution and getting it
+wrong, so the resolution moved here. Anything a model asks for and this machine does not have
+is left out and reported on stderr.
+
+**`resolve_sound()`** is that same resolution exposed on its own, for a name from anywhere
+rather than from a model's events. A map's `ambient_generic` entities need it: they name
+sounds the same inconsistent way, and a name beginning with `!` is not a file at all but a
+sentence assembled from single words listed in `sound/sentences.txt`.
+
+Two things worth knowing when a weapon comes out silent. A `w_` world model carries no
+sequences, so it names no sound; the firing sound lives on the `v_` view model of the same
+weapon. And Counter-Strike does not put gunshots in its models at all, because the game code
+plays them, so there the convention is the filename: `v_famas.mdl` fires
+`sound/weapons/famas-1.wav`.
 
 ### `AsyncAssetImporter` ✅ — extends `Node`
 
