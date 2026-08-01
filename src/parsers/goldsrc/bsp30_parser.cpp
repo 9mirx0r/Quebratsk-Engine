@@ -309,15 +309,35 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
 
     for (auto& [idx, surf] : surface_map) {
         // NOTE: no winding inversion here. math::source_to_godot() applies
-        //   M = [1 0 0; 0 0 1; 0 -1 0],  det(M) = +1
+        //   M = [0 -1 0; 0 0 1; -1 0 0],  det(M) = +1
         // which preserves orientation, so GoldSrc winding is already correct in Godot.
-        // The previous invert_winding_order() call flipped every triangle and made the
-        // whole map render inside-out under backface culling.
+        // Inverting it flips every triangle and renders the whole map inside-out under
+        // backface culling.
+        //
+        // The matrix written here used to be [1 0 0; 0 0 1; 0 -1 0], which was the remap
+        // before it was corrected, and the comment outlived it. The conclusion held either
+        // way, since both have determinant +1, which is exactly why nobody noticed.
         map_data.mesh_data.surfaces.push_back(std::move(surf));
     }
 
-    // Lump 9: ClipNodes for collision. Planes (lump 1) were already loaded above for
-    // per-face normals and are reused here.
+    // Lump 9: ClipNodes, GoldSrc's real collision. Planes (lump 1) were already loaded above
+    // for per-face normals and are reused here.
+    //
+    // WHAT THIS DOES AND DOES NOT DO. A clipnode is a node in a BSP tree: a splitting plane
+    // and two children, where a negative child is a content type rather than another node.
+    // Three of those trees exist per map, one per player size, and together they are what a
+    // GoldSrc player actually collides against. That is why a player fits through a 33 unit
+    // gap that a capsule of the same radius does not: the hull is an axis-aligned box tested
+    // against planes, not a swept cylinder.
+    //
+    // What is collected below is the flat list of splitting planes, with the tree thrown
+    // away. A plane list cannot answer "is this point solid", so nothing consumes
+    // collision_data and map collision is still built from the visible surfaces by
+    // trimesh_body(). Rebuilding the tree needs the model lump's headnode indices, which
+    // say where each of the three hulls begins, and those are not read yet.
+    //
+    // Left as it is rather than half-changed: the visible-surface collider works, and
+    // replacing it is a piece of work that should land whole.
     auto clipnode_lump = get_lump(9);
     auto* bsp_clipnodes = reinterpret_cast<const BSPClipNode*>(clipnode_lump.data());
     size_t num_clipnodes = clipnode_lump.size() / sizeof(BSPClipNode);
