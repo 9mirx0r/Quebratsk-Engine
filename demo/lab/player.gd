@@ -147,7 +147,13 @@ var _water: Array[AABB] = []
 var _on_ladder := false
 var _submerged := 0.0
 
-var _steps: Array[AudioStream] = []
+## Footstep samples per surface, loaded the first time that surface is walked on. A level
+## uses three or four kinds of floor and there is no reason to read all nine.
+var _steps_by_surface := {}
+## Where each mesh's surfaces begin, in triangles, so a ray's face index says which one it hit.
+var _face_table := {}
+var _surface_now := "step"
+
 var _step_audio: AudioStreamPlayer3D
 var _next_step := 0.0
 var _last_step := -1
@@ -209,6 +215,8 @@ func setup(lab: Node3D, camera: Camera3D, preset: Dictionary, weapon: Dictionary
 	for child in get_children():
 		if child is Skeleton3D:
 			_body_anim = child.get_node_or_null("AnimationPlayer")
+
+	SoundCatalogue.read_materials(_lab.vfs)
 
 	camera.position = _eye_rest
 	print("[player] eye %.2f m above the soles (VEC_VIEW is %.2f)"
@@ -563,26 +571,93 @@ func _step_sound() -> void:
 	_next_step = now + (STEP_INTERVAL_RUN if running else STEP_INTERVAL_WALK)
 	_step_audio.volume_db = STEP_VOLUME_RUN if running else STEP_VOLUME_WALK
 
-	if _steps.is_empty():
-		_load_steps()
-	if _steps.is_empty():
+	# What is underfoot decides what it sounds like. Wading takes precedence over the floor,
+	# because standing in a puddle on concrete is not a concrete noise.
+	var surface := "wade" if _submerged >= 1.0 else _surface_underfoot()
+	var samples: Array = _steps_by_surface.get(surface, [])
+	if samples.is_empty():
+		samples = _load_steps(surface)
+	if samples.is_empty():
 		return
 
 	# Never the same one twice running, which is what the engine's own cache is for.
-	var pick := randi() % _steps.size()
-	if _steps.size() > 1 and pick == _last_step:
-		pick = (pick + 1) % _steps.size()
+	var pick := randi() % samples.size()
+	if samples.size() > 1 and pick == _last_step:
+		pick = (pick + 1) % samples.size()
 	_last_step = pick
-	_step_audio.stream = _steps[pick]
+	_step_audio.stream = samples[pick]
 	_step_audio.play()
 
 
-## Concrete, because working out what is underfoot means reading the texture there: GoldSrc
-## takes the first letter of the texture's name, and a raycast returns a collision shape.
-func _load_steps() -> void:
+## Which surface is under the feet, by the first letter of the texture there.
+##
+## GoldSrc keeps no material per face. It traces down, reads the name of the texture it hit and
+## looks at its first character: 'M' is metal, 'G' a grate, 'D' dirt. A mapper changes how a
+## floor sounds by renaming its texture, which is why this cannot be answered from geometry.
+##
+## Godot's ray gives a triangle index rather than a texture, so the bridge is the mesh: its
+## surfaces are laid out one after another and each carries the name of the texture it was
+## built from, so counting triangles says which surface a face belongs to.
+func _surface_underfoot() -> String:
+	var space := get_world_3d().direct_space_state
+	var from := global_position + Vector3(0, _soles + 0.2, 0)
+	var query := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 1.2)
+	query.exclude = [get_rid()]
+	var hit := space.intersect_ray(query)
+	if hit.is_empty() or not hit.has("face_index"):
+		return _surface_now
+
+	var body = hit["collider"]
+	if body == null or body.get_parent() == null:
+		return _surface_now
+	var owner_mesh := body.get_parent() as MeshInstance3D
+	if owner_mesh == null or owner_mesh.mesh == null:
+		return _surface_now
+
+	var mesh: Mesh = owner_mesh.mesh
+	var table: Array = _face_table.get(mesh.get_rid(), [])
+	if table.is_empty():
+		# Where each surface starts, in triangles. Built once per mesh: a map has fifty or so
+		# surfaces and this would otherwise be counted on every step.
+		var running := 0
+		for i in mesh.get_surface_count():
+			var arrays := mesh.surface_get_arrays(i)
+			var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+			var count: int = int(indices.size() / 3.0) if indices.size() > 0 \
+				else int((arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() / 3.0)
+			running += count
+			table.append(running)
+		_face_table[mesh.get_rid()] = table
+
+	var face := int(hit["face_index"])
+	var surface := -1
+	for i in table.size():
+		if face < int(table[i]):
+			surface = i
+			break
+	if surface < 0:
+		return _surface_now
+
+	var material := mesh.surface_get_material(surface)
+	if material == null:
+		return _surface_now
+	var texture := str(material.resource_name)
+	if texture.is_empty():
+		return _surface_now
+
+	_surface_now = SoundCatalogue.surface_of_texture(texture)
+	if _surface_now.is_empty():
+		# Everything the engine does not recognise falls to concrete, which is its own default.
+		_surface_now = "step"
+	return _surface_now
+
+
+## Read one surface's samples, the first time it is walked on.
+func _load_steps(surface: String) -> Array:
+	var loaded: Array = []
 	if _lab == null or _lab.vfs == null:
-		return
-	for named in SoundCatalogue.footsteps("step"):
+		return loaded
+	for named in SoundCatalogue.footsteps(surface):
 		var hit: Dictionary = _lab.vfs.find_files("sound/" + str(named),
 			PackedStringArray(["wav"]), PackedStringArray(), PackedStringArray(), 1)
 		var files: PackedStringArray = hit["files"]
@@ -590,11 +665,13 @@ func _load_steps() -> void:
 			continue
 		var stream: AudioStream = SoundLoader.load_sound(_lab.vfs, str(files[0]))
 		if stream != null:
-			_steps.append(stream)
-	if _steps.is_empty():
-		push_warning("[player] no footstep sounds resolved, so walking stays silent")
+			loaded.append(stream)
+	_steps_by_surface[surface] = loaded
+	if loaded.is_empty():
+		push_warning("[player] no footstep samples for '%s'" % surface)
 	else:
-		print("[player] %d footstep sample(s)" % _steps.size())
+		print("[player] %s: %d footstep sample(s)" % [surface, loaded.size()])
+	return loaded
 
 
 # -------------------------------------------------------------------- fighting ----
