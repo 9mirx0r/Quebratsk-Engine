@@ -1,6 +1,0 @@
-[gd_scene format=3 uid="uid://par0hxl141ux"]
-
-[ext_resource type="Script" path="res://tests/verify_first_person.gd" id="1_verfpv"]
-
-[node name="VerifyFirstPerson" type="Node"]
-script = ExtResource("1_verfpv")
