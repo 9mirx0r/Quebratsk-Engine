@@ -78,6 +78,18 @@ is why an imported character walked across a level in silence. 313 sound names, 
 are present in a retail Counter-Strike 1.6 install; the 113 that are not are almost entirely
 hostage voice lines that ReGameDLL supports and retail does not ship.
 
+## Shaders
+
+**[godotshaders.com](https://godotshaders.com)** — the site publishes every posted shader
+under CC0: *"The shader code and all code snippets in this post are under CC0 license and can
+be used freely without the author's permission."* Checked on the water and godray pages, where
+the wording is identical, so it is the site's policy rather than one author's.
+
+Nothing from there is copied into Quebratsk today. `demo/lab/storm_sky.gdshader` and
+`demo/lab/water.gdshader` are written here. Recorded anyway, because the licence had to be
+established before reading the code rather than after, and the answer is worth not looking up
+twice.
+
 ## Other importers looked at
 
 Read for approach, not copied. None is a dependency.
