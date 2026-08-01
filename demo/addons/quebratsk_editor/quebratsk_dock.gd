@@ -144,6 +144,7 @@ var _recents: Array = []
 var _star_button: Button
 var _save_button: Button
 var _texture_frame: TextureRect
+var _empty_art: TextureRect
 var _sound_row: HBoxContainer
 var _play_button: Button
 var _audio: AudioStreamPlayer
@@ -338,6 +339,22 @@ func _build_ui() -> void:
 	results_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(results_margin)
 
+	var results_column := VBoxContainer.new()
+	results_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	results_margin.add_child(results_column)
+
+	# Shown only while nothing is mounted. Someone opening this dock for the first time
+	# gets an empty list and a sentence; a picture of a crate says "there is something to
+	# open here" faster than the sentence does.
+	_empty_art = TextureRect.new()
+	_empty_art.texture = _load_png("empty_state")
+	_empty_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_empty_art.custom_minimum_size = Vector2(0, 150)
+	_empty_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_empty_art.visible = false
+	if _empty_art.texture != null:
+		results_column.add_child(_empty_art)
+
 	_results = Tree.new()
 	_results.hide_root = true
 	# Second column names the game each hit came from. With more than one game mounted,
@@ -356,7 +373,7 @@ func _build_ui() -> void:
 	_results.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_results.item_selected.connect(_on_result_selected)
 	_results.item_activated.connect(_on_add_pressed)
-	results_margin.add_child(_results)
+	results_column.add_child(_results)
 
 	# -------------------------------------------------------------- what you got ----
 	_section(tr("What you picked"))
@@ -1301,6 +1318,9 @@ func _refresh_results() -> void:
 	# _sources is the dock's own record of what is mounted, so "has the user added anything
 	# yet" is answered without touching the index at all. Asking the VFS meant a full scan
 	# of every indexed URI on each keystroke, to learn something already known here.
+	if _empty_art != null:
+		_empty_art.visible = _sources.is_empty()
+
 	if _sources.is_empty():
 		var hint := _results.create_item(root)
 		hint.set_text(0, tr("Add a game to see what is inside it"))

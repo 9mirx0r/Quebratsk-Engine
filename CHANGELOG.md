@@ -58,8 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `as_oilrig.bsp` comes to rest at y=10.33 on a 16,309-triangle collider. A player model
   produces a capsule 1.79 m tall and 0.55 m across, centred at hip height.
 
-- **Category icons and a backdrop behind the 3D preview**, plus the checkerboard stand-in
-  every engine here uses for a texture it could not read. Cosmetic.
+- **Category icons, a backdrop behind the 3D preview, and an illustration for the empty
+  state**, plus the checkerboard stand-in every engine here uses for a texture it could not
+  read. Cosmetic. The empty-state art went back once for having the word AMMO legible on
+  its crates, which a translated interface cannot use.
 
 - **A game to search in.** With more than one game mounted, "police" returned hits from all
   of them mixed together and the origin column only told you where something came from once
