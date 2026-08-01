@@ -84,6 +84,11 @@ var _soles := 0.0
 var _bob_time := 0.0
 var _airborne := 0.0
 
+## Whether damage is being ignored, so the HUD can say so.
+func is_immortal() -> bool:
+	return _god
+
+
 ## Walk through walls, on V.
 ##
 ## Here because the doors do not open yet: a func_door's geometry is baked into the world mesh
@@ -91,6 +96,11 @@ var _airborne := 0.0
 ## built as their own meshes. Until then a level with a shut door is a level you cannot leave,
 ## and being stuck in a room is a poor way to look at the rest of it.
 var _noclip := false
+
+## Damage is reported and never applied. On by default, because this is a bench for looking
+## at a level rather than a fight, and three enemies opening up on you while you are trying to
+## see whether a door works is not a test of anything. G turns it off.
+var _god := true
 
 var _stances := {}
 var _body_anim: AnimationPlayer
@@ -280,6 +290,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_R:
 			_reload()
+		elif event.keycode == KEY_G:
+			_god = not _god
+			if _god:
+				health = 100
+			print("[player] god mode %s" % ("on" if _god else "off"))
 		elif event.keycode == KEY_V:
 			_noclip = not _noclip
 			for child in get_children():
@@ -533,6 +548,8 @@ func _reload() -> void:
 
 
 func take_damage(amount: int) -> void:
+	if _god:
+		return
 	health = maxi(health - amount, 0)
 
 

@@ -20,6 +20,7 @@ const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
 const RoomAcoustics := preload("res://addons/quebratsk_editor/room_acoustics.gd")
 const AcousticsScript := preload("res://lab/acoustics.gd")
+const BrushesScript := preload("res://lab/brushes.gd")
 const WeatherScript := preload("res://lab/weather.gd")
 const PlayerScript := preload("res://lab/player.gd")
 const NpcScript := preload("res://lab/npc.gd")
@@ -28,6 +29,14 @@ const NpcScript := preload("res://lab/npc.gd")
 ## its Deleted Scenes inside one folder called Half-Life, so mounting "the game" mounts four
 ## of them and the result is a mixture nobody can judge.
 const GAME := "cstrike"
+
+## What the game falls back to when it cannot find something in its own folder.
+##
+## Counter-Strike declares this itself, in liblist.gam as `fallback_dir "valve"`, and it is not
+## a detail: the door sounds, the ambient loops and a good deal else were never copied into
+## cstrike because the engine finds them next door. Mounting only cstrike gave thirteen doors
+## with no sound and a map asking for ambience/drips.wav that is right there in valve.
+const FALLBACK := "valve"
 const PRESETS := "Counter-Strike 1.6"
 
 ## Which map to open.
@@ -55,6 +64,7 @@ var _thunder_ready := 0.0
 var _thunder_interval := 0.0
 var _triggered_sounds := {}
 var _water_shader: Shader
+var _cleared := false
 
 ## Where the level says it sounds like somewhere: an origin, a radius and a room type. Sorted
 ## smallest first, so standing inside a cupboard inside a hall gives you the cupboard.
@@ -117,6 +127,16 @@ func _mount() -> int:
 		# plain files beside the game and only its textures in .wad archives.
 		vfs.mount_directory("loose", root)
 		mounted += n + 1
+
+		# Behind the game's own content, so cstrike wins wherever both have a file.
+		var beneath: String = str(SteamLibraryDetector.detect_installed_games()[title]) 			.path_join(FALLBACK)
+		if DirAccess.dir_exists_absolute(beneath):
+			for archive in vfs.scan_game_directory(beneath).get("archives", []):
+				if vfs.mount_container("fb%d" % n, str(archive)):
+					n += 1
+					mounted += 1
+			vfs.mount_directory("fallback", beneath)
+			mounted += 1
 		break
 	if mounted > 0:
 		print("[lab] mounted %s: %d container(s)" % [GAME, mounted])
@@ -144,6 +164,12 @@ func _open_map() -> bool:
 	_place_ambience(entities)
 	_apply_sky(entities)
 	_build_weather(entities, map)
+
+	# What each brush entity does, now that each of them is a thing that can do it.
+	var brushes: Node = BrushesScript.new()
+	brushes.name = "Brushes"
+	add_child(brushes)
+	brushes.setup(self, map, entities)
 	return true
 
 
@@ -624,6 +650,16 @@ func _place_enemies() -> void:
 
 
 func _process(delta: float) -> void:
+	if Input.is_key_pressed(KEY_F3) and not _cleared:
+		# Quiet, for looking at a level without being shot at while doing it.
+		_cleared = true
+		for n in get_children():
+			if n is CharacterBody3D and n != _player and n.has_method("take_damage"):
+				n.take_damage(1000)
+		print("[lab] enemies cleared")
+	elif not Input.is_key_pressed(KEY_F3):
+		_cleared = false
+
 	if _weather == null or _player == null or not is_instance_valid(_player):
 		return
 	_weather.follow(_player)
@@ -670,7 +706,10 @@ func _refresh_hud() -> void:
 	var lines := PackedStringArray()
 	for key in _built:
 		lines.append("%-10s %s" % [key, str(_built[key])])
+	if _player != null and is_instance_valid(_player) and _player.has_method("is_immortal") 			and not _player.is_immortal():
+		lines.append("health     %d" % _player.health)
 	lines.append("")
 	lines.append("WASD move · mouse look · click shoot · R reload")
-	lines.append("Space jump · Ctrl crouch · Shift walk · V noclip · Esc cursor")
+	lines.append("Space jump · Ctrl crouch · Shift walk · Esc cursor")
+	lines.append("V noclip · G god mode (on) · F3 kill the enemies")
 	_hud.text = "\n".join(lines)
