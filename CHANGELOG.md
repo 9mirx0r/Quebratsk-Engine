@@ -173,6 +173,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Blood, and holes in the wall.** A GoldSrc decal is an ordinary texture in a `.wad` whose
+  name begins with a brace — the brace meaning the palette's last colour is transparent — and
+  the engine keeps a table of them, picking one at random per hit.
+
+  ```
+  {shot1 … {shot5      bullet holes
+  {blood1 … {blood6    blood
+  ```
+
+  All eleven are in `decals.wad`, in both cstrike's and Half-Life's, and **all eleven load**.
+  The wad actually holds eight blood decals and six handprints; `UTIL_BloodDecalTrace` picks
+  `DECAL_BLOOD1` plus up to five, so the last two are never reached from a gunshot.
+
+  Blood itself is thrown from the wound as sprites, as many as `amount / 10` held between 3 and
+  16 and doubled for a multiplayer game, outward and upward — `UTIL_RandomBloodVector` gives x
+  and y between -1 and 1 but z between 0 and 1, because blood does not fall straight out of a
+  standing body. The mark goes on whatever is behind them, found by carrying the shot onward; a
+  shot into open air leaves nothing.
+
+  Shooting a person marks the wall and never the person, which is the engine's rule too:
+  `UTIL_DecalTrace` gives up on anything that is not level geometry.
+
+  A level keeps 220 marks and then drops the oldest, for the same reason GoldSrc has `r_decals`.
+
+  Read when the level loads, not on the first shot. Finding a texture searches every mounted
+  container and doing that mid-fight stalls the frame — the same mistake the debris models
+  made an hour earlier, so the same answer.
+
 - **Things you can shoot to pieces.** `func_breakable` carries a health and a material number,
   and the material decides both what it sounds like coming apart and what it leaves behind —
   glass, wood, metal, flesh, cinder block, ceiling tile, computer, unbreakable glass, rocks,

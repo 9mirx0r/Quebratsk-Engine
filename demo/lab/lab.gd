@@ -22,6 +22,7 @@ const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
 const RoomAcoustics := preload("res://addons/quebratsk_editor/room_acoustics.gd")
 const AcousticsScript := preload("res://lab/acoustics.gd")
 const BrushesScript := preload("res://lab/brushes.gd")
+const MarksScript := preload("res://lab/marks.gd")
 const WeatherScript := preload("res://lab/weather.gd")
 const PlayerScript := preload("res://lab/player.gd")
 const NpcScript := preload("res://lab/npc.gd")
@@ -69,6 +70,9 @@ var _triggered_sounds := {}
 var _water_shader: Shader
 var _cleared := false
 var _brushes: Node
+
+## What shots leave behind, reachable by anything that fires one.
+var marks: Node3D
 
 ## Where the level says it sounds like somewhere: an origin, a radius and a room type. Sorted
 ## smallest first, so standing inside a cupboard inside a hall gives you the cupboard.
@@ -179,6 +183,11 @@ func _open_map() -> bool:
 	add_child(brushes)
 	brushes.setup(self, map, entities)
 	_brushes = brushes
+
+	marks = MarksScript.new()
+	marks.name = "Marks"
+	add_child(marks)
+	marks.setup(self)
 	return true
 
 

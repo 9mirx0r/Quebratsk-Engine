@@ -731,12 +731,25 @@ func _shoot() -> void:
 	if hit.is_empty():
 		return
 	var struck = hit["collider"]
-	if struck != null and struck.has_method("take_damage"):
+	var where: Vector3 = hit["position"]
+	var facing: Vector3 = hit["normal"]
+	var alive: bool = struck != null and struck.has_method("take_damage")
+
+	if alive:
 		struck.take_damage(DAMAGE)
 	elif _lab != null and _lab.has_method("hurt_brush"):
 		# Not everything that can be shot is a character. A crate arrives as a static body
 		# with no script on it, and what it belongs to is known by the brushes.
 		_lab.hurt_brush(struck, float(DAMAGE))
+
+	# Blood if it was somebody, a hole in the wall if it was not. The engine draws no decal on
+	# a person for the same reason: UTIL_DecalTrace gives up on anything that is not level
+	# geometry.
+	if _lab != null and _lab.marks != null:
+		if alive:
+			_lab.marks.blood(where, -facing, DAMAGE)
+		else:
+			_lab.marks.bullet_hole(where, facing)
 
 
 ## Play the weapon's own reload, and refuse to fire until it has finished.
