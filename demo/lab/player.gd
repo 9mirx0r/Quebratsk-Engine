@@ -57,11 +57,26 @@ const BOB_UP := 0.5
 const ROLL_ANGLE := 2.0
 const ROLL_SPEED := 200.0 * UNIT
 
-## Distance between footsteps, walking and running. GoldSrc counts distance rather than time,
-## which is why steps stay even whatever the animation is doing.
-const STEP_WALK := 220.0 * UNIT
-const STEP_RUN := 300.0 * UNIT
-const STEP_SILENT := 100.0 * UNIT
+## Time between footsteps, and the speeds that decide which. From PM_UpdateStepSound.
+##
+## Time, not distance. An earlier version of this counted metres covered and said in a comment
+## that GoldSrc does the same, which is simply false: flTimeStepSound is 400 milliseconds at a
+## walk and 300 at a run, and the choice between them is made at velrun. Reading the code was
+## what settled it.
+const STEP_INTERVAL_WALK := 0.40
+const STEP_INTERVAL_RUN := 0.30
+const VEL_WALK := 120.0 * UNIT
+const VEL_RUN := 210.0 * UNIT
+const STEP_VOLUME_WALK := -14.0    # 0.2 and 0.5 in the engine's linear scale
+const STEP_VOLUME_RUN := -6.0
+
+## MAX_CLIMB_SPEED, and the shove a jump gives you off a ladder.
+const CLIMB_SPEED := 200.0 * UNIT
+const LADDER_JUMP := 270.0 * UNIT
+
+## In water everything is slower and the drag is its own. wishspeed *= 0.8 in PM_WaterMove.
+const WATER_SPEED := 0.8
+const WATER_FRICTION := 1.0
 
 ## How long the feet may leave the ground before it counts as being in the air.
 const COYOTE := 0.12
@@ -126,9 +141,15 @@ var _cycle := 0.0
 var _next_shot := 0.0
 var _busy_until := 0.0
 
+## Where you can climb and where you can swim, from the map's own brush volumes.
+var _ladders: Array[AABB] = []
+var _water: Array[AABB] = []
+var _on_ladder := false
+var _submerged := 0.0
+
 var _steps: Array[AudioStream] = []
 var _step_audio: AudioStreamPlayer3D
-var _until_step := 0.0
+var _next_step := 0.0
 var _last_step := -1
 
 
@@ -166,6 +187,18 @@ func _ready() -> void:
 	_eye_rest = Vector3(0, _soles + EYE, 0)
 
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## The volumes the level says you can climb and swim in.
+func set_volumes(ladders: Array, water: Array) -> void:
+	_ladders.clear()
+	_water.clear()
+	for box in ladders:
+		_ladders.append(box as AABB)
+	for box in water:
+		_water.append(box as AABB)
+	if not _ladders.is_empty() or not _water.is_empty():
+		print("[player] %d ladder(s), %d water volume(s)" % [_ladders.size(), _water.size()])
 
 
 func setup(lab: Node3D, camera: Camera3D, preset: Dictionary, weapon: Dictionary) -> void:
@@ -330,8 +363,19 @@ func _physics_process(delta: float) -> void:
 		_bob_view(delta)
 		return
 
+	# Which of the level's volumes you are standing in decides how you move at all.
+	_on_ladder = _inside(_ladders)
+	_submerged = _depth_in_water()
+
+	if _on_ladder:
+		_climb(forward, strafe, delta)
+		return
+
 	var wishdir := (transform.basis * Vector3(strafe, 0, -forward)).normalized()
 	var wishspeed := _speed
+	if _submerged > 0.5:
+		# PM_WaterMove: four fifths of what you would manage on land, and drag of its own.
+		wishspeed *= WATER_SPEED
 	_set_ducked(Input.is_key_pressed(KEY_CTRL))
 	if _ducked:
 		wishspeed *= CROUCH_FACTOR
@@ -341,7 +385,17 @@ func _physics_process(delta: float) -> void:
 	# Quake's movement, which GoldSrc inherited and never replaced. Setting velocity straight
 	# from the input gives a character that starts and stops instantly and cannot carry
 	# momentum through a turn; the whole feel of these games is in these two functions.
-	if is_on_floor():
+	if _submerged > 0.5:
+		# Swimming. Gravity mostly gone, and holding jump takes you up rather than nowhere.
+		_apply_friction(delta)
+		_accelerate(wishdir, wishspeed, ACCELERATE, delta)
+		if Input.is_key_pressed(KEY_SPACE):
+			velocity.y = maxf(velocity.y, wishspeed * 0.7)
+		elif _submerged > 1.5:
+			velocity.y -= GRAVITY * 0.12 * delta   # sinking slowly, not falling
+		else:
+			velocity.y -= GRAVITY * 0.5 * delta
+	elif is_on_floor():
 		_apply_friction(delta)
 		_accelerate(wishdir, wishspeed, ACCELERATE, delta)
 		if Input.is_key_pressed(KEY_SPACE):
@@ -374,6 +428,32 @@ func _play_reload_sounds() -> void:
 	_reload_audio.stream = _reload_sounds[_reload_queue]
 	_reload_audio.play()
 	_reload_queue += 1
+
+
+## Climbing, which is not walking with a different name.
+##
+## PM_LadderMove turns off gravity, flies the body along where you are looking, and caps you at
+## MAX_CLIMB_SPEED. Jumping leaves the ladder with a shove away from it, which is how anyone
+## who has played these games gets off one.
+func _climb(forward: float, strafe: float, delta: float) -> void:
+	if Input.is_key_pressed(KEY_SPACE):
+		# Off, and away from the wall you were on.
+		_on_ladder = false
+		velocity = -_camera.global_transform.basis.z * LADDER_JUMP * 0.5 + Vector3.UP * JUMP
+		move_and_slide()
+		return
+
+	var speed := CLIMB_SPEED
+	if _ducked:
+		speed *= CROUCH_FACTOR
+
+	# Along the view rather than along the floor: looking up and pressing forward climbs, which
+	# is the whole of how a GoldSrc ladder is used.
+	var eye := _camera.global_transform.basis
+	velocity = ((-eye.z * forward) + (eye.x * strafe)) * speed
+	move_and_slide()
+	_drive_animation()
+	_bob_view(delta)
 
 
 # ------------------------------------------------------------------- the body ----
@@ -417,6 +497,35 @@ func _stance() -> String:
 	return "walk" if ground < _speed * 0.55 else "run"
 
 
+## Are you inside one of these volumes?
+func _inside(boxes: Array[AABB]) -> bool:
+	for box in boxes:
+		if box.has_point(global_position):
+			return true
+	return false
+
+
+## How deep, roughly: 0 dry, 1 feet wet, 2 swimming.
+##
+## PM_CheckWater samples three heights — just above the soles, half way up, and at the eye —
+## and the answer changes what movement even means. Sampled the same way here.
+func _depth_in_water() -> float:
+	if _water.is_empty():
+		return 0.0
+	var feet := global_position + Vector3(0, _soles + 0.03, 0)
+	var waist := global_position + Vector3(0, _soles + _stand_height * 0.5, 0)
+	var eye := global_position + _eye_rest
+	var depth := 0.0
+	for box in _water:
+		if box.has_point(feet):
+			depth = maxf(depth, 1.0)
+		if box.has_point(waist):
+			depth = maxf(depth, 2.0)
+		if box.has_point(eye):
+			depth = maxf(depth, 3.0)
+	return depth
+
+
 ## Shrink to the ducked hull, or grow back. The soles stay put and the head comes down.
 func _set_ducked(on: bool) -> void:
 	if on == _ducked or _hull == null:
@@ -440,13 +549,19 @@ func _step_sound() -> void:
 	if _step_audio == null or not is_on_floor():
 		return
 	var ground := Vector2(velocity.x, velocity.z).length()
-	if ground < STEP_SILENT or _ducked or Input.is_key_pressed(KEY_SHIFT):
+	# Below velwalk there is no step at all, which is what makes walking silent and is the
+	# entire reason to hold Shift.
+	if ground < VEL_WALK or _ducked:
 		return
 
-	_until_step -= ground * get_physics_process_delta_time()
-	if _until_step > 0.0:
+	# On a clock, not on a tape measure. 400 milliseconds walking and 300 running, with the
+	# line between them at velrun, all out of PM_UpdateStepSound.
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _next_step:
 		return
-	_until_step = STEP_RUN if ground > _speed * 0.55 else STEP_WALK
+	var running := ground >= VEL_RUN
+	_next_step = now + (STEP_INTERVAL_RUN if running else STEP_INTERVAL_WALK)
+	_step_audio.volume_db = STEP_VOLUME_RUN if running else STEP_VOLUME_WALK
 
 	if _steps.is_empty():
 		_load_steps()

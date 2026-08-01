@@ -146,6 +146,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Ladders and water, on the engine's own rules.** `PM_LadderMove` turns gravity off, flies
+  the body along where you are looking and caps it at `MAX_CLIMB_SPEED` — 200 units per second,
+  a third of that crouched — and jumping leaves the ladder with a shove away from it. In water,
+  `PM_WaterMove` gives you four fifths of your land speed, its own drag, and holding jump takes
+  you up. How deep you are is sampled at three heights the way `PM_CheckWater` does: just above
+  the soles, half way up, and at the eye.
+
+  cs_siege: **6 ladders, 9 bodies of water**.
+
+  The ladders took a second look. A `func_ladder` is textured with something the renderer
+  skips, so it produces no surfaces and no node, and requiring a node found none of the six.
+  What a ladder *is*, is its box.
+
+### Fixed
+
+- **Footsteps were on a tape measure and should be on a clock.** They had been spaced by
+  distance covered, and the comment beside them claimed GoldSrc does the same. It does not:
+  `flTimeStepSound` is **400 ms** at a walk and **300 ms** at a run, the line between them is
+  `velrun` at 210 units per second, below `velwalk` at 120 there is no step at all, and the
+  volume differs too. Read out of `PM_UpdateStepSound` rather than reasoned about.
+
 - **Every brush entity is its own node.** Faces were grouped by texture across the whole map
   into a single mesh, so a door was welded to every wall that shared its texture and there was
   nothing left to move. Lump 14 says which faces belong to which brush: model 0 is the world

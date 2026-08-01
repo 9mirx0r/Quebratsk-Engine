@@ -65,6 +65,7 @@ var _thunder_interval := 0.0
 var _triggered_sounds := {}
 var _water_shader: Shader
 var _cleared := false
+var _brushes: Node
 
 ## Where the level says it sounds like somewhere: an origin, a radius and a room type. Sorted
 ## smallest first, so standing inside a cupboard inside a hall gives you the cupboard.
@@ -170,6 +171,7 @@ func _open_map() -> bool:
 	brushes.name = "Brushes"
 	add_child(brushes)
 	brushes.setup(self, map, entities)
+	_brushes = brushes
 	return true
 
 
@@ -624,6 +626,8 @@ func _place_player() -> void:
 	_pending_tracked.clear()
 
 	_player.setup(self, camera, preset, weapon)
+	if _brushes != null:
+		_player.set_volumes(_brushes.ladders, _brushes.water)
 	_built["player"] = "%s with %s" % [preset.get("name", "?"), weapon.get("name", "?")]
 
 
