@@ -109,6 +109,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A map's spoken lines are found, not just its noises.** A sound name beginning with `!` is
+  not a file: it is a sentence in `sound/sentences.txt`, a line naming a directory and then a
+  list of single words that are stitched together in order, so `HG_ALERT1` is three separate
+  clips. Those are read now, 2,407 of them across seven files, and a bare group name resolves
+  to its first numbered member. Across eight Condition Zero maps, declared sounds that reach a
+  file went from **238 of 253 to 244**.
+
+- **The player moves the way Quake moves.** Velocity was set straight from the input direction,
+  which starts and stops instantly and carries no momentum through a turn. Acceleration is now
+  the engine's own: add only the shortfall along the wished direction, measured with a dot
+  product, capped in the air at 30 units per second. Air strafing and bunny hopping fall out of
+  that one clamp rather than being features on top of it.
+
+  The constants are the engine's too, converted once from Hammer units: `sv_gravity` 800 for
+  20.32 m/s², a 250 ups run for 6.35 m/s, and a jump of 268.3 ups because that is what clearing
+  Half-Life's 45 unit crate requires. They were 22.0, 5.0 and 6.5, and those came from nowhere.
+
 - **The first-person view is built the way these games build it.** A weapon was hung off the
   player model's hand bone and the player's own body was left in front of the camera, which is
   not how any of this works. In GoldSrc the view model is a separate entity drawn in a pass of
