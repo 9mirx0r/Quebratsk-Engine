@@ -26,7 +26,9 @@
       "reload_time": 2.45,
       "clip_size": 30,
       "weight": 25,
-      "price": 2500
+      "price": 2500,
+      "cycle_time": 0.0955,
+      "rounds_per_minute": 628
     },
     "aug": {
       "name": "aug",
@@ -77,7 +79,9 @@
       "reload_time": 2.5,
       "clip_size": 10,
       "weight": 30,
-      "price": 4750
+      "price": 4750,
+      "cycle_time": 1.45,
+      "rounds_per_minute": 41
     },
     "c4": {
       "name": "c4",
@@ -115,7 +119,9 @@
       "reload_time": 2.2,
       "clip_size": 7,
       "weight": 7,
-      "price": 650
+      "price": 650,
+      "cycle_time": 0.3,
+      "rounds_per_minute": 200
     },
     "elite": {
       "name": "elite",
@@ -141,7 +147,9 @@
       "reload_time": 4.5,
       "clip_size": 30,
       "weight": 5,
-      "price": 800
+      "price": 800,
+      "cycle_time": 0.2,
+      "rounds_per_minute": 300
     },
     "famas": {
       "name": "famas",
@@ -169,7 +177,9 @@
       "reload_time": 3.3,
       "clip_size": 25,
       "weight": 75,
-      "price": 2250
+      "price": 2250,
+      "cycle_time": 0.0825,
+      "rounds_per_minute": 727
     },
     "fiveseven": {
       "name": "fiveseven",
@@ -194,7 +204,9 @@
       "reload_time": 2.7,
       "clip_size": 20,
       "weight": 5,
-      "price": 750
+      "price": 750,
+      "cycle_time": 0.2,
+      "rounds_per_minute": 300
     },
     "flashbang": {
       "name": "flashbang",
@@ -238,7 +250,9 @@
       "reload_time": 3.5,
       "clip_size": 20,
       "weight": 20,
-      "price": 5000
+      "price": 5000,
+      "cycle_time": 0.25,
+      "rounds_per_minute": 240
     },
     "galil": {
       "name": "galil",
@@ -263,7 +277,9 @@
       "reload_time": 2.45,
       "clip_size": 35,
       "weight": 25,
-      "price": 2000
+      "price": 2000,
+      "cycle_time": 0.0875,
+      "rounds_per_minute": 686
     },
     "glock18": {
       "name": "glock18",
@@ -294,7 +310,9 @@
       "reload_time": 2.2,
       "clip_size": 20,
       "weight": 5,
-      "price": 400
+      "price": 400,
+      "cycle_time": 0.5,
+      "rounds_per_minute": 120
     },
     "hegrenade": {
       "name": "hegrenade",
@@ -368,7 +386,9 @@
       "reload_time": 4.7,
       "clip_size": 100,
       "weight": 25,
-      "price": 5750
+      "price": 5750,
+      "cycle_time": 0.1,
+      "rounds_per_minute": 600
     },
     "m3": {
       "name": "m3",
@@ -421,6 +441,8 @@
       "clip_size": 30,
       "weight": 25,
       "price": 3100,
+      "cycle_time": 0.0875,
+      "rounds_per_minute": 686,
       "damage_silenced": 33
     },
     "mac10": {
@@ -444,7 +466,9 @@
       "reload_time": 3.15,
       "clip_size": 30,
       "weight": 25,
-      "price": 1400
+      "price": 1400,
+      "cycle_time": 0.07,
+      "rounds_per_minute": 857
     },
     "mp5navy": {
       "name": "mp5navy",
@@ -467,7 +491,9 @@
       "range_modifier": 0.84,
       "max_speed": 250,
       "reload_time": 2.63,
-      "clip_size": 30
+      "clip_size": 30,
+      "cycle_time": 0.075,
+      "rounds_per_minute": 800
     },
     "p228": {
       "name": "p228",
@@ -491,7 +517,9 @@
       "reload_time": 2.7,
       "clip_size": 13,
       "weight": 5,
-      "price": 600
+      "price": 600,
+      "cycle_time": 0.2,
+      "rounds_per_minute": 300
     },
     "p90": {
       "name": "p90",
@@ -515,7 +543,9 @@
       "reload_time": 3.4,
       "clip_size": 50,
       "weight": 26,
-      "price": 2350
+      "price": 2350,
+      "cycle_time": 0.066,
+      "rounds_per_minute": 909
     },
     "scout": {
       "name": "scout",
@@ -539,7 +569,9 @@
       "reload_time": 2,
       "clip_size": 10,
       "weight": 30,
-      "price": 2750
+      "price": 2750,
+      "cycle_time": 1.25,
+      "rounds_per_minute": 48
     },
     "sg550": {
       "name": "sg550",
@@ -563,7 +595,9 @@
       "reload_time": 3.35,
       "clip_size": 30,
       "weight": 20,
-      "price": 4200
+      "price": 4200,
+      "cycle_time": 0.25,
+      "rounds_per_minute": 240
     },
     "sg552": {
       "name": "sg552",
@@ -625,7 +659,9 @@
       "reload_time": 2.12,
       "clip_size": 30,
       "weight": 25,
-      "price": 1250
+      "price": 1250,
+      "cycle_time": 0.07,
+      "rounds_per_minute": 857
     },
     "ump45": {
       "name": "ump45",
@@ -648,7 +684,9 @@
       "reload_time": 3.5,
       "clip_size": 25,
       "weight": 25,
-      "price": 1700
+      "price": 1700,
+      "cycle_time": 0.1,
+      "rounds_per_minute": 600
     },
     "usp": {
       "name": "usp",
@@ -679,6 +717,8 @@
       "clip_size": 12,
       "weight": 5,
       "price": 500,
+      "cycle_time": 0.225,
+      "rounds_per_minute": 267,
       "damage_silenced": 30
     },
     "xm1014": {

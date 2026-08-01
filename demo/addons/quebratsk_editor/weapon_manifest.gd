@@ -85,6 +85,16 @@ static func animation_extension(model_or_name: String) -> String:
 	return str(lookup(model_or_name).get("animation_extension", ""))
 
 
+## Seconds between shots, or 0.0 when the weapon does not say.
+##
+## The difference between a rifle and a hand cannon is mostly this: an AK is 0.0955 seconds
+## apart and a Deagle 0.3. Without it a weapon fires as fast as a mouse can be clicked, which
+## makes every gun the same gun.
+static func cycle_time(model_or_name: String) -> float:
+	var value = lookup(model_or_name).get("cycle_time")
+	return 0.0 if value == null else float(value)
+
+
 static func _load() -> void:
 	if _loaded:
 		return
