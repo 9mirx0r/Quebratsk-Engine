@@ -28,9 +28,9 @@ const ENEMY_COUNT := 4
 ## random. Matched loosely, so "de_dust" finds de_dust2 as well.
 ## Which map to open. Empty takes any readable one.
 ##
-## cz_alamo is a Condition Zero: Deleted Scenes level: a campaign map rather than a bomb map,
-## so it comes with 728 entities, 29 ambient sounds and a desert sky.
-const FORCE_MAP := "cz_alamo"
+## de_dust2 is the one everybody knows, and it is open air, which the Condition Zero campaign
+## maps are not: indoors at night nothing about lighting, shadows or a skybox can be judged.
+const FORCE_MAP := "de_dust2"
 
 ## Folders to mount besides the installed games: a downloaded map, an extracted mod, a
 ## folder of your own work. A custom map arrives as a bundle with its textures, its skybox
@@ -84,6 +84,12 @@ func _ready() -> void:
 	if not _load_random_map():
 		_say("None of the maps in your games could be read.\nQuebratsk reads GoldSrc maps: Half-Life and Counter-Strike 1.6.")
 		return
+
+	# The map's collider does not exist in the physics world until a physics frame has run.
+	# Placing anybody before that means every raycast against the floor finds nothing, which
+	# is exactly why three of four enemies still spawned 0.9 m underground after the placement
+	# code was written: the code was right and it was being asked a question too early.
+	await get_tree().physics_frame
 
 	_spawn_player()
 	_spawn_enemies()
@@ -510,7 +516,7 @@ func _spawn_player() -> void:
 	_player.add_child(camera)
 
 	add_child(_player)
-	_player.position = spot
+	_stand_on_floor(_player, spot)
 
 	var head := _bone_like(skeleton, ["head"])
 	_player.setup(self, camera, skeleton, head)
@@ -538,6 +544,39 @@ func _spawn_player() -> void:
 ## View models (v_*) are the ones held in front of a camera; world models (w_*) are what a
 ## weapon looks like lying on the ground or in someone's hands. Either will do, and which
 ## exist depends on which games are installed.
+## Stand a body on the floor beneath a spawn point.
+##
+## A map's spawn entities are points in the air by design: GoldSrc drops a player onto the
+## floor from there. Placing a body at the raw origin buried two of five enemies, and the
+## first attempt to fix it ran before the physics world existed so every raycast found
+## nothing. The second attempt found the floor and then buried everyone equally, because it
+## put the body's ORIGIN on the ground and a character's origin is not its lowest point.
+##
+## So nothing here is calculated from where the capsule ought to be. The collider is asked
+## where it actually is, and the body is moved by exactly the difference.
+func _stand_on_floor(body: Node3D, spot: Vector3) -> void:
+	body.position = spot
+
+	var collider: CollisionShape3D = body.get_node_or_null("CollisionShape3D")
+	var shape := null if collider == null else collider.shape as CapsuleShape3D
+	if shape == null:
+		return
+
+	var space := get_world_3d().direct_space_state
+	var from := spot + Vector3(0, 4.0, 0)
+	var query := PhysicsRayQueryParameters3D.create(from, from - Vector3(0, 20.0, 0))
+	query.exclude = [body.get_rid()] if body is CollisionObject3D else []
+	var ground := space.intersect_ray(query)
+	if ground.is_empty():
+		return
+
+	# Measured, not assumed: whatever the collider's own offset and height turn out to be,
+	# this is where its underside currently sits in the world.
+	var bottom: float = collider.global_position.y - shape.height * 0.5
+	var lift: float = float(ground["position"].y) - bottom
+	body.position.y += lift + 0.02
+
+
 ## Is everyone standing on the floor rather than in it?
 ##
 ## Reported rather than assumed. A figure sunk to the waist and a figure whose death animation
@@ -559,6 +598,20 @@ func _report_footing() -> void:
 		# Where the capsule ends and where the lowest bone is, both in world space. If the
 		# bone is well below the capsule, the body hangs out of its own collider.
 		var capsule_bottom: float = collider.global_position.y - shape.height * 0.5
+
+		# Where the floor actually is under them. Comparing the capsule against the body's own
+		# bones cannot see this: if the two are sunk together the difference is still zero,
+		# which is why the first version of this reported everyone fine while the screenshots
+		# showed them buried.
+		var space := get_world_3d().direct_space_state
+		var from := collider.global_position + Vector3(0, 0.2, 0)
+		var query := PhysicsRayQueryParameters3D.create(from, from - Vector3(0, 40, 0))
+		query.exclude = [who.get_rid()]
+		var ground := space.intersect_ray(query)
+		var sunk := 0.0
+		if not ground.is_empty():
+			sunk = float(ground["position"].y) - capsule_bottom
+
 		var lowest := INF
 		for grandchild in who.get_children():
 			if grandchild is Skeleton3D:
@@ -568,9 +621,10 @@ func _report_footing() -> void:
 						(skel.global_transform * skel.get_bone_global_pose(b)).origin.y)
 		if lowest == INF:
 			continue
-		print("   %-26s floor %s, capsule bottom %.2f, lowest bone %.2f, hanging %.2f m"
+		print("   %-24s floor %s, hangs out %.2f m, sunk into the ground %.2f m%s"
 			% [who.name, "yes" if who.is_on_floor() else "NO ",
-			   capsule_bottom, lowest, capsule_bottom - lowest])
+			   capsule_bottom - lowest, sunk,
+			   "" if sunk < 0.05 else "   ** buried **"])
 
 
 ## Keep the weapon's camera on the eye.
@@ -883,8 +937,27 @@ func _weapon_sound(uri: String, fire: String) -> AudioStream:
 		if sound != null:
 			return sound
 
-	# Nothing usable from the model, so fall back to any gunshot rather than silence, and
-	# say so: a weapon whose own sound could not be found is worth knowing about.
+	# Counter-Strike does not put its firing sounds in the model at all: the game code plays
+	# them, and the events that do exist are for reloading and cocking. Falling back to "any
+	# sound this model names" therefore hands back the dry click of an empty magazine, which
+	# is what was being heard instead of a gunshot.
+	#
+	# What the game does instead is name the file after the weapon, so v_famas.mdl fires
+	# sound/weapons/famas-1.wav. That convention is worth following, because it is the only
+	# thing tying the two together.
+	var stem := uri.get_file().get_basename().to_lower()
+	for prefix in ["v_", "p_", "w_", "c_"]:
+		if stem.begins_with(prefix):
+			stem = stem.substr(prefix.length())
+			break
+	for suffix in ["-1.wav", "1.wav", "_fire.wav", "_shoot.wav", ".wav"]:
+		var found: String = vfs.resolve_reference("/weapons/" + stem + suffix, uri)
+		if not found.is_empty():
+			var sound := SoundLoader.load_sound(vfs, found)
+			if sound != null:
+				print("[sandbox] %s fires %s" % [uri.get_file(), found.get_file()])
+				return sound
+
 	print("[sandbox] %s names no usable sound, using a stand-in" % uri.get_file())
 	return find_gunshot()
 
@@ -1049,7 +1122,7 @@ func _spawn_enemies() -> void:
 
 		who.set_script(NpcScript)
 		add_child(who)
-		who.position = spot
+		_stand_on_floor(who, spot)
 		taken.append(spot)
 		names.append("%-22s %s" % [uri.get_file(), _which_game(uri)])
 
