@@ -28,6 +28,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A rotating door would have swung around the middle of the map.** A brush mesh is built with
+  its vertices already in world space and its node left at the origin, so turning the node
+  turns it about world zero — cs_siege's two doors would have described a 120 metre arc. They
+  hang under a pivot at their own centre now and turn on the spot, measured at **0 m of travel
+  for the centre of the geometry** through a full swing.
+
+  With the pivot came the rest of what the entity says: `distance` in degrees rather than a
+  hard-coded 90, the axis from spawnflags 64 and 128 — Z by default, which is Godot's Y — and
+  the reverse flag. The 90 was right by accident: it is the FGD's own default and neither of
+  cs_siege's doors overrides it.
+
+  The first measurement of this reported 119 m of movement and looked like a disaster. It was
+  probing `node.global_position`, which sits at world zero *by construction* — the node is
+  offset by exactly minus the pivot. The geometry is what a person sees, so the geometry is
+  what has to be measured.
+
 - **The floating was the camera, not the body — and it had been reported five times.** Every
   measurement of the body was right: feet on the floor, `is_on_floor()` true, shadow beneath,
   and photographed from outside to be certain. Nobody was hovering.

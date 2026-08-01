@@ -63,6 +63,13 @@ const MATERIALS := [
 	{"name": "none",     "sounds": [], "gibs": ""},
 ]
 
+## A rotating door's spawnflags: which axis it turns about, and which way.
+##
+## Z by default, which is Godot's Y. From CBaseToggle::AxisDir and the FGD.
+const SF_ROT_REVERSE := 2
+const SF_ROT_X_AXIS := 64
+const SF_ROT_Y_AXIS := 128
+
 ## SF_DOOR_USE_ONLY. Without it a func_door opens when you walk into it, which is why nearly
 ## every door in Counter-Strike has no button.
 const USE_ONLY := 256
@@ -314,6 +321,43 @@ func _make_passable(node: MeshInstance3D) -> void:
 func _build_door(node: MeshInstance3D, entity: Dictionary, rotating: bool) -> void:
 	var angles := _angles_of(entity)
 	var travel := Vector3.ZERO
+	var pivot: Node3D = null
+	var axis := Vector3.UP
+	var swing := 0.0
+
+	if rotating:
+		# A brush mesh is built with its vertices already in world space and its node left at
+		# the origin, so turning the node would swing the door around the middle of the map.
+		# It needs something to turn about, so the node is hung under a pivot at its own
+		# centre and shifted back by the same amount.
+		#
+		# GoldSrc turns it about the centre of an "origin brush" the mapper places inside it.
+		# That brush is not distinguished here, so the centre of the whole thing is used
+		# instead — right for a door that is roughly symmetrical and wrong for one hinged hard
+		# to one side.
+		var box: AABB = entity.get("bounds", AABB())
+		var centre := box.position + box.size * 0.5
+
+		pivot = Node3D.new()
+		pivot.name = "%s_pivot" % node.name
+		var parent := node.get_parent()
+		var index := node.get_index()
+		parent.remove_child(node)
+		parent.add_child(pivot)
+		parent.move_child(pivot, index)
+		pivot.position = centre
+		pivot.add_child(node)
+		node.position = -centre
+
+		var flags := int(entity.get("spawnflags", 0))
+		# Valve's Z is Godot's Y, its X is Godot's -Z, its Y is Godot's -X.
+		if (flags & SF_ROT_X_AXIS) != 0:
+			axis = Vector3(0, 0, -1)
+		elif (flags & SF_ROT_Y_AXIS) != 0:
+			axis = Vector3(-1, 0, 0)
+		swing = deg_to_rad(float(entity.get("distance", 90.0)))
+		if (flags & SF_ROT_REVERSE) != 0:
+			swing = -swing
 
 	if not rotating:
 		# In Valve's frame the movement direction comes from pitch and yaw; through the axis
@@ -330,10 +374,12 @@ func _build_door(node: MeshInstance3D, entity: Dictionary, rotating: bool) -> vo
 
 	_doors.append({
 		"node": node,
+		"pivot": pivot,
+		"axis": axis,
 		"shut": node.position,
 		"open": node.position + travel,
 		"rotating": rotating,
-		"turn": deg_to_rad(90.0),   # func_door_rotating's default swing
+		"turn": swing,   # `distance` in degrees, 90 when the map does not say
 		"speed": maxf(float(entity.get("speed", 100.0)) * UNIT, 0.2),
 		"wait": float(entity.get("wait", 4.0)),
 		"use_only": (int(entity.get("spawnflags", 0)) & USE_ONLY) != 0,
@@ -409,7 +455,8 @@ func _physics_process(delta: float) -> void:
 		# Touch opens it, which is what a func_door without SF_USE_ONLY does. Measured against
 		# the brush's own size rather than a fixed distance, because a garage door and a
 		# cupboard are not approached from the same range.
-		var near := who.global_position.distance_to(node.global_position) < float(door["reach"])
+		var where: Node3D = door["pivot"] if door["pivot"] != null else node
+		var near := who.global_position.distance_to(where.global_position) < float(door["reach"])
 		if door["state"] == "shut" and near:
 			door["state"] = "opening"
 			_play(door, door["move_sound"], node)
@@ -428,7 +475,10 @@ func _physics_process(delta: float) -> void:
 				0.0, 1.0)
 
 			if door["rotating"]:
-				node.rotation.y = float(door["at"]) * float(door["turn"])
+				var turning: Node3D = door["pivot"]
+				if turning != null and is_instance_valid(turning):
+					turning.transform.basis = Basis(door["axis"] as Vector3,
+						float(door["at"]) * float(door["turn"]))
 			else:
 				node.position = (door["shut"] as Vector3).lerp(door["open"] as Vector3,
 					float(door["at"]))
