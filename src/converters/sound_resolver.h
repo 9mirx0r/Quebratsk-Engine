@@ -39,6 +39,14 @@ public:
     [[nodiscard]] const std::vector<std::string>& missing() const { return _missing; }
 
 private:
+    /// Read every sentences.txt the mounted games ship.
+    ///
+    /// A sentence is not a file. It is a line naming a directory and then a list of words,
+    /// each of which is a separate .wav, spoken one after another: HG_ALERT1 is hgrunt/clik,
+    /// hgrunt/target and hgrunt/clik again. Playing one means playing all of them in order,
+    /// which is why resolve() returns a list rather than a file.
+    void build_sentences();
+
     /// Read every soundscript the mounted games ship. Done once, on the first lookup that
     /// needs it, so a model whose sounds are plain paths never pays for it.
     void build_index();
@@ -49,6 +57,10 @@ private:
     vfs::VFSManager* _vfs = nullptr;
     bool _indexed = false;
     std::unordered_map<std::string, std::vector<std::string>> _entries; // lowercased name
+
+    /// Sentence name to the words that make it up, as paths relative to sound/.
+    bool _sentences_read = false;
+    std::unordered_map<std::string, std::vector<std::string>> _sentences;
     std::vector<std::string> _missing;
 };
 

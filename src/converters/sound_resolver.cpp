@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <sstream>
 
 namespace quebratsk::converters {
 
@@ -47,6 +48,68 @@ void read_waves(const std::vector<io::KVToken>& t, size_t& i, std::vector<std::s
 }
 
 } // namespace
+
+void SoundResolver::build_sentences() {
+    if (_sentences_read || _vfs == nullptr) return;
+    _sentences_read = true;
+
+    godot::PackedStringArray extensions;
+    extensions.push_back("txt");
+    const godot::Dictionary hit = _vfs->find_files("sound/sentences.txt", extensions,
+                                                   godot::PackedStringArray(),
+                                                   godot::PackedStringArray(), 0);
+    const godot::PackedStringArray files = hit["files"];
+
+    for (int64_t i = 0; i < files.size(); ++i) {
+        const std::vector<std::byte> bytes = _vfs->read_owned(files[i].utf8().get_data());
+        if (bytes.empty()) continue;
+
+        std::istringstream text(std::string(reinterpret_cast<const char*>(bytes.data()),
+                                            bytes.size()));
+        std::string line;
+        while (std::getline(text, line)) {
+            // Comments run to end of line and blank lines are common between groups.
+            if (const size_t comment = line.find("//"); comment != std::string::npos) {
+                line = line.substr(0, comment);
+            }
+
+            std::istringstream fields(line);
+            std::string name;
+            if (!(fields >> name) || name.empty()) continue;
+
+            // Every word after the name is a clip. A word carrying a slash also sets the
+            // directory the words after it come from, which is how one line says hgrunt once
+            // and then names eight files in it.
+            std::string directory;
+            std::vector<std::string> words;
+            std::string word;
+            while (fields >> word) {
+                // Timing and pitch live in brackets and are not part of any filename. They can
+                // be attached to a word or stand alone, and either way nothing here plays them.
+                if (const size_t open = word.find('('); open != std::string::npos) {
+                    word = word.substr(0, open);
+                }
+                // Punctuation marks emphasis and pauses, not letters in a name.
+                while (!word.empty() && (word.back() == '!' || word.back() == ','
+                                         || word.back() == '.' || word.back() == ')')) {
+                    word.pop_back();
+                }
+                if (word.empty()) continue;
+
+                if (const size_t slash = word.find_last_of('/'); slash != std::string::npos) {
+                    directory = word.substr(0, slash + 1);
+                    word = word.substr(slash + 1);
+                    if (word.empty()) continue;
+                }
+                words.push_back("sound/" + directory + word + ".wav");
+            }
+            if (!words.empty()) _sentences.try_emplace(to_lower(name), std::move(words));
+        }
+    }
+
+    godot::UtilityFunctions::print("[QuebratskSound] ", static_cast<int64_t>(_sentences.size()),
+                                   " sentences from ", files.size(), " sentences.txt");
+}
 
 void SoundResolver::build_index() {
     if (_indexed || _vfs == nullptr) return;
@@ -134,6 +197,36 @@ std::vector<std::string> SoundResolver::resolve(const std::string& event_name,
             return out;
         }
         _missing.push_back(event_name);
+        return out;
+    }
+
+    // A leading exclamation mark means this is a sentence, not a file: the games speak these
+    // by stitching single-word clips together. Fifteen sounds across eight Condition Zero maps
+    // resolved to nothing and four of them were this.
+    if (lower[0] == '!') {
+        build_sentences();
+        std::string name = lower.substr(1);
+
+        auto spoken = _sentences.find(name);
+        // A bare group name picks one of its numbered members, which is how a guard says a
+        // different line each time. The first is taken rather than a random one, so that an
+        // import is the same twice.
+        if (spoken == _sentences.end()) {
+            for (int n = 0; n < 10 && spoken == _sentences.end(); ++n) {
+                spoken = _sentences.find(name + std::to_string(n));
+            }
+        }
+        if (spoken == _sentences.end()) {
+            _missing.push_back(event_name);
+            return out;
+        }
+
+        for (const auto& word : spoken->second) {
+            if (std::string uri = locate_wave(word, origin_uri); !uri.empty()) {
+                out.push_back(std::move(uri));
+            }
+        }
+        if (out.empty()) _missing.push_back(event_name);
         return out;
     }
 
