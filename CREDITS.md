@@ -57,6 +57,18 @@ against the engine sources above. Two of its claims turned out to be wrong and a
 errata rather than quietly dropped, because in this domain the error is as instructive as the
 fact: one of them would have reintroduced a defect that had already cost a day to find.
 
+## Weapon data
+
+**[ReGameDLL_CS](https://github.com/s1lentq/ReGameDLL_CS)** (MIT) — a reimplementation of the
+Counter-Strike game library. `demo/addons/quebratsk_editor/data/cs_weapons.json` is generated
+from it by `tools/build_weapon_manifest.py`.
+
+A model does not say which weapon it is. It carries a mesh, a skeleton and some sequences, and
+everything that makes an AK an AK rather than a shape is in the game's code: which view model
+pairs with which world model, which sounds it makes, how hard it hits. Quebratsk inferred that
+from filenames, which held until it did not, and this replaces the inference with the game's
+own declaration for 29 weapons.
+
 ## Other importers looked at
 
 Read for approach, not copied. None is a dependency.
