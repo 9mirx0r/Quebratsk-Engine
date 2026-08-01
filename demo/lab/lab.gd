@@ -50,7 +50,7 @@ const PRESETS := "Counter-Strike 1.6"
 ## ninety-six, cs_italy an opera and some chickens.
 ## de_aztec for now: it is the only Counter-Strike map with func_breakable on it, eight of
 ## them, and they are the thing being looked at.
-const MAP := "de_aztec"
+const MAP := "cs_siege"
 
 const ENEMY_COUNT := 3
 
