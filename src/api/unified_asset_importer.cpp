@@ -8,6 +8,7 @@
 #include "../parsers/rv_enfusion/wrp_parser.h"
 #include "../converters/animation_converter.h"
 #include "../converters/texture_loader.h"
+#include "../core/math/axis_remap.h"
 
 #include <godot_cpp/classes/animation_library.hpp>
 #include <godot_cpp/classes/capsule_shape3d.hpp>
@@ -51,6 +52,8 @@ void UnifiedAssetImporter::_bind_methods() {
                          &UnifiedAssetImporter::load_model,
                          DEFVAL(String()), DEFVAL(PackedStringArray()));
     ClassDB::bind_method(D_METHOD("load_map", "vfs_uri"), &UnifiedAssetImporter::load_map);
+    ClassDB::bind_method(D_METHOD("load_map_entities", "vfs_uri"),
+                         &UnifiedAssetImporter::load_map_entities);
     ClassDB::bind_method(D_METHOD("load_character", "vfs_uri", "pose_name", "animations"),
                          &UnifiedAssetImporter::load_character,
                          DEFVAL(String()), DEFVAL(PackedStringArray()));
@@ -560,6 +563,82 @@ Node3D* UnifiedAssetImporter::load_character(const String& vfs_uri, const String
 
     m_last_error_code = ERR_OK;
     return body;
+}
+
+Array UnifiedAssetImporter::load_map_entities(const String& vfs_uri) {
+    Array out;
+    if (!m_vfs) {
+        m_last_error_code = ERR_VFS_NOT_SET;
+        return out;
+    }
+
+    const std::vector<std::byte> bytes = read_asset_bytes(vfs_uri);
+    if (bytes.empty()) {
+        m_last_error_code = ERR_ASSET_UNREADABLE;
+        return out;
+    }
+
+    auto parsed = parsers::goldsrc::BSP30Parser::parse(bytes);
+    if (!parsed.has_value()) {
+        m_last_error_code = ERR_PARSE_FAILED;
+        return out;
+    }
+
+    // The lump is a flat run of brace-delimited blocks of quoted key/value pairs:
+    //
+    //   { "classname" "info_player_start" "origin" "128 -64 32" "angles" "0 90 0" }
+    //
+    // Parsed by hand rather than with a KeyValues reader because the format has no nesting,
+    // no comments and no escapes to speak of, and because a malformed lump has to end the
+    // walk rather than throw: these files are twenty-five years old and some of them are
+    // hand-edited.
+    const std::string& text = parsed->entity_string;
+    size_t pos = 0;
+    while (true) {
+        const size_t open = text.find('{', pos);
+        if (open == std::string::npos) break;
+        const size_t close = text.find('}', open);
+        if (close == std::string::npos) break;
+
+        Dictionary entity;
+        size_t cursor = open + 1;
+        while (cursor < close) {
+            const size_t key_start = text.find('"', cursor);
+            if (key_start == std::string::npos || key_start > close) break;
+            const size_t key_end = text.find('"', key_start + 1);
+            if (key_end == std::string::npos || key_end > close) break;
+
+            const size_t value_start = text.find('"', key_end + 1);
+            if (value_start == std::string::npos || value_start > close) break;
+            const size_t value_end = text.find('"', value_start + 1);
+            if (value_end == std::string::npos || value_end > close) break;
+
+            const std::string key = text.substr(key_start + 1, key_end - key_start - 1);
+            const std::string value = text.substr(value_start + 1, value_start == value_end
+                                                                      ? 0
+                                                                      : value_end - value_start - 1);
+            entity[String(key.c_str())] = String(value.c_str());
+            cursor = value_end + 1;
+        }
+
+        // "origin" is three numbers in the source engine's units and axes. Converting it
+        // here is what lets a caller drop something at that point in the scene that
+        // load_map() built, which is the entire use for this.
+        if (entity.has("origin")) {
+            const PackedStringArray parts = String(entity["origin"]).split(" ", false);
+            if (parts.size() >= 3) {
+                const godot::Vector3 raw(parts[0].to_float(), parts[1].to_float(),
+                                         parts[2].to_float());
+                entity["position"] = math::source_to_godot(raw);
+            }
+        }
+
+        if (!entity.is_empty()) out.append(entity);
+        pos = close + 1;
+    }
+
+    m_last_error_code = ERR_OK;
+    return out;
 }
 
 Node3D* UnifiedAssetImporter::load_map(const String& vfs_uri) {

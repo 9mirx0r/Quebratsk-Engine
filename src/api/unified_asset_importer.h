@@ -133,6 +133,22 @@ public:
                                   const godot::String& pose_name = godot::String(),
                                   const godot::PackedStringArray& animations = godot::PackedStringArray());
 
+    /// Everything the map says is in it, beyond its geometry.
+    ///
+    /// A .bsp carries a list of entities: where players start, where weapons and ammunition
+    /// lie, where the lights are, which model stands where. This is the half of a map that
+    /// makes it a place rather than a shape, and until now it was read off disk and thrown
+    /// away.
+    ///
+    /// Returns an Array of Dictionaries, one per entity, with every key the map wrote. The
+    /// keys are the game's own, unchanged: "classname", "origin", "angles", and whatever
+    /// else that entity type uses. Interpreting them is the caller's business, because what
+    /// "info_player_start" means is a property of the game and not of the file format.
+    ///
+    /// Origins are converted to Godot's axes and metres, so they line up with the geometry
+    /// load_map() returns rather than being in the source engine's units.
+    godot::Array load_map_entities(const godot::String& vfs_uri);
+
     /// Load a map as something you can stand on.
     ///
     /// Returns a MeshInstance3D carrying a StaticBody3D with a trimesh collider, which is

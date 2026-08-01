@@ -23,18 +23,19 @@ var health := 100
 
 var _sandbox: Node3D
 var _target: CharacterBody3D
-var _walk := ""
+var _moves := {}
+var _playing := ""
 var _weapon := ""
 var _cooldown := 0.0
 var _audio: AudioStreamPlayer3D
 var _gunshot: AudioStream
 
 
-func setup(sandbox: Node3D, target: CharacterBody3D, walk_animation: String,
+func setup(sandbox: Node3D, target: CharacterBody3D, moves: Dictionary,
 		weapon: String) -> void:
 	_sandbox = sandbox
 	_target = target
-	_walk = walk_animation
+	_moves = moves
 	_weapon = weapon
 	_gunshot = sandbox.find_gunshot()
 
@@ -88,29 +89,45 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
-	_drive_animation(moving)
 
 	_cooldown -= delta
-	if can_see and distance < FIRE_RANGE and _cooldown <= 0.0:
+	var firing := can_see and distance < FIRE_RANGE and _cooldown <= 0.0
+	if firing:
 		_cooldown = FIRE_INTERVAL
 		_shoot()
 
+	# Firing reads over movement: an enemy shooting while it walks should look like it is
+	# shooting, because that is the frame the player has to react to.
+	if firing:
+		_drive_animation("shoot")
+	elif moving:
+		_drive_animation("run" if distance > 12.0 else "walk")
+	else:
+		_drive_animation("idle")
 
-## Play the walk sequence while moving and hold still otherwise. The model may have come in
-## with no animation at all, in which case there is simply nothing to drive.
-func _drive_animation(moving: bool) -> void:
-	if _walk.is_empty():
+
+## Play whichever sequence matches what the enemy is doing.
+##
+## Switched only when the role changes, never every frame: calling play() on the animation
+## already running restarts it, which reads as a figure twitching on the spot.
+func _drive_animation(role: String) -> void:
+	if not _moves.has(role):
+		# Nothing for this state, so hold whatever is running rather than snapping to a
+		# rest pose. Not every model carries a sequence for everything.
 		return
+	var wanted := str(_moves[role])
+	if wanted == _playing:
+		return
+
 	var skeleton := get_node_or_null("Skeleton3D")
 	if skeleton == null:
 		return
 	var player: AnimationPlayer = skeleton.get_node_or_null("AnimationPlayer")
-	if player == null:
+	if player == null or not player.has_animation(wanted):
 		return
-	if moving and not player.is_playing():
-		player.play(_walk)
-	elif not moving and player.is_playing():
-		player.pause()
+
+	_playing = wanted
+	player.play(wanted)
 
 
 func _shoot() -> void:
@@ -124,6 +141,11 @@ func _shoot() -> void:
 func take_damage(amount: int) -> void:
 	health = maxi(0, health - amount)
 	if health <= 0:
+		_drive_animation("die")
+		# Long enough for the death sequence to play. Freeing on the frame it dies means the
+		# animation that was just imported is never seen once.
+		set_physics_process(false)
+		await get_tree().create_timer(2.0).timeout
 		queue_free()
 	if _sandbox != null:
 		_sandbox.on_state_changed()
