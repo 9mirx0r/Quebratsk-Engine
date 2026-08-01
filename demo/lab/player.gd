@@ -24,6 +24,16 @@ const CROUCH_FACTOR := 0.333         # PLAYER_DUCKING_MULTIPLIER
 
 ## The two hulls and the eye height in each. 72 units standing with the view at 64
 ## (VEC_VIEW), 36 ducked with it at 28 (VEC_DUCK_VIEW).
+##
+## Both eye heights are measured from the SOLES, and that is the whole of the trap. A GoldSrc
+## body's origin is the centre of its hull, most of a metre above the feet, so putting the
+## camera 64 units above the origin puts it 64 above the middle of the chest: two and a half
+## metres off the ground instead of one and a half.
+##
+## Nothing about the body moves when that is wrong. You stand correctly, your shadow is
+## correct, every measurement of the collider is correct, and the world is a metre further
+## down than it should be — which reads as floating, and is the same confusion that made the
+## collider two and a half metres tall, showing up in a second place.
 const STAND_HULL := 72.0 * UNIT
 const DUCK_HULL := 36.0 * UNIT
 const EYE := 64.0 * UNIT
@@ -67,6 +77,10 @@ var _camera: Camera3D
 var _pitch := 0.0
 var _speed := SPEED
 var _eye_rest := Vector3(0, EYE, 0)
+
+## How far below the body's origin the feet are, taken from the collider rather than assumed.
+## Every eye height is measured up from there.
+var _soles := 0.0
 var _bob_time := 0.0
 var _airborne := 0.0
 
@@ -128,6 +142,10 @@ func _ready() -> void:
 		_hull.shape = _hull.shape.duplicate()
 		_stand_height = (_hull.shape as CapsuleShape3D).height
 		_stand_y = _hull.position.y
+		# The bottom of the collider is where this body's feet are, and every eye height in
+		# the engine is measured up from there.
+		_soles = _stand_y - _stand_height * 0.5
+	_eye_rest = Vector3(0, _soles + EYE, 0)
 
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -142,6 +160,8 @@ func setup(lab: Node3D, camera: Camera3D, preset: Dictionary, weapon: Dictionary
 			_body_anim = child.get_node_or_null("AnimationPlayer")
 
 	camera.position = _eye_rest
+	print("[player] eye %.2f m above the soles (VEC_VIEW is %.2f)"
+		% [EYE, 64.0 * UNIT])
 
 	# Through the room, so a gunshot in a tunnel is a gunshot in a tunnel. Not tracked for
 	# occlusion: these happen at the listener's own head, and nothing can be between you and
@@ -368,7 +388,7 @@ func _set_ducked(on: bool) -> void:
 	var wanted: float = _stand_height * (DUCK_HULL / STAND_HULL) if on else _stand_height
 	capsule.height = maxf(wanted, capsule.radius * 2.0 + 0.01)
 	_hull.position.y = _stand_y - (_stand_height - capsule.height) * 0.5
-	_eye_rest = Vector3(0, DUCK_EYE if on else EYE, 0)
+	_eye_rest = Vector3(0, _soles + (DUCK_EYE if on else EYE), 0)
 
 
 # ---------------------------------------------------------------------- noise ----
