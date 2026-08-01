@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The player flew.** The body slid around the level frozen in one pose, with no walk, no run,
+  no crouch and nothing in the air. The sandbox imported the stances and then never handed them
+  over: `setup()` takes a `moves` dictionary as its fifth argument and was called with four, so
+  `_drive_animation()` returned on its first line every frame.
+
+  That same early return is what swallowed the audio player, because it was being created at
+  the end of the same function. One defect, two symptoms, and neither was visible from any
+  check that reads files.
+
+- **Nothing was crouching.** Ctrl scaled the speed by 0.333 and changed nothing else, so
+  crouching read as walking slowly. The hull now shrinks from the engine's 72 units to its 36
+  and the eye drops from `VEC_VIEW` 64 to `VEC_DUCK_VIEW` 28, with the soles staying put.
+
+- **Two sequences in one model may share a name, and the second was being dropped.** GoldSrc
+  addresses sequences by index and never by name, so nothing makes the labels unique:
+  `v_tmp.mdl` calls three different firing animations "shoot" and `v_scout.mdl` calls two.
+  Godot's `AnimationLibrary` refuses a duplicate, so the extras vanished while `list_poses()`
+  went on advertising all six. The reader now disambiguates with ` #2`, ` #3`, and a check
+  across all 31 Counter-Strike view models reports **0 sequences lost** between being declared
+  and being imported.
+
+- **R did nothing, and two thirds of every firing animation was never imported.** The sandbox
+  asked for one sequence per role, which took `shoot1` from a rifle and left `shoot2`, `shoot3`
+  and `reload` behind. A view model carries six sequences where a player model carries a
+  hundred and eleven, so it now takes all of them.
+
+  Reloading then needed the game's own spelling. The pump shotguns have no sequence called
+  `reload`: the M3 and the XM1014 load a shell at a time as `start_reload`, `insert` per shell,
+  `after_reload`. And a knife has no `shoot` at all — it has `slash1`, `midslash1`, `stab` and
+  `stab_miss`. Measured across every weapon: **27 of 31 have an attack** (the four without are
+  the C4 and the three grenades, which are thrown) and **25 of 25 that should reload, do**.
+
 - **The player fired in silence.** `_ready()` had gone missing from the sandbox player: the
   lines that create its audio player and capture the mouse had ended up glued to the tail of
   `_drive_animation()`, which returns early whenever the body has no matching stance. So the
@@ -22,6 +54,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it has nothing to play instead of going quiet.
 
 ### Added
+
+- **The sandbox is one game at a time, and that game is Counter-Strike 1.6.** Steam keeps
+  Half-Life, Counter-Strike, Condition Zero and its Deleted Scenes inside a single folder
+  called Half-Life, so mounting "the installed game" mounted four of them and produced a
+  Condition Zero soldier holding a Half-Life crowbar on a Counter-Strike map. Every part of
+  that is meant to work and none of it can be judged. `ONLY_GAME` in the sandbox pins it;
+  set it to `""` for everything installed.
+
+  Startup went from 330 mounted containers to 23.
+
+- **Crouched movement is a stance the importer knows about.** Counter-Strike calls it
+  `crouchrun` and has no crouched walk at all, so a character that could stand, walk and crouch
+  still slid the moment it crouched and moved.
 
 - **A model says which of its pieces you are not seeing.** A GoldSrc model can have parts that
   come in several versions: `v_357.mdl` has a part called *scope* that is either blank or a

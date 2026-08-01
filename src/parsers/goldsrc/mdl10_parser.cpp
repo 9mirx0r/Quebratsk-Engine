@@ -177,11 +177,31 @@ void read_sequences(const ByteReader& mdl, const StudioHeader& header, const Stu
         readers.push_back(usable ? reader : ByteReader());
     }
 
+    // Two sequences in one model are allowed to carry the same label, because the engine
+    // addresses them by index and never by name. Counter-Strike's v_tmp.mdl names three
+    // different firing animations "shoot" and v_scout.mdl names two.
+    //
+    // Everything downstream is keyed by name: Godot's AnimationLibrary refuses a duplicate,
+    // so the second and third were dropped without a word while list_poses() went on
+    // advertising all six. Whoever asked for "shoot" got one animation and no reason to
+    // suspect there had been three.
+    std::unordered_map<std::string, int> seen;
+
     for (size_t s = 0; s < sequences.size(); ++s) {
         const StudioSeqDesc& seq = sequences[s];
 
         std::string label(seq.label, strnlen(seq.label, sizeof(seq.label)));
         if (label.empty()) label = "sequence_" + std::to_string(s);
+
+        // " #2", " #3" and so on. Distinct enough that it cannot be mistaken for something a
+        // modeller typed, and it leaves the front of the name alone so a caller matching on
+        // "shoot" still finds every one of them.
+        if (const int count = ++seen[label]; count > 1) {
+            std::string unique = label + " #" + std::to_string(count);
+            while (seen.contains(unique)) unique += "'";
+            seen[unique] = 1;
+            label = std::move(unique);
+        }
 
         // What the sequence plays. GoldSrc writes the path itself here, relative to sound/,
         // rather than the soundscript entry name Source uses.

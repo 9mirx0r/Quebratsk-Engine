@@ -31,6 +31,14 @@ const JUMP := 268.328 * UNIT         # 6.82 m/s
 const WALK_FACTOR := 0.52
 const CROUCH_FACTOR := 0.333
 
+## The two hulls the engine gives a player, and where the eyes sit in each. Standing is 72
+## units tall with the view at 64 (VEC_VIEW); ducked is 36 with the view at 28
+## (VEC_DUCK_VIEW). Crouching used to change nothing but the speed, so it read as walking
+## slowly rather than as getting low.
+const STAND_HULL := 72.0 * UNIT
+const DUCK_HULL := 36.0 * UNIT
+const DUCK_EYE := 28.0 * UNIT
+
 ## sv_stepsize 18: how high a ledge is climbed without jumping.
 const STEP_HEIGHT := 18.0 * UNIT     # 0.457 m
 
@@ -69,6 +77,7 @@ const DAMAGE := 34   # three hits, so a fight lasts long enough to be a fight
 const IMMORTAL := true
 
 const WeaponManifest := preload("res://addons/quebratsk_editor/weapon_manifest.gd")
+const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd")
 
 ## Where the eyes are relative to the head bone, which sits at the base of the skull.
 ## VEC_VIEW puts the eye 64 units above the soles, which is 8 units below the top of a 72
@@ -96,7 +105,22 @@ var _cycle := 0.0
 var _next_shot := 0.0
 var _bob_time := 0.0
 var _eye_rest := Vector3.ZERO
-var _complained := false
+var _said_no_sound := false
+var _said_no_reload := false
+var _hull: CollisionShape3D
+var _stand_height := 0.0
+var _stand_y := 0.0
+var _ducked := false
+
+## The view model's own AnimationPlayer, and what it calls firing and reloading. A Counter-
+## Strike view model carries six sequences: idle1, reload, draw and shoot1 through shoot3.
+var _view_anim: AnimationPlayer
+var _fire_names := PackedStringArray()
+
+## How this weapon reloads, as the sequences to play in order. One entry for anything with a
+## plain reload; three or more for a pump shotgun, which loads a shell at a time.
+var _reload_chain := PackedStringArray()
+var _busy_until := 0.0
 
 
 func setup(sandbox: Node3D, camera: Camera3D, skeleton: Skeleton3D = null,
@@ -128,6 +152,18 @@ func _ready() -> void:
 	add_child(_audio)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
+	# The hull, so crouching can actually shrink it. Duplicated because the importer hands the
+	# same shape resource to every character it builds, and resizing a shared one would duck
+	# every enemy in the level at the same time.
+	for child in get_children():
+		if child is CollisionShape3D:
+			_hull = child as CollisionShape3D
+			break
+	if _hull != null and _hull.shape is CapsuleShape3D:
+		_hull.shape = _hull.shape.duplicate()
+		_stand_height = (_hull.shape as CapsuleShape3D).height
+		_stand_y = _hull.position.y
+
 
 ## Play the stance that matches what the body is doing.
 ##
@@ -137,21 +173,32 @@ func _ready() -> void:
 func _drive_animation() -> void:
 	if _body_anim == null:
 		return
-	var speed := Vector2(velocity.x, velocity.z).length()
-	var role := "idle"
-	if speed > SPEED * 0.6:
-		role = "run"
-	elif speed > 0.4:
-		role = "walk"
-
-	var wanted := str(_moves.get(role, ""))
-	# A model with no walk still has an idle, and standing still beats not moving at all.
-	if wanted.is_empty():
-		wanted = str(_moves.get("idle", ""))
+	var wanted := AnimationSets.best(_moves, _stance())
 	if wanted.is_empty() or not _body_anim.has_animation(wanted):
 		return
 	if _body_anim.current_animation != wanted:
 		_body_anim.play(wanted)
+
+
+## Which of the model's stances matches what the body is doing right now.
+##
+## Counter-Strike keeps the legs and the torso apart: walk, run, crouch_idle and crouchrun
+## drive the body while ref_aim_rifle and its kin drive the arms, and the engine blends the
+## two through gaitsequence. Only the lower half is chosen here, because one AnimationPlayer
+## plays one sequence — the arms holding a neutral pose is a limitation worth naming, and it
+## is still a character that walks instead of one that slides.
+func _stance() -> String:
+	if not is_on_floor():
+		return "jump"
+	# Against the speed the weapon allows rather than a fixed number, so a rifle that caps at
+	# 221 units still reaches its own run and does not spend the whole game walking.
+	var ground := Vector2(velocity.x, velocity.z).length()
+	var moving := ground > _speed * 0.12
+	if _ducked:
+		return "crouch_walk" if moving else "crouch"
+	if not moving:
+		return "idle"
+	return "walk" if ground < _speed * 0.55 else "run"
 
 
 ## Take the weapon the sandbox built, with the sound and the animation that belong to it.
@@ -159,6 +206,26 @@ func arm(weapon: Dictionary) -> void:
 	_gunshot = weapon.get("sound")
 	_fire = str(weapon.get("fire", ""))
 	_weapon_node = weapon.get("node")
+
+	# What this weapon calls firing and reloading, taken from the sequences it actually has.
+	# Counter-Strike gives a view model shoot1, shoot2 and shoot3 and plays one at random, so
+	# the same rifle never looks identical twice; taking only the first threw two thirds of
+	# that away. Reload is a sequence like any other and was simply never played.
+	_view_anim = null
+	_fire_names = PackedStringArray()
+	_reload_chain = PackedStringArray()
+	_busy_until = 0.0
+	if is_instance_valid(_weapon_node):
+		_view_anim = _weapon_node.get_node_or_null("AnimationPlayer")
+	if _view_anim != null:
+		var has := PackedStringArray(_view_anim.get_animation_list())
+		_fire_names = AnimationSets.attacks(has)
+		_reload_chain = AnimationSets.reload_chain(has)
+	if _fire_names.is_empty() and not _fire.is_empty():
+		_fire_names.append(_fire)
+	print("[player] %s: attacks %s, reload %s" % [str(weapon.get("name", "")),
+		"[" + ", ".join(_fire_names) + "]" if not _fire_names.is_empty() else "none",
+		" then ".join(_reload_chain) if not _reload_chain.is_empty() else "none"])
 
 	# What you carry decides how fast you move, which is Counter-Strike's rule rather than
 	# Half-Life's: a knife runs at 250 units per second, an AK at 221, an AWP at 210. It is
@@ -175,6 +242,7 @@ func arm(weapon: Dictionary) -> void:
 		print("[player] %s allows %.2f m/s" % [str(weapon.get("name", "")), _speed])
 	else:
 		_speed = SPEED
+
 
 
 ## Put the view where the head is, every frame, after the animation has moved it.
@@ -207,6 +275,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
+	elif event is InputEventKey and event.pressed and not event.echo \
+			and event.keycode == KEY_R:
+		_reload()
+
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
@@ -224,10 +296,11 @@ func _physics_process(delta: float) -> void:
 
 	var wishdir := (transform.basis * Vector3(strafe, 0, -forward)).normalized()
 	var wishspeed := _speed
-	if Input.is_key_pressed(KEY_SHIFT):
-		wishspeed *= WALK_FACTOR
-	elif Input.is_key_pressed(KEY_CTRL):
+	_set_ducked(Input.is_key_pressed(KEY_CTRL))
+	if _ducked:
 		wishspeed *= CROUCH_FACTOR
+	elif Input.is_key_pressed(KEY_SHIFT):
+		wishspeed *= WALK_FACTOR
 
 	# Quake's movement, which GoldSrc inherited and never replaced. Setting velocity straight
 	# from the input direction, which is what this did, gives a character that starts and stops
@@ -245,6 +318,59 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_drive_animation()
 	_bob_view(delta)
+
+
+## Shrink to the ducked hull, or grow back to the standing one.
+##
+## The soles stay where they are and the head comes down, which is what ducking is. Growing
+## back happens on request without checking for headroom: Godot resolves the overlap by pushing
+## the body, and standing up under a low ceiling in these games is blocked rather than lethal.
+func _set_ducked(on: bool) -> void:
+	if on == _ducked or _hull == null:
+		return
+	var capsule := _hull.shape as CapsuleShape3D
+	if capsule == null:
+		return
+
+	_ducked = on
+	var wanted: float = _stand_height * (DUCK_HULL / STAND_HULL) if on else _stand_height
+	# A capsule cannot be shorter than its own two hemispheres.
+	capsule.height = maxf(wanted, capsule.radius * 2.0 + 0.01)
+	# The shape is centred on its origin, so half of what it lost keeps the feet planted.
+	_hull.position.y = _stand_y - (_stand_height - capsule.height) * 0.5
+	_eye_rest = Vector3(0, DUCK_EYE if on else EYE_HEIGHT, 0)
+
+
+## Play the weapon's own reload, and refuse to fire until it has finished.
+##
+## The sequence has been in every view model all along: a Counter-Strike rifle carries idle1,
+## reload, draw and three shoots. Nothing ever asked for it, so R did nothing and a magazine
+## never ran out or filled up.
+func _reload() -> void:
+	if _view_anim == null or _reload_chain.is_empty():
+		if not _said_no_reload:
+			_said_no_reload = true
+			push_warning("[player] this weapon's model carries no reload sequence")
+		return
+	if Time.get_ticks_msec() / 1000.0 < _busy_until:
+		return
+
+	# Queued rather than played: a pump shotgun's reload is start_reload, four inserts and
+	# after_reload, and queue() is what makes them one action instead of the last one winning.
+	_view_anim.stop()
+	var total := 0.0
+	for i in _reload_chain.size():
+		var sequence: String = _reload_chain[i]
+		if not _view_anim.has_animation(sequence):
+			continue
+		if i == 0:
+			_view_anim.play(sequence)
+		else:
+			_view_anim.queue(sequence)
+		var clip := _view_anim.get_animation(sequence)
+		if clip != null:
+			total += clip.length
+	_busy_until = Time.get_ticks_msec() / 1000.0 + total
 
 
 ## Rise, fall and lean the view the way walking does.
@@ -313,28 +439,31 @@ func _shoot() -> void:
 	if _camera == null:
 		return
 	var now := Time.get_ticks_msec() / 1000.0
+	if now < _busy_until:
+		return   # reloading
 	if _cycle > 0.0 and now < _next_shot:
 		return
 	_next_shot = now + _cycle
 	if _gunshot != null and _audio != null:
 		_audio.stream = _gunshot
 		_audio.play()
-	elif not _complained:
+	elif not _said_no_sound:
 		# Firing in silence used to be indistinguishable from firing correctly, and that is
 		# how a missing audio player survived: nothing anywhere said the shot made no noise.
-		_complained = true
+		_said_no_sound = true
 		if _audio == null:
 			push_warning("[player] no audio player, so nothing this weapon does will be heard")
 		else:
 			push_warning("[player] no firing sound was resolved for this weapon")
 
 	# The weapon's own firing animation, restarted on every shot: unlike a walk cycle, this
-	# one is meant to play from the top each time the trigger goes.
-	if not _fire.is_empty() and is_instance_valid(_weapon_node):
-		var anim: AnimationPlayer = _weapon_node.get_node_or_null("AnimationPlayer")
-		if anim != null and anim.has_animation(_fire):
-			anim.stop()
-			anim.play(_fire)
+	# one is meant to play from the top each time the trigger goes. One of the three at
+	# random, which is what the game does and most of why a rifle does not look like a loop.
+	if _view_anim != null and not _fire_names.is_empty():
+		var pick: String = _fire_names[randi() % _fire_names.size()]
+		if _view_anim.has_animation(pick):
+			_view_anim.stop()
+			_view_anim.play(pick)
 
 	var from := _camera.global_position
 	var to := from - _camera.global_transform.basis.z * RANGE
