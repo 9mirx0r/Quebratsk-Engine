@@ -80,6 +80,14 @@ var _ducked := false
 var _view_anim: AnimationPlayer
 var _attacks := PackedStringArray()
 var _reload_chain := PackedStringArray()
+
+## The noises a reload makes, in the order the weapon makes them, and a player to make them
+## with. Separate from the gunshot so a magazine going in is not cut off by a shot.
+var _reload_sounds: Array[AudioStream] = []
+var _reload_audio: AudioStreamPlayer3D
+var _reload_queue := 0
+var _reload_next := 0.0
+var _reload_gap := 0.0
 var _gunshot: AudioStream
 var _audio: AudioStreamPlayer3D
 var _cycle := 0.0
@@ -104,6 +112,11 @@ func _ready() -> void:
 	_step_audio.volume_db = -8.0
 	_step_audio.unit_size = 4.0
 	add_child(_step_audio)
+
+	_reload_audio = AudioStreamPlayer3D.new()
+	_reload_audio.volume_db = -6.0
+	_reload_audio.unit_size = 3.0
+	add_child(_reload_audio)
 
 	for child in get_children():
 		if child is CollisionShape3D:
@@ -169,9 +182,39 @@ func _arm(weapon: Dictionary) -> void:
 		_gunshot = SoundLoader.load_sound(_lab.vfs, uri)
 		if _gunshot != null:
 			break
+
+	_load_reload_sounds(weapon)
 	print("[player] %s: %d attack(s), reload in %d step(s), gunshot %s"
 		% [weapon.get("name", "?"), _attacks.size(), _reload_chain.size(),
 		   "yes" if _gunshot != null else "MISSING"])
+
+
+## What a reload sounds like, from the model's own animation events.
+##
+## The .mdl has carried this the whole time and nothing played it. An AK's reload sequence
+## names weapons/ak47_clipout.wav and weapons/ak47_clipin.wav, a USP names three including the
+## slide release, and the M3 keeps its shell noises on start_reload and insert rather than on
+## a sequence called reload — which is why the chain is walked instead of one name asked for.
+func _load_reload_sounds(weapon: Dictionary) -> void:
+	_reload_sounds.clear()
+	var uri := ModelPreset.resolve(_lab.vfs, str(weapon.get("model", "")))
+	if uri.is_empty():
+		return
+
+	var seen := {}
+	for sequence in _reload_chain:
+		for found in _lab.importer.list_sounds(uri, str(sequence)):
+			var path := str(found)
+			# The chain repeats "insert" once per shell, and so would its sound.
+			if seen.has(path):
+				continue
+			seen[path] = true
+			var stream: AudioStream = SoundLoader.load_sound(_lab.vfs, path)
+			if stream != null:
+				_reload_sounds.append(stream)
+
+	if _reload_sounds.is_empty() and not _reload_chain.is_empty():
+		push_warning("[player] this weapon's reload names no sound its own model can resolve")
 
 
 # ----------------------------------------------------------------------- input ----
@@ -198,6 +241,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	if health <= 0:
 		return
+
+	_play_reload_sounds()
 
 	var forward := 0.0
 	var strafe := 0.0
@@ -238,6 +283,19 @@ func _physics_process(delta: float) -> void:
 	_drive_animation()
 	_step_sound()
 	_bob_view(delta)
+
+
+## Let the next noise of a reload out when its turn comes.
+func _play_reload_sounds() -> void:
+	if _reload_queue >= _reload_sounds.size() or _reload_audio == null:
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _reload_next:
+		return
+	_reload_audio.stream = _reload_sounds[_reload_queue]
+	_reload_audio.play()
+	_reload_queue += 1
+	_reload_next = now + _reload_gap
 
 
 # ------------------------------------------------------------------- the body ----
@@ -403,6 +461,17 @@ func _reload() -> void:
 		if clip != null:
 			total += clip.length
 	_busy_until = now + total
+
+	# The noises, spread across the reload in the order the model names them.
+	#
+	# Spread rather than placed: each event carries the exact frame it fires on and the
+	# importer does not publish that yet, so a magazine leaving and a magazine going in are
+	# evenly spaced instead of falling where the animator put them. Close enough to hear as a
+	# reload, and not the same thing as right.
+	if not _reload_sounds.is_empty() and total > 0.0:
+		_reload_queue = 0
+		_reload_gap = total / float(_reload_sounds.size() + 1)
+		_reload_next = now
 
 
 func take_damage(amount: int) -> void:
