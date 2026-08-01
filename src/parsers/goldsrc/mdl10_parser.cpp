@@ -1,4 +1,6 @@
 #include "mdl10_parser.h"
+
+#include <godot_cpp/variant/aabb.hpp>
 #include "../../core/io/byte_reader.h"
 #include "../../core/math/axis_remap.h"
 
@@ -157,7 +159,8 @@ void read_sequences(const ByteReader& mdl, const StudioHeader& header, const Stu
                     ir::IRSkeletonData& skeleton,
                     std::vector<ir::IRAnimationData>& animations,
                     const std::vector<std::string>& animate,
-                    const std::vector<std::span<const std::byte>>& sequence_groups) {
+                    const std::vector<std::span<const std::byte>>& sequence_groups,
+                    godot::AABB& bounds, bool& declared) {
     if (bones == nullptr || header.num_bones <= 0 || header.num_seq <= 0 || header.seq_index <= 0) {
         return;
     }
@@ -240,6 +243,28 @@ void read_sequences(const ByteReader& mdl, const StudioHeader& header, const Stu
                               : rest_pose(bones, header.num_bones);
         pose.name = std::move(label);
         pose.sounds = std::move(sounds);
+
+        // Where this sequence says the body reaches. Every sequence declares its own, and the
+        // union of them is the only description in the file of where the model actually is
+        // once it is animated. A model's bind pose stands on its origin; its animations are
+        // authored around the centre of the engine's hull, 36 units up, and the two are most
+        // of a metre apart.
+        //
+        // A sequence with an empty box declares nothing rather than declaring a point.
+        const godot::Vector3 low(seq.bbmin[0], seq.bbmin[1], seq.bbmin[2]);
+        const godot::Vector3 high(seq.bbmax[0], seq.bbmax[1], seq.bbmax[2]);
+        if (low != high) {
+            // Both corners through the axis change, then re-cornered: the remap permutes and
+            // negates axes, so a transformed minimum is not necessarily still a minimum.
+            const godot::Vector3 a = math::source_to_godot(low);
+            const godot::Vector3 b = math::source_to_godot(high);
+            const godot::Vector3 from(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z));
+            const godot::Vector3 to(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
+            pose.bounds = godot::AABB(from, to - from);
+            pose.has_bounds = true;
+            bounds = declared ? bounds.merge(pose.bounds) : pose.bounds;
+            declared = true;
+        }
 
         const bool wanted = std::find(animate.begin(), animate.end(), pose.name) != animate.end();
 
@@ -396,7 +421,8 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
         }
 
         read_sequences(mdl, *header, bones, result.skeleton_data, result.animations, animate,
-                       sequence_groups);
+                       sequence_groups, result.mesh_data.declared_bounds,
+                       result.mesh_data.has_declared_bounds);
 
         // Attachment points, which are only meaningful once the bones they hang from exist.
         if (header->num_attachments > 0 && header->attachment_index > 0) {

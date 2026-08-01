@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "ir_mesh_data.h"
+#include <godot_cpp/variant/aabb.hpp>
 #include <godot_cpp/variant/quaternion.hpp>
 #include <godot_cpp/variant/transform3d.hpp>
 #include <godot_cpp/variant/vector3.hpp>
@@ -57,6 +58,17 @@ struct IRPose {
     /// files does: a .mdl says which sound goes with which action only through its events.
     /// Picking a gunshot any other way is picking one at random and hoping.
     std::vector<std::string> sounds;
+
+    /// Where this sequence says the body reaches, in Godot's axes and metres.
+    ///
+    /// Per sequence and not per model, because they differ enormously: a death animation
+    /// sprawls across three metres and an idle occupies the space a person stands in. Unioning
+    /// them gave a standing character a capsule 3.48 m tall and 1.7 m wide, which is the
+    /// smallest box that contains every way that model can ever lie on the floor.
+    ///
+    /// The one to use is the sequence being shown. False when the sequence declared nothing.
+    bool has_bounds = false;
+    godot::AABB bounds;
 
     [[nodiscard]] bool matches(size_t bone_count) const {
         return positions.size() == bone_count && rotations.size() == bone_count;

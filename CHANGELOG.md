@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Characters floated above the floor, and the collider was a metre too tall.** Measured on a
+  running scene: a 1.8 m person had a **2.67 m capsule** and stood with its feet **1.14 m above
+  the bottom of it**.
+
+  The cause is a difference between two spaces that look like one. A GoldSrc entity's origin is
+  the centre of its hull, not the soles of its feet: a player is 72 units tall and stands with
+  its origin 36 units — 0.91 m — up, and every sequence is authored around that. The bind pose
+  is authored standing on the origin instead. So a collider measured from the mesh's bounding
+  box describes a body that is nowhere near the one being drawn.
+
+  An earlier attempt widened the mesh box until it swallowed the posed bones, which is where
+  the 2.67 m came from: it moved the problem instead of solving it.
+
+  Each sequence declares its own `bbmin` and `bbmax`, so the collider now comes from the
+  sequence being shown. Not the union of all of them — that gave a standing character a 3.48 m
+  capsule 1.7 m wide, which is the smallest box containing every way the model can ever lie on
+  the floor, death animations included.
+
+  After: **capsule 1.54 m, feet 4 mm from the bottom of it.**
+
+  The offsets for `motion_type`, `motion_bone`, `bbmin` and `bbmax` now carry `static_assert`s.
+  A first pass at reading them by hand was one field early and returned a motion bone index of
+  1115684864, which is the bit pattern of the float 64.0.
+
 - **The player flew.** The body slid around the level frozen in one pose, with no walk, no run,
   no crouch and nothing in the air. The sandbox imported the stances and then never handed them
   over: `setup()` takes a `moves` dictionary as its fifth argument and was called with four, so
