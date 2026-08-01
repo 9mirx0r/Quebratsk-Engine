@@ -38,24 +38,32 @@ func _ready() -> void:
 	var hit: Dictionary = _vfs.find_files("models/", PackedStringArray(["mdl"]),
 		PackedStringArray(), PackedStringArray(), 0)
 
-	var checked := 0
-	var with_sequences := 0
+	# Taken in file order, the sample fills with whatever sorts first, and what sorts first
+	# depends on which games are installed: adding Condition Zero put abomb, airconditioner
+	# and ammo_box at the head of the list and the numbers fell without anything breaking.
+	# A prop with one sequence cannot fail this test, so it is counted and set aside, and
+	# the models that can fail it are the ones sought out.
+	var props := 0
+	var animated := 0
 	var animating := 0
 	var with_sounds := 0
 
 	for entry in hit["files"]:
-		if checked >= 12:
+		if animated >= 10:
 			break
 		var uri := str(entry)
 		if not _is_goldsrc(uri):
 			continue
 
+		# Cheap enough to ask before loading anything, and it is the whole distinction.
+		if _importer.list_poses(uri).size() <= 1:
+			props += 1
+			continue
+
 		var result: Dictionary = _check(uri)
 		if result.is_empty():
 			continue
-		checked += 1
-		if result["poses"] > 1:
-			with_sequences += 1
+		animated += 1
 		if result["moved"] > 0:
 			animating += 1
 		if result["sounds"] > 0:
@@ -64,11 +72,11 @@ func _ready() -> void:
 	_check_sidecars(hit["files"])
 
 	print("\n=== SUMMARY ===")
-	print("  %d GoldSrc models read" % checked)
-	print("  %d expose more than one sequence" % with_sequences)
+	print("  %d models with more than one sequence, %d single-pose props set aside"
+		% [animated, props])
 	print("  %d have a sequence that actually moves a bone" % animating)
 	print("  %d name a sound their animation plays" % with_sounds)
-	if checked > 0 and animating == 0:
+	if animated > 0 and animating == 0:
 		print("  ** every model still stands still **")
 	get_tree().quit()
 
