@@ -98,3 +98,8 @@ docs/goldsrc_source_architecture_guide.xml
 # Working instructions for the assistant. What in it is useful to anybody else lives in
 # CONTRIBUTING.md; the rest is tooling and stays local.
 CLAUDE.md
+
+# A dead 6.7 MB scene that pointed at a script which does not exist. Deleted once and it came
+# back through a working tree that got rewritten, so it is named here rather than trusted to
+# stay gone.
+demo/main.tscn
