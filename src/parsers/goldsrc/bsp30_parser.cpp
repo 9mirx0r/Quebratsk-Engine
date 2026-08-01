@@ -1,4 +1,6 @@
 #include "bsp30_parser.h"
+
+#include <algorithm>
 #include "../../core/io/byte_reader.h"
 #include "../../core/math/axis_remap.h"
 #include "structs/wad3_structs.h" // MiptexHeader, shared with the WAD3 reader
@@ -93,6 +95,28 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     auto ent_lump = get_lump(0);
     if (!ent_lump.empty()) {
         map_data.entity_string = std::string(reinterpret_cast<const char*>(ent_lump.data()), ent_lump.size());
+    }
+
+    // Lump 14: brush models. One per brush entity plus the world, each a box in the map's
+    // own units. This is the only record of where a door, a trigger or a body of water is:
+    // those entities carry "model" "*N" and no origin at all.
+    if (const auto model_lump = get_lump(14); !model_lump.empty()) {
+        const size_t count = model_lump.size() / sizeof(BSPModel);
+        const auto* models = reinterpret_cast<const BSPModel*>(model_lump.data());
+        map_data.brush_models.reserve(count);
+
+        for (size_t i = 0; i < count; ++i) {
+            const godot::Vector3 a = math::source_to_godot(
+                godot::Vector3(models[i].mins[0], models[i].mins[1], models[i].mins[2]));
+            const godot::Vector3 b = math::source_to_godot(
+                godot::Vector3(models[i].maxs[0], models[i].maxs[1], models[i].maxs[2]));
+            // Re-cornered after the remap: it permutes and negates axes, so a transformed
+            // minimum is not necessarily still a minimum.
+            map_data.brush_models.push_back({
+                godot::Vector3(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z)),
+                godot::Vector3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z)),
+            });
+        }
     }
 
     // Lump 3: Vertices

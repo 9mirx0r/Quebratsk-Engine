@@ -48,7 +48,7 @@ var _map_uri := ""
 var _spawns: Array[Vector3] = []
 var _hud: Label
 var _weather: Node3D
-var _thunder_zones: Array[Vector3] = []
+var _thunder_zones: Array[AABB] = []
 var _thunder_ready := 0.0
 var _thunder_interval := 0.0
 var _triggered_sounds := {}
@@ -259,7 +259,16 @@ func _build_weather(entities: Array, map: Node3D) -> void:
 		if child is MeshInstance3D:
 			extent = (child as MeshInstance3D).get_aabb()
 			break
-	_weather.build_rain(entities, extent)
+	# env_rain is a brush entity too, and its volume is where the rain belongs. Without it
+	# the rain fell through ceilings, because the only box available was the whole level.
+	var rain_box := extent
+	for e in entities:
+		var entity: Dictionary = e
+		if str(entity.get("classname", "")) == "env_rain" and entity.has("bounds"):
+			rain_box = entity["bounds"] as AABB
+			break
+	_weather.build_rain(entities, rain_box)
+	_build_water(entities)
 
 	# Where walking sets the storm off. A trigger_multiple targeting a multi_manager that
 	# fires the thunder: two places on this map, and forty-five seconds between strikes.
@@ -272,18 +281,16 @@ func _build_weather(entities: Array, map: Node3D) -> void:
 		if not _fires_thunder(entities, str(entity.get("target", ""))):
 			continue
 
-		if entity.has("position"):
-			_thunder_zones.append(entity["position"] as Vector3)
-		else:
-			# A trigger_multiple is a brush entity: it has no origin, it has model "*71", and
-			# its position IS that volume. Resolving brush models is not done yet, so the
-			# place the mapper chose is lost and only the interval survives.
-			#
-			# Falling back to that interval rather than to nothing: de_aztec says wait 45, so
-			# the storm cracks every forty-five seconds instead of when you walk under it.
-			# That is the map's own number and the wrong half of its intent, and it is worth
-			# saying which half is missing.
-			_thunder_interval = maxf(float(entity.get("wait", 45.0)), 5.0)
+		# The volume itself now, not a point near it. A trigger_multiple is a brush entity and
+		# where it is IS its brush model, which the importer resolves and publishes as
+		# "bounds". Before that this could only fall back to the map's interval and crack the
+		# storm on a timer: the right number and the wrong half of what the mapper meant.
+		if entity.has("bounds"):
+			_thunder_zones.append(entity["bounds"] as AABB)
+		elif entity.has("position"):
+			var point: Vector3 = entity["position"]
+			_thunder_zones.append(AABB(point - Vector3.ONE * 8.0, Vector3.ONE * 16.0))
+		_thunder_interval = maxf(float(entity.get("wait", 45.0)), 5.0)
 
 	for named in _triggered_sounds:
 		# The one the multi_manager fires. On this map there is exactly one and it is called
@@ -293,16 +300,54 @@ func _build_weather(entities: Array, map: Node3D) -> void:
 
 	if not _thunder_zones.is_empty():
 		_built["storm"] = "thunder in %d place(s)" % _thunder_zones.size()
-		print("[lab] %s: %d place(s) set off thunder"
-			% [_map_uri.get_file(), _thunder_zones.size()])
-	elif _thunder_interval > 0.0:
-		_built["storm"] = "thunder every %ds" % int(_thunder_interval)
-		print("[lab] %s: thunder is triggered by a brush volume this cannot resolve yet, "
-			% _map_uri.get_file() + "so it strikes on the map's own %d second interval"
-			% int(_thunder_interval))
-		_thunder_ready = _thunder_interval * 0.4
+		print("[lab] %s: %d volume(s) set off thunder, %d seconds apart"
+			% [_map_uri.get_file(), _thunder_zones.size(), int(_thunder_interval)])
 	else:
 		print("[lab] %s sets off no thunder" % _map_uri.get_file())
+
+
+## The water the map declares, as something you can see rather than an invisible brush.
+##
+## func_water is a brush entity: a box of water with a surface at the top of it. de_aztec has
+## five, and until brush models were resolved there was no way to know where any of them were.
+## The geometry is already in the level; this puts a surface on it that reads as water.
+func _build_water(entities: Array) -> void:
+	var pools := 0
+	for e in entities:
+		var entity: Dictionary = e
+		if str(entity.get("classname", "")) != "func_water" or not entity.has("bounds"):
+			continue
+		var box: AABB = entity["bounds"]
+		if box.size.x < 0.1 or box.size.z < 0.1:
+			continue
+
+		var surface := MeshInstance3D.new()
+		surface.name = "Water%d" % pools
+		var plane := PlaneMesh.new()
+		plane.size = Vector2(box.size.x, box.size.z)
+		# Enough for a wave to have somewhere to go, without a mesh nobody is looking at
+		# costing more than the level around it.
+		plane.subdivide_width = 24
+		plane.subdivide_depth = 24
+		surface.mesh = plane
+
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color(0.10, 0.20, 0.22, 0.72)
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material.metallic = 0.35
+		material.roughness = 0.08
+		material.cull_mode = BaseMaterial3D.CULL_DISABLED
+		surface.material_override = material
+
+		# At the top of the box, which is where a body of water's surface is.
+		surface.position = Vector3(box.position.x + box.size.x * 0.5,
+			box.position.y + box.size.y, box.position.z + box.size.z * 0.5)
+		add_child(surface)
+		pools += 1
+
+	if pools > 0:
+		_built["water"] = "%d pool(s)" % pools
+		print("[lab] %s: %d body/bodies of water" % [_map_uri.get_file(), pools])
 
 
 ## Does what this trigger points at end up playing a sound?
@@ -417,13 +462,6 @@ func _place_enemies() -> void:
 	_built["enemies"] = "%d" % placed
 
 
-## Set the storm off where the mapper put the switch.
-##
-## The real entity is a brush volume and this is a radius around its centre, because the brush
-## models a trigger occupies are not resolved yet. Named as the approximation it is: the place
-## is the map's, the shape is mine.
-const THUNDER_REACH := 14.0
-
 func _process(delta: float) -> void:
 	if _weather == null or _player == null or not is_instance_valid(_player):
 		return
@@ -433,16 +471,12 @@ func _process(delta: float) -> void:
 	if _thunder_ready > 0.0:
 		return
 
-	for spot in _thunder_zones:
-		if _player.global_position.distance_to(spot) < THUNDER_REACH:
-			# wait 45 on the trigger: the mapper's own interval, not a number I liked.
-			_thunder_ready = 45.0
+	for zone in _thunder_zones:
+		if (zone as AABB).has_point(_player.global_position):
+			# The trigger's own wait, which is what stops it firing every frame you stand in it.
+			_thunder_ready = _thunder_interval
 			_weather.strike()
 			return
-
-	if _thunder_interval > 0.0:
-		_thunder_ready = _thunder_interval
-		_weather.strike()
 
 
 func _spawn_point() -> Vector3:

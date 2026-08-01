@@ -854,6 +854,24 @@ Array UnifiedAssetImporter::load_map_entities(const String& vfs_uri) {
             }
         }
 
+        // A brush entity has no origin: it has "model" "*71", and where it is IS that model.
+        // Half a map is built this way - doors, lifts, triggers, water - and reading only
+        // origins leaves every one of them placeless. On de_aztec that is both of the volumes
+        // that set off the thunder, the one that holds the rain, and all five bodies of water.
+        if (entity.has("model")) {
+            const String model = entity["model"];
+            if (model.begins_with("*")) {
+                const int64_t index = model.substr(1).to_int();
+                if (index >= 0 && static_cast<size_t>(index) < parsed->brush_models.size()) {
+                    const auto& box = parsed->brush_models[static_cast<size_t>(index)];
+                    // Published under the same key a point entity uses, so a caller does not
+                    // have to know which kind it is holding to ask where it is.
+                    entity["position"] = box.centre();
+                    entity["bounds"] = AABB(box.mins, box.size());
+                }
+            }
+        }
+
         if (!entity.is_empty()) out.append(entity);
         pos = close + 1;
     }
