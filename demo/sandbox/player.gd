@@ -8,9 +8,31 @@ extends CharacterBody3D
 ## for the benefit of the camera. That is the whole point of doing it this way, and it only
 ## works because the skeleton is animated rather than frozen.
 
-const SPEED := 5.0
-const GRAVITY := 22.0
-const JUMP := 6.5
+## The engine's own numbers, converted once, instead of values that felt about right.
+##
+## A Hammer unit is an inch, so everything here is the GoldSrc constant times 0.0254. They
+## were 5.0, 22.0 and 6.5 before, and none of those came from anywhere.
+const UNIT := 0.0254
+
+## sv_maxspeed is 320 in Half-Life, but Counter-Strike sets it high on the server and lets the
+## weapon in hand decide: 250 for a knife or pistol, around 220 for a rifle, 210 for an AWP
+## and 150 with it scoped. 250 is the unencumbered figure.
+const SPEED := 250.0 * UNIT          # 6.35 m/s
+
+## sv_gravity 800.
+const GRAVITY := 800.0 * UNIT        # 20.32 m/s^2
+
+## Not a number somebody liked. Valve built Half-Life around clearing a 45 unit crate, and the
+## jump velocity is what that requires: sqrt(2 * 800 * 45) = 268.3 units per second.
+const JUMP := 268.328 * UNIT         # 6.82 m/s
+
+## Walking and crouching are fractions of whatever the weapon allows, not constants of their
+## own: 0.52 and 0.333 in Counter-Strike.
+const WALK_FACTOR := 0.52
+const CROUCH_FACTOR := 0.333
+
+## sv_stepsize 18: how high a ledge is climbed without jumping.
+const STEP_HEIGHT := 18.0 * UNIT     # 0.457 m
 const LOOK_SENSITIVITY := 0.0022
 const RANGE := 80.0
 const DAMAGE := 34   # three hits, so a fight lasts long enough to be a fight
@@ -21,6 +43,10 @@ const DAMAGE := 34   # three hits, so a fight lasts long enough to be a fight
 const IMMORTAL := true
 
 ## Where the eyes are relative to the head bone, which sits at the base of the skull.
+## VEC_VIEW puts the eye 64 units above the soles, which is 8 units below the top of a 72
+## unit hull rather than at the crown. Measured from the head bone rather than from the feet,
+## because that is what the camera follows here.
+const EYE_HEIGHT := 64.0 * UNIT      # 1.626 m
 const EYE_RAISE := 0.09
 const EYE_FORWARD := 0.07
 
