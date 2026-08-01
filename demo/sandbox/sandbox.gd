@@ -354,8 +354,9 @@ func _spawn_player() -> void:
 	_player.position = spot
 	_player.setup(self, camera)
 
-	var weapon := _give_weapon(camera, Vector3(0.18, -0.16, -0.5), 0.42)
-	_built["weapon"] = weapon
+	var weapon: Dictionary = _give_weapon(camera, Vector3(0.18, -0.16, -0.5), 0.42)
+	_built["weapon"] = weapon["name"]
+	_player.arm(weapon)
 
 
 ## Attach a random weapon model, and pick a firing sound to go with it.
@@ -363,7 +364,13 @@ func _spawn_player() -> void:
 ## View models (v_*) are the ones held in front of a camera; world models (w_*) are what a
 ## weapon looks like lying on the ground or in someone's hands. Either will do, and which
 ## exist depends on which games are installed.
-func _give_weapon(mount: Node3D, offset: Vector3, apparent_size := 0.4) -> String:
+## Attach a weapon and return everything that belongs to it.
+##
+## Returns { "name": file, "sound": AudioStream or null, "fire": sequence or "" }. The sound
+## is the one the weapon's own firing animation plays, read out of the model's event list,
+## rather than a gunshot picked at random from whichever game happened to be mounted. That
+## was the whole complaint: a deagle that sounded like a shotgun from another game.
+func _give_weapon(mount: Node3D, offset: Vector3, apparent_size := 0.4) -> Dictionary:
 	var hit: Dictionary = vfs.find_files("weapons/", PackedStringArray(["mdl"]),
 		PackedStringArray(["vvd", "vtx", "ani", "phy"]), PackedStringArray(), 0)
 
@@ -414,6 +421,19 @@ func _give_weapon(mount: Node3D, offset: Vector3, apparent_size := 0.4) -> Strin
 			box_size = own.size
 			longest = maxf(longest, maxf(own.size.x, maxf(own.size.y, own.size.z)))
 
+		# The weapon's own animations, so it can be seen to fire rather than sitting still
+		# while a sound plays somewhere.
+		var fire := _fire_sequence(uri)
+		if not fire.is_empty():
+			model.queue_free()
+			model = importer.load_model(uri, "", PackedStringArray([fire]))
+			if model == null:
+				continue
+			for child in model.get_children():
+				if child is StaticBody3D:
+					model.remove_child(child)
+					child.queue_free()
+
 		model.position = offset
 		if longest > 0.01:
 			model.scale = Vector3.ONE * (apparent_size / longest)
@@ -426,8 +446,46 @@ func _give_weapon(mount: Node3D, offset: Vector3, apparent_size := 0.4) -> Strin
 		if box_size.x > box_size.z:
 			model.rotate_y(PI * 0.5)
 		mount.add_child(model)
-		return uri.get_file()
+		return {
+			"name": uri.get_file(),
+			"sound": _weapon_sound(uri, fire),
+			"fire": fire,
+			"node": model,
+		}
+	return {"name": "", "sound": null, "fire": "", "node": null}
+
+
+## The name of the sequence a weapon fires with, if it has one.
+func _fire_sequence(uri: String) -> String:
+	for hint in ["shoot", "fire", "attack"]:
+		for p in importer.list_poses(uri):
+			if str(p).to_lower().begins_with(hint):
+				return str(p)
 	return ""
+
+
+## The sound the weapon itself says it makes.
+##
+## A sequence's event list is the only record of the pairing in any of these files. What it
+## holds depends on the engine: GoldSrc writes a path, "weapons/ak47-1.wav", while Source
+## writes a soundscript entry, "Weapon_AK47.Single", which is not a file at all. Both are
+## resolved before they arrive here.
+func _weapon_sound(uri: String, fire: String) -> AudioStream:
+	var named: PackedStringArray = importer.list_sounds(uri, fire)
+	if named.is_empty():
+		named = importer.list_sounds(uri)   # any sound it makes at all
+
+	# These come back as VFS URIs, already followed from whatever the model called them:
+	# Source names a soundscript entry rather than a file, and the engine resolves it.
+	for entry in named:
+		var sound := SoundLoader.load_sound(vfs, str(entry))
+		if sound != null:
+			return sound
+
+	# Nothing usable from the model, so fall back to any gunshot rather than silence, and
+	# say so: a weapon whose own sound could not be found is worth knowing about.
+	print("[sandbox] %s names no usable sound, using a stand-in" % uri.get_file())
+	return find_gunshot()
 
 
 func _spawn_enemies() -> void:
@@ -499,7 +557,7 @@ func _spawn_enemies() -> void:
 		taken.append(spot)
 		names.append("%-22s %s" % [uri.get_file(), _which_game(uri)])
 
-		var weapon := _give_weapon(who, Vector3(0.25, 1.3, -0.25), 0.7)
+		var weapon: Dictionary = _give_weapon(who, Vector3(0.25, 1.3, -0.25), 0.7)
 		(who as CharacterBody3D).setup(self, _player, moves, weapon)
 		placed += 1
 

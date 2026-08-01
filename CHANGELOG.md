@@ -9,7 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Half-Life 1 and Counter-Strike 1.6 models animate.** The GoldSrc reader had no notion of
+  a sequence at all: it read the bone table and stopped, so every model from those games
+  imported frozen in the modelling T-stance and asking for "run" changed nothing. It now
+  reads the sequence table, decodes the run-length encoded bone tracks and reports the sound
+  events. `arctic.mdl`, the Counter-Strike terrorist, went from **1 pose to 111**; across a
+  sample of twelve models, ten have a sequence that moves a bone and the two that do not are
+  single-pose props. Sequences kept in a sidecar `<name>01.mdl` keep their name and their
+  sounds and stand in the bind pose.
+
+- **A weapon's sound is the one the weapon names.** A model's animation events are the only
+  record in these files of which noise belongs to which action, and they are now read and
+  followed to a real file. Source does not name a file there: it names a soundscript entry,
+  "Weapon_357.Single", which the games resolve through `scripts/game_sounds_*.txt`. Those
+  scripts ship as plain KeyValues text inside the VPKs and are now read as well: **15,145
+  entries from 450 script files**, with every name the sampled models asked for resolving.
+
 ### Fixed
+
+- **Source animation events were read at the wrong stride.** `mstudioevent_t` is 80 bytes,
+  not 76: the trailing name index is easy to miss and missing it is not harmless. The first
+  event of a sequence still read correctly and every one after it was garbage, so a weapon
+  whose gunshot is its second event looked like a weapon with no sound at all.
+
+- **Sound events were picked out by looking at their text.** A firing sequence carries
+  "357 muzzle" and "Weapon_357.Single" side by side and neither looks like a filename, so a
+  filter on `.wav` rejected both. Events are now identified by what they are, through the
+  event name for models compiled with named events and through the event id for older ones.
+
+- **A model with an unnamed bone built a scrambled skeleton.** Godot rejects an empty bone
+  name, and a rejected bone is not skipped: it shifts every parent index after it. Several
+  stock GoldSrc models have them. Bone names are now made acceptable in one place, applied
+  to the skeleton and to the animation tracks alike so the two cannot disagree.
 
 - **A map's tool brushes were drawn as walls.** `AAATRIGGER` is the texture Half-Life puts
   on trigger volumes so a mapper can see them in the editor, and the engine never draws it.

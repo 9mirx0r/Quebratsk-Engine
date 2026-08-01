@@ -26,18 +26,22 @@ var _target: CharacterBody3D
 var _moves := {}
 var _playing := ""
 var _weapon := ""
+var _weapon_fire := ""
+var _weapon_node: Node3D
 var _cooldown := 0.0
 var _audio: AudioStreamPlayer3D
 var _gunshot: AudioStream
 
 
 func setup(sandbox: Node3D, target: CharacterBody3D, moves: Dictionary,
-		weapon: String) -> void:
+		weapon: Dictionary) -> void:
 	_sandbox = sandbox
 	_target = target
 	_moves = moves
-	_weapon = weapon
-	_gunshot = sandbox.find_gunshot()
+	_weapon = str(weapon.get("name", ""))
+	_gunshot = weapon.get("sound")
+	_weapon_fire = str(weapon.get("fire", ""))
+	_weapon_node = weapon.get("node")
 
 	_audio = AudioStreamPlayer3D.new()
 	_audio.volume_db = -10.0
@@ -134,6 +138,11 @@ func _shoot() -> void:
 	if _gunshot != null and _audio != null:
 		_audio.stream = _gunshot
 		_audio.play()
+	if not _weapon_fire.is_empty() and is_instance_valid(_weapon_node):
+		var anim: AnimationPlayer = _weapon_node.get_node_or_null("AnimationPlayer")
+		if anim != null and anim.has_animation(_weapon_fire):
+			anim.stop()
+			anim.play(_weapon_fire)
 	if _target != null and _target.has_method("take_damage"):
 		_target.take_damage(DAMAGE)
 

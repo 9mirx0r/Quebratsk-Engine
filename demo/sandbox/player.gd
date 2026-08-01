@@ -22,12 +22,13 @@ var _camera: Camera3D
 var _pitch := 0.0
 var _gunshot: AudioStream
 var _audio: AudioStreamPlayer3D
+var _fire := ""
+var _weapon_node: Node3D
 
 
 func setup(sandbox: Node3D, camera: Camera3D) -> void:
 	_sandbox = sandbox
 	_camera = camera
-	_gunshot = sandbox.find_gunshot()
 	_audio = AudioStreamPlayer3D.new()
 	# The player's own weapon is at the camera, so at default settings 3D attenuation puts
 	# it right on top of the listener. Pulled well down: this is a gunshot fired next to
@@ -36,6 +37,13 @@ func setup(sandbox: Node3D, camera: Camera3D) -> void:
 	_audio.unit_size = 3.0
 	add_child(_audio)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## Take the weapon the sandbox built, with the sound and the animation that belong to it.
+func arm(weapon: Dictionary) -> void:
+	_gunshot = weapon.get("sound")
+	_fire = str(weapon.get("fire", ""))
+	_weapon_node = weapon.get("node")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -88,6 +96,14 @@ func _shoot() -> void:
 	if _gunshot != null and _audio != null:
 		_audio.stream = _gunshot
 		_audio.play()
+
+	# The weapon's own firing animation, restarted on every shot: unlike a walk cycle, this
+	# one is meant to play from the top each time the trigger goes.
+	if not _fire.is_empty() and is_instance_valid(_weapon_node):
+		var anim: AnimationPlayer = _weapon_node.get_node_or_null("AnimationPlayer")
+		if anim != null and anim.has_animation(_fire):
+			anim.stop()
+			anim.play(_fire)
 
 	var from := _camera.global_position
 	var to := from - _camera.global_transform.basis.z * RANGE

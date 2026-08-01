@@ -57,17 +57,22 @@ struct SourceSeqDesc {
     int32_t unused[7];
 };
 
-/// mstudioevent_t (76 bytes). Offsets inside a sequence, one per thing that happens while
+/// mstudioevent_t (80 bytes). Offsets inside a sequence, one per thing that happens while
 /// it plays: a footstep, a shell ejecting, a gunshot.
 ///
-/// `options` is where a sound event keeps the name of the sound it plays. That name is the
-/// only place in any of these files that ties a weapon to the noise it makes: a .mdl does
-/// not otherwise say, and the game's own scripts are not shipped in a form worth parsing.
+/// The trailing `name_index` is the easy field to miss, and missing it is not harmless: at
+/// 76 bytes the first event of a sequence still reads correctly and every one after it is
+/// garbage, so a weapon whose gunshot is its second event looks like a weapon with no sound.
+///
+/// `options` holds a SOUNDSCRIPT ENTRY name for sound events, not a filename: "Weapon_357.Single",
+/// which the game resolves through scripts/game_sounds_weapons.txt. Those scripts do ship,
+/// as plain KeyValues text inside the VPKs, so the name can be followed to a real .wav.
 struct SourceEvent {
-    float cycle;        // when in the sequence, 0 to 1
-    int32_t event;      // the event id, whose meaning depends on `type`
-    int32_t type;       // which family of event ids this is from
-    char options[64];   // a sound name for sound events, other things for others
+    float cycle;         // when in the sequence, 0 to 1
+    int32_t event;       // the event id, whose meaning depends on `type`
+    int32_t type;        // 0 = `event` is a numeric id, kEventNewStyle = it is named
+    char options[64];    // a soundscript entry for sound events, other things for others
+    int32_t name_index;  // -> the event's name, relative to this struct
 };
 
 /// mstudioanimdesc_t (100 bytes). Offsets inside are relative to this struct.
@@ -153,7 +158,17 @@ inline constexpr uint8_t kAnimRawRot2 = 0x20; // SourceQuat64 follows
 /// what tells an idle to repeat rather than play once and freeze on its last frame.
 inline constexpr int32_t kSeqLooping = 0x0001;
 
-static_assert(sizeof(SourceEvent) == 76, "SourceEvent size mismatch");
+/// mstudioevent_t::type. Set when the event is identified by name rather than by a number
+/// from a table the engine hard-codes.
+inline constexpr int32_t kEventNewStyle = 1 << 10;
+
+/// Old-style numeric event ids that play a sound. A model compiled before named events has
+/// to be recognised by number, and these are the three numbers that mean "make a noise".
+inline constexpr int32_t kEventClientSound = 5004;
+inline constexpr int32_t kEventScriptSound = 1004;
+inline constexpr int32_t kEventScriptSoundVoice = 1008;
+
+static_assert(sizeof(SourceEvent) == 80, "SourceEvent size mismatch");
 static_assert(sizeof(SourceSeqDesc) == 212, "SourceSeqDesc size mismatch");
 static_assert(sizeof(SourceAnimDesc) == 100, "SourceAnimDesc size mismatch");
 static_assert(sizeof(SourceBoneAnim) == 4, "SourceBoneAnim size mismatch");
