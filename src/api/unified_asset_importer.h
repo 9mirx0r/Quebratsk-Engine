@@ -9,6 +9,7 @@
 #include "../converters/terrain_converter.h"
 
 #include <godot_cpp/classes/node3d.hpp>
+#include <godot_cpp/classes/static_body3d.hpp>
 
 #include <godot_cpp/classes/array_mesh.hpp>
 #include <godot_cpp/classes/node.hpp>
@@ -119,6 +120,17 @@ public:
                               const godot::String& pose_name = godot::String(),
                               const godot::PackedStringArray& animations = godot::PackedStringArray());
 
+    /// Load a map as something you can stand on.
+    ///
+    /// Returns a MeshInstance3D carrying a StaticBody3D with a trimesh collider, which is
+    /// the same shape Godot's own "Create Trimesh Static Body" produces, so a user who
+    /// later opens the node finds a structure they recognise.
+    ///
+    /// This exists because load_mesh() hands back geometry and nothing else, and a map with
+    /// no collider is a map you fall straight through. Every caller that wanted a usable
+    /// map was building the MeshInstance3D by hand and none of them added a body.
+    godot::Node3D* load_map(const godot::String& vfs_uri);
+
     /// Every animation sequence label the model carries, e.g. "idle_smg1".
     ///
     /// Skips the .vvd and .vtx entirely — poses live in the .mdl and its .ani, so the
@@ -138,6 +150,19 @@ private:
     /// Hang an AnimationPlayer carrying every decoded sequence off the skeleton.
     /// Does nothing when no animations were requested, which is the default.
     static void attach_animations(godot::Skeleton3D* skeleton, const ParsedAssetIR& parsed);
+
+    /// A StaticBody3D holding a trimesh collider for `mesh`, to be parented to whatever
+    /// draws it. Trimesh rather than convex because a map is not remotely convex: a hull
+    /// around a building fills in its rooms.
+    static godot::StaticBody3D* trimesh_body(const godot::Ref<godot::Mesh>& mesh);
+
+    /// A StaticBody3D holding a capsule sized to `bounds`, for a character.
+    ///
+    /// A skinned mesh cannot take a trimesh collider that means anything: the collider
+    /// would be frozen in the rest pose while the mesh moves away from it. A capsule is
+    /// what a character is treated as by every engine that has to answer "did the bullet
+    /// hit them", and it stays right through any animation.
+    static godot::StaticBody3D* capsule_body(const godot::AABB& bounds);
 
 public:
 

@@ -140,9 +140,16 @@ in `demo/tests/`. Nothing gets listed here until it works end to end.
 
 | Engine | Archives | Models | Maps | Textures |
 |---|---|---|---|---|
-| GoldSrc <br/><sub>Half-Life, Counter-Strike 1.6</sub> | `.wad` (WAD3) | `.mdl` (StudioMDL v10) with geometry, skinning and `T.mdl` textures | `.bsp` (BSP30) with geometry, UVs, per-face normals, embedded and WAD textures | WAD3 lumps, `.spr` |
-| Source 1 <br/><sub>Half-Life 2, Garry's Mod, CS:S, TF2</sub> | `.vpk` v1 and v2 with side archives, `.gma` | `.mdl` v44 to v49 plus `.vvd` and `.vtx`: geometry, skinning, playable animation, external `.ani`, `includemodel` | `.bsp` (BSP30) | `.vtf` (DXT1/BC1, DXT5/BC3, uncompressed), `.vmt` |
+| GoldSrc <br/><sub>Half-Life, Counter-Strike 1.6</sub> | `.wad` (WAD3) | `.mdl` (StudioMDL v10) with geometry, skinning and `T.mdl` textures | `.bsp` (BSP30) with geometry, UVs, per-face normals, embedded and WAD textures, **and collision** | WAD3 lumps, `.spr` |
+| Source 1 <br/><sub>Half-Life 2, Garry's Mod, CS:S, TF2</sub> | `.vpk` v1 and v2 with side archives, `.gma` | `.mdl` v44 to v49 plus `.vvd` and `.vtx`: geometry, skinning, playable animation, external `.ani`, `includemodel` | not yet, see below | `.vtf` (DXT1/BC1, DXT5/BC3, uncompressed), `.vmt` |
 | Real Virtuality <br/><sub>Arma, DayZ</sub> | `.pbo` | not yet, see the roadmap | `.wrp`, but not DayZ's, see below | `.paa` (DXT1, DXT5 and the packed layouts), including LZO-compressed mipmaps |
+
+**Maps are GoldSrc only.** Half-Life and Counter-Strike 1.6 maps are BSP30 and they
+import with collision: dropping a ball onto `as_oilrig.bsp` from 15.6 m above it brings the
+ball to rest on the rig rather than through it, against a collider of 16,309 triangles.
+Half-Life 2 and Garry's Mod maps are a different format, VBSP version 19 and 20, and none of
+the 81 of them on this machine decode. The table used to claim BSP30 for Source 1, which was
+never true.
 
 The `.wrp` row is the one thing on this table that has not been run against a retail
 install, and it should not be read as more than it says. DayZ's terrains, `chernarusplus.wrp`

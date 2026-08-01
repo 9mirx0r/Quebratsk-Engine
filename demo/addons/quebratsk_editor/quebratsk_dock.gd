@@ -73,21 +73,24 @@ const CATEGORY_FAVOURITES := "Favourites"
 const CATEGORY_RECENT := "Recently imported"
 
 const CATEGORIES := [
-	{"label": CATEGORY_FAVOURITES, "ext": [], "folders": []},
-	{"label": CATEGORY_RECENT, "ext": [], "folders": []},
-	{"label": "Everything", "ext": [], "folders": []},
+	{"label": CATEGORY_FAVOURITES, "ext": [], "folders": [], "icon": "category_favourites"},
+	{"label": CATEGORY_RECENT, "ext": [], "folders": [], "icon": "category_recents"},
+	{"label": "Everything", "ext": [], "folders": [], "icon": "category_all"},
 	{"label": "Characters & people", "ext": ["mdl", "p3d"],
-		"folders": ["models/player", "/humans/", "/npc", "/zombie", "/combine_", "/police"]},
+		"folders": ["models/player", "/humans/", "/npc", "/zombie", "/combine_", "/police"],
+		"icon": "category_characters"},
 	{"label": "Weapons", "ext": ["mdl", "p3d"],
-		"folders": ["/weapons/", "/w_", "/v_", "/shells/"]},
+		"folders": ["/weapons/", "/w_", "/v_", "/shells/"], "icon": "category_weapons"},
 	{"label": "Vehicles", "ext": ["mdl", "p3d"],
-		"folders": ["vehicle", "/cars/", "/car_", "/airboat", "/buggy", "/jeep"]},
+		"folders": ["vehicle", "/cars/", "/car_", "/airboat", "/buggy", "/jeep"],
+		"icon": "category_vehicles"},
 	{"label": "Props & scenery", "ext": ["mdl", "p3d"],
-		"folders": ["/props", "/furniture", "/gibs/"]},
-	{"label": "All models", "ext": ["mdl", "p3d"], "folders": []},
-	{"label": "Maps & terrain", "ext": ["bsp", "wrp"], "folders": []},
-	{"label": "Textures & materials", "ext": ["vtf", "vmt", "paa", "tga", "png"], "folders": []},
-	{"label": "Sounds", "ext": ["wav", "mp3", "ogg"], "folders": []},
+		"folders": ["/props", "/furniture", "/gibs/"], "icon": "category_props"},
+	{"label": "All models", "ext": ["mdl", "p3d"], "folders": [], "icon": "type_model"},
+	{"label": "Maps & terrain", "ext": ["bsp", "wrp"], "folders": [], "icon": "type_map"},
+	{"label": "Textures & materials", "ext": ["vtf", "vmt", "paa", "tga", "png"], "folders": [],
+		"icon": "type_texture"},
+	{"label": "Sounds", "ext": ["wav", "mp3", "ogg"], "folders": [], "icon": "type_sound"},
 ]
 
 var _plugin: EditorPlugin
@@ -310,7 +313,11 @@ func _build_ui() -> void:
 
 	_filter = OptionButton.new()
 	for f in CATEGORIES:
-		_filter.add_item(tr(str((f as Dictionary)["label"])))
+		var entry: Dictionary = f
+		_filter.add_item(tr(str(entry["label"])))
+		var art := _icon(str(entry.get("icon", "")))
+		if art != null:
+			_filter.set_item_icon(_filter.item_count - 1, art)
 	_filter.tooltip_text = tr("Browse by what a thing is, without having to search for it")
 	_filter.item_selected.connect(func(_i: int) -> void: _refresh_results())
 	search_box.add_child(_filter)
@@ -376,6 +383,17 @@ func _build_ui() -> void:
 	frame_style.set_corner_radius_all(3)
 	_preview_frame.add_theme_stylebox_override("panel", frame_style)
 	_preview_frame.gui_input.connect(_on_preview_input)
+
+	# The viewport is transparent, so without this the model floats on flat panel colour and
+	# reads as a hole rather than as a space. A tiled grid gives it a floor to sit against.
+	var backdrop := TextureRect.new()
+	backdrop.texture = _load_png("preview_backdrop")
+	backdrop.stretch_mode = TextureRect.STRETCH_TILE
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if backdrop.texture != null:
+		_preview_frame.add_child(backdrop)
+
 	picked.add_child(_preview_frame)
 
 	_preview = MapPreviewViewport.new()
@@ -547,7 +565,14 @@ func _refresh_preview() -> void:
 func _preview_texture(uri: String) -> bool:
 	var tex: Texture2D = _importer.load_texture(uri)
 	if tex == null:
-		return false
+		# The checkerboard every engine in this list uses for a texture it could not find.
+		# Showing it says "this exists and could not be read", which an empty frame does not.
+		var stand_in := _load_png("missing_texture")
+		if stand_in == null:
+			return false
+		_texture_frame.texture = stand_in
+		_texture_frame.visible = true
+		return true
 	_texture_frame.texture = tex
 	_texture_frame.visible = true
 	_picked_kind.text += "  ·  %d x %d" % [tex.get_width(), tex.get_height()]
@@ -782,6 +807,25 @@ func _icon(name: String) -> Texture2D:
 	if tex == null and has_theme_icon(name, "EditorIcons"):
 		tex = get_theme_icon(name, "EditorIcons")
 	_icon_cache[name] = tex
+	return tex
+
+
+## A full-colour PNG from the icons folder, cached like the SVGs are. These do not go
+## through the theme colour map, so they are loaded as ordinary images.
+func _load_png(name: String) -> Texture2D:
+	if name.is_empty():
+		return null
+	var key := "png:" + name
+	if _icon_cache.has(key):
+		return _icon_cache[key]
+
+	var path := ICON_DIR.path_join(name + ".png")
+	var tex: Texture2D = null
+	if FileAccess.file_exists(path):
+		var image := Image.new()
+		if image.load(path) == OK:
+			tex = ImageTexture.create_from_image(image)
+	_icon_cache[key] = tex
 	return tex
 
 

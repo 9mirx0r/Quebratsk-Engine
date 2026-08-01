@@ -10,6 +10,10 @@
 #include "../converters/texture_loader.h"
 
 #include <godot_cpp/classes/animation_library.hpp>
+#include <godot_cpp/classes/capsule_shape3d.hpp>
+#include <godot_cpp/classes/collision_shape3d.hpp>
+#include <godot_cpp/classes/concave_polygon_shape3d.hpp>
+#include <godot_cpp/classes/static_body3d.hpp>
 #include <godot_cpp/classes/animation_player.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/core/class_db.hpp>
@@ -45,6 +49,7 @@ void UnifiedAssetImporter::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_model", "vfs_uri", "pose_name", "animations"),
                          &UnifiedAssetImporter::load_model,
                          DEFVAL(String()), DEFVAL(PackedStringArray()));
+    ClassDB::bind_method(D_METHOD("load_map", "vfs_uri"), &UnifiedAssetImporter::load_map);
     ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
     ClassDB::bind_method(D_METHOD("get_last_error_code"), &UnifiedAssetImporter::get_last_error_code);
     ClassDB::bind_method(D_METHOD("get_last_missing_companions"),
@@ -380,6 +385,10 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
     mesh_instance->set_name(node_name);
 
     if (parsed.skeleton.bones.empty()) {
+        // A prop with no bones never moves, so its own triangles are the honest collider.
+        if (StaticBody3D* body = trimesh_body(mesh); body != nullptr) {
+            mesh_instance->add_child(body);
+        }
         m_last_error_code = ERR_OK;
         return mesh_instance; // static geometry, nothing to bind
     }
@@ -435,8 +444,75 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
 
     attach_animations(skeleton, parsed);
 
+    if (StaticBody3D* body = capsule_body(mesh->get_aabb()); body != nullptr) {
+        skeleton->add_child(body);
+    }
+
     m_last_error_code = ERR_OK;
     return skeleton;
+}
+
+StaticBody3D* UnifiedAssetImporter::trimesh_body(const Ref<Mesh>& mesh) {
+    if (mesh.is_null()) return nullptr;
+
+    Ref<ConcavePolygonShape3D> shape = mesh->create_trimesh_shape();
+    if (shape.is_null() || shape->get_faces().is_empty()) return nullptr;
+
+    StaticBody3D* body = memnew(StaticBody3D);
+    body->set_name("StaticBody3D");
+
+    CollisionShape3D* collider = memnew(CollisionShape3D);
+    collider->set_name("CollisionShape3D");
+    collider->set_shape(shape);
+    body->add_child(collider);
+    return body;
+}
+
+StaticBody3D* UnifiedAssetImporter::capsule_body(const AABB& bounds) {
+    const Vector3 size = bounds.size;
+    if (size.y <= 0.0f) return nullptr;
+
+    Ref<CapsuleShape3D> shape;
+    shape.instantiate();
+    // Radius from the wider of the two ground axes, so a figure standing side-on is not
+    // sliced in half by its own collider.
+    const float radius = std::max(std::max(size.x, size.z) * 0.5f, 0.05f);
+    shape->set_radius(radius);
+    // A Godot capsule's height includes its two hemispherical caps, so a shorter model than
+    // twice the radius has no cylindrical part left and the height cannot go below that.
+    shape->set_height(std::max(size.y, radius * 2.0f));
+
+    StaticBody3D* body = memnew(StaticBody3D);
+    body->set_name("StaticBody3D");
+
+    CollisionShape3D* collider = memnew(CollisionShape3D);
+    collider->set_name("CollisionShape3D");
+    collider->set_shape(shape);
+    // Centred on the mesh rather than on the origin: a character's origin is at its feet.
+    collider->set_position(bounds.position + size * 0.5f);
+    body->add_child(collider);
+    return body;
+}
+
+Node3D* UnifiedAssetImporter::load_map(const String& vfs_uri) {
+    Ref<ArrayMesh> mesh = load_mesh(vfs_uri);
+    if (mesh.is_null()) return nullptr;
+
+    MeshInstance3D* instance = memnew(MeshInstance3D);
+    instance->set_mesh(mesh);
+    String node_name = vfs_uri.get_file().get_basename().validate_node_name();
+    if (node_name.is_empty()) node_name = "Map";
+    instance->set_name(node_name);
+
+    if (StaticBody3D* body = trimesh_body(mesh); body != nullptr) {
+        instance->add_child(body);
+    } else {
+        UtilityFunctions::printerr("[QuebratskImporter] Map has no collidable geometry: ",
+                                   vfs_uri);
+    }
+
+    m_last_error_code = ERR_OK;
+    return instance;
 }
 
 void UnifiedAssetImporter::attach_animations(Skeleton3D* skeleton,
