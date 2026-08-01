@@ -1,0 +1,17 @@
+{
+  "attacks": [],
+  "cycle_time": 0.5,
+  "fire_sounds": [
+    "sound/weapons/hegrenade-1.wav",
+    "sound/weapons/hegrenade-2.wav",
+    "sound/weapons/he_bounce-1.wav"
+  ],
+  "holder_class": "grenade",
+  "kind": "weapon",
+  "max_speed": 6.35,
+  "model": "models/v_hegrenade.mdl",
+  "name": "v_hegrenade",
+  "quebratsk_preset": 1,
+  "reload": [],
+  "sequences": 4
+}

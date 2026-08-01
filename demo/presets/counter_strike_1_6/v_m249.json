@@ -1,0 +1,25 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2"
+  ],
+  "cycle_time": 0.1,
+  "fire_sounds": [
+    "sound/weapons/m249-1.wav",
+    "sound/weapons/m249-2.wav"
+  ],
+  "holder_class": "m249",
+  "kind": "weapon",
+  "max_speed": 5.588,
+  "model": "models/v_m249.mdl",
+  "name": "v_m249",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 5
+}

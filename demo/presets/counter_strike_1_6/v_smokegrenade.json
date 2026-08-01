@@ -1,0 +1,15 @@
+{
+  "attacks": [],
+  "cycle_time": 0.5,
+  "fire_sounds": [
+    "sound/weapons/pinpull.wav"
+  ],
+  "holder_class": "grenade",
+  "kind": "weapon",
+  "max_speed": 6.35,
+  "model": "models/v_smokegrenade.mdl",
+  "name": "v_smokegrenade",
+  "quebratsk_preset": 1,
+  "reload": [],
+  "sequences": 4
+}

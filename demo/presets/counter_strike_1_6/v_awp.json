@@ -1,0 +1,25 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2",
+    "shoot3"
+  ],
+  "cycle_time": 1.45,
+  "fire_sounds": [
+    "sound/weapons/awp1.wav"
+  ],
+  "holder_class": "rifle",
+  "kind": "weapon",
+  "max_speed": 5.334,
+  "model": "models/v_awp.mdl",
+  "name": "v_awp",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 6
+}

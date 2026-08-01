@@ -1,0 +1,23 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2"
+  ],
+  "fire_sounds": [
+    "sound/weapons/fiveseven_clipout.wav",
+    "sound/weapons/fiveseven_clipin.wav",
+    "sound/weapons/fiveseven_sliderelease.wav"
+  ],
+  "kind": "weapon",
+  "model": "models/v_shield_r.mdl",
+  "name": "v_shield_r",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 9
+}

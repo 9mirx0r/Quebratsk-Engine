@@ -1,0 +1,28 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1",
+    "attachment_2"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2",
+    "shoot3"
+  ],
+  "cycle_time": 0.0875,
+  "fire_sounds": [
+    "sound/weapons/m4a1-1.wav",
+    "sound/weapons/m4a1_unsil-1.wav",
+    "sound/weapons/m4a1_unsil-2.wav"
+  ],
+  "holder_class": "rifle",
+  "kind": "weapon",
+  "max_speed": 5.842,
+  "model": "models/v_m4a1.mdl",
+  "name": "v_m4a1",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 14
+}

@@ -1,0 +1,26 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2",
+    "shoot3"
+  ],
+  "cycle_time": 0.0825,
+  "fire_sounds": [
+    "sound/weapons/famas-1.wav",
+    "sound/weapons/famas-2.wav"
+  ],
+  "holder_class": "carbine",
+  "kind": "weapon",
+  "max_speed": 6.096,
+  "model": "models/v_famas.mdl",
+  "name": "v_famas",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 6
+}

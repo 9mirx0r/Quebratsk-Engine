@@ -1,0 +1,29 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2"
+  ],
+  "cycle_time": 0.25,
+  "fire_sounds": [
+    "sound/weapons/xm1014-1.wav"
+  ],
+  "holder_class": "m249",
+  "kind": "weapon",
+  "max_speed": 6.096,
+  "model": "models/v_xm1014.mdl",
+  "name": "v_xm1014",
+  "quebratsk_preset": 1,
+  "reload": [
+    "start_reload",
+    "insert",
+    "insert",
+    "insert",
+    "insert",
+    "after_reload"
+  ],
+  "sequences": 7
+}

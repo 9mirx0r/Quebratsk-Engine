@@ -1,0 +1,28 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1",
+    "attachment_2"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2",
+    "shoot3"
+  ],
+  "cycle_time": 0.225,
+  "fire_sounds": [
+    "sound/weapons/usp1.wav",
+    "sound/weapons/usp2.wav",
+    "sound/weapons/usp_unsil-1.wav"
+  ],
+  "holder_class": "onehanded",
+  "kind": "weapon",
+  "max_speed": 6.35,
+  "model": "models/v_usp.mdl",
+  "name": "v_usp",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 16
+}

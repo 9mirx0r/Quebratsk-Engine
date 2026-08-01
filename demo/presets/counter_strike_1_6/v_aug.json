@@ -1,0 +1,25 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2",
+    "shoot3"
+  ],
+  "cycle_time": 0.2,
+  "fire_sounds": [
+    "sound/weapons/aug-1.wav"
+  ],
+  "holder_class": "carbine",
+  "kind": "weapon",
+  "max_speed": 6.096,
+  "model": "models/v_aug.mdl",
+  "name": "v_aug",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 6
+}

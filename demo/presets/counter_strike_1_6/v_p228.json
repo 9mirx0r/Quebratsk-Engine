@@ -1,0 +1,25 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot1",
+    "shoot2",
+    "shoot3"
+  ],
+  "cycle_time": 0.2,
+  "fire_sounds": [
+    "sound/weapons/p228-1.wav"
+  ],
+  "holder_class": "onehanded",
+  "kind": "weapon",
+  "max_speed": 6.35,
+  "model": "models/v_p228.mdl",
+  "name": "v_p228",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 7
+}

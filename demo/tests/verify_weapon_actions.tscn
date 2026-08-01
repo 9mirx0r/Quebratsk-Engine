@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://ck1w6weaponacts"]
+[gd_scene format=3 uid="uid://jhsk5p384sou"]
 [ext_resource type="Script" path="res://tests/verify_weapon_actions.gd" id="1_w"]
 [node name="VerifyWeaponActions" type="Node"]
 script = ExtResource("1_w")

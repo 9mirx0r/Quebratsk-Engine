@@ -1,0 +1,34 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1",
+    "attachment_2",
+    "attachment_3"
+  ],
+  "attacks": [
+    "shoot_left1",
+    "shoot_left2",
+    "shoot_left3",
+    "shoot_left4",
+    "shoot_left5",
+    "shoot_right1",
+    "shoot_right2",
+    "shoot_right3",
+    "shoot_right4",
+    "shoot_right5"
+  ],
+  "cycle_time": 0.2,
+  "fire_sounds": [
+    "sound/weapons/elite_fire.wav"
+  ],
+  "holder_class": "dualpistols",
+  "kind": "weapon",
+  "max_speed": 6.35,
+  "model": "models/v_elite.mdl",
+  "name": "v_elite",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 16
+}

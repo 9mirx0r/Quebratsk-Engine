@@ -1,0 +1,24 @@
+{
+  "attachments": [
+    "attachment_0",
+    "attachment_1"
+  ],
+  "attacks": [
+    "shoot",
+    "shoot2"
+  ],
+  "cycle_time": 0.25,
+  "fire_sounds": [
+    "sound/weapons/g3sg1-1.wav"
+  ],
+  "holder_class": "mp5",
+  "kind": "weapon",
+  "max_speed": 5.334,
+  "model": "models/v_g3sg1.mdl",
+  "name": "v_g3sg1",
+  "quebratsk_preset": 1,
+  "reload": [
+    "reload"
+  ],
+  "sequences": 5
+}
