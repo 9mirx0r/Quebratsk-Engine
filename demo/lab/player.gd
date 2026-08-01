@@ -76,7 +76,12 @@ const LADDER_JUMP := 270.0 * UNIT
 
 ## In water everything is slower and the drag is its own. wishspeed *= 0.8 in PM_WaterMove.
 const WATER_SPEED := 0.8
-const WATER_FRICTION := 1.0
+
+## Doing nothing in water sinks you, at a fixed rate rather than at an accelerating one:
+## PM_WaterMove sets a wished-for downward velocity of 60 units per second and leaves it there.
+## An earlier version applied a fraction of gravity, which sinks faster and faster and is not
+## what floating in water feels like.
+const WATER_SINK := 60.0 * UNIT
 
 ## How long the feet may leave the ground before it counts as being in the air.
 const COYOTE := 0.12
@@ -373,7 +378,11 @@ func _physics_process(delta: float) -> void:
 
 	# Which of the level's volumes you are standing in decides how you move at all.
 	_on_ladder = _inside(_ladders)
+	var was_wet := _submerged
 	_submerged = _depth_in_water()
+	# Breaking the surface, either way, is a splash. pl_wade is what the engine plays for it.
+	if (was_wet < 0.5) != (_submerged < 0.5):
+		_splash()
 
 	if _on_ladder:
 		_climb(forward, strafe, delta)
@@ -393,16 +402,22 @@ func _physics_process(delta: float) -> void:
 	# Quake's movement, which GoldSrc inherited and never replaced. Setting velocity straight
 	# from the input gives a character that starts and stops instantly and cannot carry
 	# momentum through a turn; the whole feel of these games is in these two functions.
-	if _submerged > 0.5:
-		# Swimming. Gravity mostly gone, and holding jump takes you up rather than nowhere.
+	if _submerged > 1.5:
+		# Swimming, which is not falling slowly. There is no gravity here at all: the vertical
+		# movement is a wish like any other, and doing nothing wishes gently downward.
 		_apply_friction(delta)
 		_accelerate(wishdir, wishspeed, ACCELERATE, delta)
+
+		var wish_up := -WATER_SINK
 		if Input.is_key_pressed(KEY_SPACE):
-			velocity.y = maxf(velocity.y, wishspeed * 0.7)
-		elif _submerged > 1.5:
-			velocity.y -= GRAVITY * 0.12 * delta   # sinking slowly, not falling
-		else:
-			velocity.y -= GRAVITY * 0.5 * delta
+			wish_up = wishspeed
+		elif Input.is_key_pressed(KEY_CTRL):
+			wish_up = -wishspeed
+		elif forward != 0.0 or strafe != 0.0:
+			# Swimming along looks where you look, so a dive is aiming down and pressing
+			# forward. Nothing else in the engine makes a swim controllable.
+			wish_up = -_camera.global_transform.basis.z.y * wishspeed * absf(forward)
+		velocity.y = move_toward(velocity.y, wish_up, wishspeed * 4.0 * delta)
 	elif is_on_floor():
 		_apply_friction(delta)
 		_accelerate(wishdir, wishspeed, ACCELERATE, delta)
@@ -650,6 +665,20 @@ func _surface_underfoot() -> String:
 		# Everything the engine does not recognise falls to concrete, which is its own default.
 		_surface_now = "step"
 	return _surface_now
+
+
+## Breaking the surface of water, in or out.
+func _splash() -> void:
+	if _step_audio == null:
+		return
+	var samples: Array = _steps_by_surface.get("wade", [])
+	if samples.is_empty():
+		samples = _load_steps("wade")
+	if samples.is_empty():
+		return
+	_step_audio.volume_db = STEP_VOLUME_RUN
+	_step_audio.stream = samples[randi() % samples.size()]
+	_step_audio.play()
 
 
 ## Read one surface's samples, the first time it is walked on.

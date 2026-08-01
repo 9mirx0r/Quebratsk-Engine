@@ -28,6 +28,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Water sank you like weak gravity, and it should be a drift.** `PM_WaterMove` has no gravity
+  in it at all: the vertical movement is a wish like any other, and doing nothing wishes gently
+  downward at a fixed 60 units per second. A fraction of gravity sinks faster and faster, which
+  is what falling feels like and not what floating does.
+
+  Measured, letting go in the deepest pool: **13.2 → 41.2 → 60.0 → 60.0 → 60.0** units per
+  second. It settles on the number and stays there.
+
+  Swimming along now looks where you look, so a dive is aiming down and pressing forward.
+  Breaking the surface either way plays `pl_wade`, which is what the engine does for it.
+
 - **A rotating door would have swung around the middle of the map.** A brush mesh is built with
   its vertices already in world space and its node left at the origin, so turning the node
   turns it about world zero — cs_siege's two doors would have described a 120 metre arc. They
