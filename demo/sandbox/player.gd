@@ -68,6 +68,8 @@ const DAMAGE := 34   # three hits, so a fight lasts long enough to be a fight
 ## does with this the first few times.
 const IMMORTAL := true
 
+const WeaponManifest := preload("res://addons/quebratsk_editor/weapon_manifest.gd")
+
 ## Where the eyes are relative to the head bone, which sits at the base of the skull.
 ## VEC_VIEW puts the eye 64 units above the soles, which is 8 units below the top of a 72
 ## unit hull rather than at the crown. Measured from the head bone rather than from the feet,
@@ -89,6 +91,7 @@ var _fire := ""
 var _weapon_node: Node3D
 var _moves: Dictionary = {}
 var _body_anim: AnimationPlayer
+var _speed := SPEED
 var _bob_time := 0.0
 var _eye_rest := Vector3.ZERO
 
@@ -151,6 +154,17 @@ func arm(weapon: Dictionary) -> void:
 	_fire = str(weapon.get("fire", ""))
 	_weapon_node = weapon.get("node")
 
+	# What you carry decides how fast you move, which is Counter-Strike's rule rather than
+	# Half-Life's: a knife runs at 250 units per second, an AK at 221, an AWP at 210. It is
+	# most of why picking up the sniper rifle feels like a decision, and the number comes from
+	# the game rather than from anything guessable about the model.
+	var declared: float = WeaponManifest.max_speed(str(weapon.get("name", "")))
+	if declared > 0.0:
+		_speed = declared
+		print("[player] %s allows %.2f m/s" % [str(weapon.get("name", "")), _speed])
+	else:
+		_speed = SPEED
+
 
 ## Put the view where the head is, every frame, after the animation has moved it.
 ##
@@ -198,7 +212,7 @@ func _physics_process(delta: float) -> void:
 	if Input.is_key_pressed(KEY_A): strafe -= 1.0
 
 	var wishdir := (transform.basis * Vector3(strafe, 0, -forward)).normalized()
-	var wishspeed := SPEED
+	var wishspeed := _speed
 	if Input.is_key_pressed(KEY_SHIFT):
 		wishspeed *= WALK_FACTOR
 	elif Input.is_key_pressed(KEY_CTRL):
