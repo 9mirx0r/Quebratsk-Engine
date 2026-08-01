@@ -53,6 +53,14 @@ struct IRMeshData {
     /// IRSurface::embedded_texture_index.
     std::vector<IRTextureData> embedded_textures;
 
+    /// Where this asset says its materials live, e.g. "models/player/police/".
+    ///
+    /// A Source model names its materials ("police") and, separately, the directories to
+    /// look for them in. Without the second half a loader can only search the whole index
+    /// for something ending in "/police.vmt", which finds the wrong file as easily as the
+    /// right one and, often enough, nothing: that is why models arrived untextured.
+    std::vector<std::string> material_search_paths;
+
     godot::Vector3 bbox_min;
     godot::Vector3 bbox_max;
 };

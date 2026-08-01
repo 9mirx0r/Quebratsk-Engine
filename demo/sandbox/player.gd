@@ -1,0 +1,112 @@
+extends CharacterBody3D
+
+## First-person controller for the sandbox. Deliberately plain: this is here to prove the
+## imported world can be walked through and shot at, not to be a movement system.
+
+const SPEED := 5.0
+const GRAVITY := 22.0
+const JUMP := 6.5
+const LOOK_SENSITIVITY := 0.0022
+const RANGE := 80.0
+const DAMAGE := 34   # three hits, so a fight lasts long enough to be a fight
+
+## While this is on, damage is reported but never applied. It exists so the level can be
+## walked around and looked at without a fight interrupting, which is most of what anyone
+## does with this the first few times.
+const IMMORTAL := true
+
+var health := 100
+
+var _sandbox: Node3D
+var _camera: Camera3D
+var _pitch := 0.0
+var _gunshot: AudioStream
+var _audio: AudioStreamPlayer3D
+
+
+func setup(sandbox: Node3D, camera: Camera3D) -> void:
+	_sandbox = sandbox
+	_camera = camera
+	_gunshot = sandbox.find_gunshot()
+	_audio = AudioStreamPlayer3D.new()
+	# The player's own weapon is at the camera, so at default settings 3D attenuation puts
+	# it right on top of the listener. Pulled well down: this is a gunshot fired next to
+	# someone's ear.
+	_audio.volume_db = -14.0
+	_audio.unit_size = 3.0
+	add_child(_audio)
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		rotate_y(-event.relative.x * LOOK_SENSITIVITY)
+		# Clamped just short of straight up and down: at exactly 90 degrees the camera
+		# basis degenerates and the view rolls.
+		_pitch = clampf(_pitch - event.relative.y * LOOK_SENSITIVITY, -1.5, 1.5)
+		if _camera != null:
+			_camera.rotation.x = _pitch
+
+	elif event is InputEventMouseButton and event.pressed \
+			and event.button_index == MOUSE_BUTTON_LEFT:
+		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+			_shoot()
+		else:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func _physics_process(delta: float) -> void:
+	if health <= 0:
+		return
+
+	var forward := 0.0
+	var strafe := 0.0
+	if Input.is_key_pressed(KEY_W): forward += 1.0
+	if Input.is_key_pressed(KEY_S): forward -= 1.0
+	if Input.is_key_pressed(KEY_D): strafe += 1.0
+	if Input.is_key_pressed(KEY_A): strafe -= 1.0
+
+	var direction := (transform.basis * Vector3(strafe, 0, -forward)).normalized()
+	velocity.x = direction.x * SPEED
+	velocity.z = direction.z * SPEED
+
+	if is_on_floor():
+		if Input.is_key_pressed(KEY_SPACE):
+			velocity.y = JUMP
+	else:
+		velocity.y -= GRAVITY * delta
+
+	move_and_slide()
+
+
+func _shoot() -> void:
+	if _camera == null:
+		return
+	if _gunshot != null and _audio != null:
+		_audio.stream = _gunshot
+		_audio.play()
+
+	var from := _camera.global_position
+	var to := from - _camera.global_transform.basis.z * RANGE
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return
+
+	var struck = hit["collider"]
+	if struck != null and struck.has_method("take_damage"):
+		struck.take_damage(DAMAGE)
+
+
+func take_damage(amount: int) -> void:
+	if IMMORTAL:
+		return
+	health = maxi(0, health - amount)
+	if _sandbox != null:
+		_sandbox.on_state_changed()
+	if health <= 0:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

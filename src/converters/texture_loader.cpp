@@ -4,6 +4,7 @@
 #include "../core/vfs/texture_cache.h"
 #include "../parsers/source1/vtf_parser.h"
 #include "../parsers/goldsrc/wad3_parser.h"
+#include "../parsers/source1/vmt_parser.h"
 #include "../parsers/rv_enfusion/paa_parser.h"
 
 #include <godot_cpp/variant/utility_functions.hpp>
@@ -72,7 +73,22 @@ Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
     }
 
     std::string resolved_uri;
-    if (key.starts_with("vfs://")) {
+
+    // What the asset itself said, before any guessing. A model states both the material's
+    // name and the directories it lives in; joining them is an exact path, and searching
+    // the index for a suffix is not.
+    if (!_search_paths.empty() && !key.starts_with("vfs://")) {
+        const std::string bare = has_extension(key) ? key.substr(0, key.find_last_of('.')) : key;
+        for (const auto& dir : _search_paths) {
+            for (const char* ext : {".vmt", ".vtf"}) {
+                resolved_uri = _vfs->find_by_suffix("/" + dir + bare + ext);
+                if (!resolved_uri.empty()) break;
+            }
+            if (!resolved_uri.empty()) break;
+        }
+    }
+
+    if (resolved_uri.empty() && key.starts_with("vfs://")) {
         // Already a full VFS URI, which is what a caller holding a search result has. This
         // used to fall through to the suffix search below, where it could never match: the
         // indexed key is "vfs://mount/path" and the search asked for something *ending* in
@@ -81,7 +97,7 @@ Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
         if (_vfs->file_exists(godot::String(key.c_str()))) {
             resolved_uri = key;
         }
-    } else {
+    } else if (resolved_uri.empty()) {
         for (const auto& candidate : build_candidates(key)) {
             resolved_uri = _vfs->find_by_suffix(candidate);
             if (!resolved_uri.empty()) break;
@@ -89,7 +105,9 @@ Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
     }
 
     if (resolved_uri.empty()) {
-        UtilityFunctions::printerr("[TextureLoader] No file matches: ", String(key.c_str()));
+        // Recorded rather than only logged, so a caller can tell a user which files their
+        // model wanted and did not get instead of handing them something grey.
+        _missing.push_back(key);
         cache.set_texture(key, Ref<Texture2D>());
         return {};
     }
@@ -104,6 +122,30 @@ Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
 
     ir::IRTextureData ir_tex;
     bool decoded = false;
+
+    // A .vmt is a material script, not a picture: it names the image rather than being
+    // one. Resolving a model's material to its .vmt and then handing those bytes to an
+    // image decoder is how a correctly located texture still ends up as nothing, which is
+    // what every Source model was doing. Follow the reference it holds.
+    if (resolved_uri.ends_with(".vmt")) {
+        auto material = parsers::source1::VMTParser::parse(bytes);
+        if (material.has_value() && material->albedo_texture.has_value()) {
+            const std::string base = normalize_ref(material->albedo_texture->vfs_path);
+            if (!base.empty() && base != key) {
+                Ref<Texture2D> image = load(base);
+                cache.set_texture(key, image);
+                if (image.is_null()) {
+                    _missing.push_back(base);
+                }
+                return image;
+            }
+        }
+        UtilityFunctions::printerr("[TextureLoader] Material names no base texture: ",
+                                   String(resolved_uri.c_str()));
+        _missing.push_back(key);
+        cache.set_texture(key, Ref<Texture2D>());
+        return {};
+    }
 
     if (resolved_uri.ends_with(".vtf")) {
         if (auto res = parsers::source1::VTFParser::parse(bytes); res.has_value()) {

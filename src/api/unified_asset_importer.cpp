@@ -298,6 +298,7 @@ Ref<ArrayMesh> UnifiedAssetImporter::load_mesh(const String& vfs_uri) {
 
     m_last_error_code = 0; // OK
     converters::TextureLoader loader(m_vfs);
+    loader.set_search_paths(parsed.mesh.material_search_paths);
     return converters::MeshConverter::convert(parsed.mesh, &loader);
 }
 
@@ -370,10 +371,24 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
     }
 
     converters::TextureLoader loader(m_vfs);
+    loader.set_search_paths(parsed.mesh.material_search_paths);
     Ref<ArrayMesh> mesh = converters::MeshConverter::convert(parsed.mesh, &loader);
     if (mesh.is_null()) {
         m_last_error_code = ERR_PARSE_FAILED;
         return nullptr;
+    }
+
+    // Materials the model asked for and did not get. A model that renders flat and grey
+    // looks identical to one that has no textures at all, and a user cannot tell the two
+    // apart or do anything about either without being told which files were wanted.
+    for (const auto& absent : loader.missing()) {
+        m_last_missing.push_back(String(absent.c_str()));
+    }
+    if (!loader.missing().empty()) {
+        UtilityFunctions::printerr("[QuebratskImporter] ",
+                                   static_cast<int64_t>(loader.missing().size()),
+                                   " material(s) not found for ", String(parsed.mesh.name.c_str()),
+                                   "; first: ", String(loader.missing().front().c_str()));
     }
 
     // Model names are compile-time paths ("C:\SIERRA\Half-Life\models\x.mdl"), and
