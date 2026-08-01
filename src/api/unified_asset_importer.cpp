@@ -565,6 +565,37 @@ Node3D* UnifiedAssetImporter::load_character(const String& vfs_uri, const String
     return body;
 }
 
+void UnifiedAssetImporter::report_missing_wads(const String& vfs_uri) {
+    // A GoldSrc map either carries its textures inside the .bsp or names the .wad files
+    // they live in and expects you to have them. A custom map almost always does the
+    // second, and a player who does not have those files gets surfaces drawn with whatever
+    // the loader found by name instead: recognisably wrong, and with nothing said about it.
+    //
+    // Naming the file is the difference between "this map looks broken" and "this map wants
+    // 3dmsnowy.wad", which is something a person can act on.
+    const Array entities = load_map_entities(vfs_uri);
+    for (int64_t i = 0; i < entities.size(); ++i) {
+        const Dictionary entity = entities[i];
+        if (String(entity.get("classname", "")) != "worldspawn") continue;
+
+        const PackedStringArray wads = String(entity.get("wad", "")).split(";", false);
+        for (int64_t w = 0; w < wads.size(); ++w) {
+            const String file = wads[w].replace("\\", "/").get_file();
+            if (file.is_empty()) continue;
+
+            // Mounted under any prefix is enough: the map names a filename, not a path.
+            const std::string wanted = "/" + to_lower_ascii(file.utf8().get_data());
+            if (m_vfs->find_by_suffix(wanted).empty()) {
+                m_last_missing.push_back(file);
+                UtilityFunctions::printerr(
+                    "[QuebratskImporter] ", vfs_uri.get_file(), " wants ", file,
+                    ", which is not mounted; surfaces using it will be wrong");
+            }
+        }
+        break;
+    }
+}
+
 Array UnifiedAssetImporter::load_map_entities(const String& vfs_uri) {
     Array out;
     if (!m_vfs) {
@@ -657,6 +688,8 @@ Node3D* UnifiedAssetImporter::load_map(const String& vfs_uri) {
         UtilityFunctions::printerr("[QuebratskImporter] Map has no collidable geometry: ",
                                    vfs_uri);
     }
+
+    report_missing_wads(vfs_uri);
 
     m_last_error_code = ERR_OK;
     return instance;
