@@ -18,6 +18,7 @@ const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd")
 const WeaponManifest := preload("res://addons/quebratsk_editor/weapon_manifest.gd")
+const EntityCatalogue := preload("res://addons/quebratsk_editor/entity_catalogue.gd")
 const PlayerScript := preload("res://sandbox/player.gd")
 const NpcScript := preload("res://sandbox/npc.gd")
 
@@ -206,11 +207,35 @@ func _load_random_map() -> bool:
 		_map_uri = uri
 		_scope = _game_scope(uri)
 		_built["map"] = "%s   (%s)" % [uri.get_file(), _which_game(uri)]
+		_describe_level(uri)
 		_read_spawns(uri)
 		_place_ambient_sounds(uri)
 		_apply_sky(uri)
 		return true
 	return false
+
+
+## Say what the level is made of, in words rather than in classnames.
+##
+## A map declares hundreds of entities and the .bsp names them only as identifiers. The entity
+## catalogue turns those into what they are, so a level reports "12 Invisible lightsource, 8
+## Basic door" rather than "12 light, 8 func_door". The second is a tally; the first is a
+## description of a place.
+func _describe_level(uri: String) -> void:
+	var made_of: Dictionary = EntityCatalogue.summarise(importer.load_map_entities(uri))
+	if made_of.is_empty():
+		return
+
+	# Loudest first, since what a level has most of is what it is.
+	var parts := []
+	for what in made_of:
+		parts.append([int(made_of[what]), str(what)])
+	parts.sort_custom(func(a, b): return a[0] > b[0])
+
+	var said := PackedStringArray()
+	for row in parts.slice(0, 6):
+		said.append("%d %s" % [row[0], row[1]])
+	print("[sandbox] %s contains: %s" % [uri.get_file(), ", ".join(said)])
 
 
 ## Give the map back the sounds it declares.
@@ -252,7 +277,7 @@ func _place_ambient_sounds(uri: String) -> void:
 		# Dialogue and machinery that starts on a trigger. The tram ride announcer at the
 		# start of Half-Life is one of these, and looping it the moment a level opens is
 		# worse than leaving it out.
-		if flags & START_SILENT:
+		if EntityCatalogue.flag_set("ambient_generic", flags, "start silent"):
 			cues += 1
 			continue
 
@@ -286,7 +311,18 @@ func _place_ambient_sounds(uri: String) -> void:
 			node.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
 			node.max_distance = 0.0
 		else:
-			var radius: float = float(entity.get("radius", DEFAULT_RADIUS)) * UNITS_TO_METRES
+			# How far it carries is a spawnflag, not a key. This read a "radius" key that the
+			# entity schema does not have, so every sound in every map played at the default
+			# reach no matter what the mapper picked. The FGD names bits 2, 4 and 8 small,
+			# medium and large, and reading them is what the game does.
+			var units := DEFAULT_RADIUS
+			if EntityCatalogue.flag_set("ambient_generic", flags, "small radius"):
+				units = 400.0
+			elif EntityCatalogue.flag_set("ambient_generic", flags, "medium radius"):
+				units = 1250.0
+			elif EntityCatalogue.flag_set("ambient_generic", flags, "large radius"):
+				units = 2500.0
+			var radius: float = units * UNITS_TO_METRES
 			node.max_distance = radius
 			# Nominal volume out to a quarter of the radius, fading over the rest, so a sound
 			# is audible around its source rather than only on top of it.
@@ -302,6 +338,7 @@ func _place_ambient_sounds(uri: String) -> void:
 
 	print("[sandbox] %s ambience: %d playing, %d waiting on a trigger, %d not found"
 		% [uri.get_file(), playing, cues, absent])
+
 	_built["ambience"] = "%d sound(s)" % playing
 
 
