@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] "Volvokjark" - 2026-08-01
+
+The release where Half-Life 1 and Counter-Strike stopped standing still, and where four
+separate things that had been quietly wrong for months were found by looking at the screen
+rather than at the code.
+
 ### Added
 
 - **Half-Life 1 and Counter-Strike 1.6 models animate.** The GoldSrc reader had no notion of
