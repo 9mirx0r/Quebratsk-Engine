@@ -293,11 +293,15 @@ int main() {
 
         if (s.positions.size() == 3) {
             // Source stores model-space vertices, so only the axis remap applies:
-            // (x, y, z) -> (x*k, z*k, -y*k)
-            check("v0.x", s.positions[0].x,  10.0f * kScale);
+            // (x, y, z) -> (-y*k, z*k, -x*k)
+            //
+            // These read (x*k, z*k, -y*k) until the remap was corrected. That mapping sent
+            // Valve's forward to Godot's right, and this test asserted it was right, which is
+            // why neither this nor any other check ever noticed.
+            check("v0.x", s.positions[0].x, -20.0f * kScale);
             check("v0.y", s.positions[0].y,  30.0f * kScale);
-            check("v0.z", s.positions[0].z, -20.0f * kScale);
-            check("v2.x", s.positions[2].x,  70.0f * kScale);
+            check("v0.z", s.positions[0].z, -10.0f * kScale);
+            check("v2.x", s.positions[2].x, -80.0f * kScale);
             check("v2.y", s.positions[2].y,  90.0f * kScale);
         }
         if (s.uv0.size() == 3) {
