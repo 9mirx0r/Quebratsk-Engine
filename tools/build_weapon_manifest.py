@@ -111,13 +111,23 @@ def parse_weapon(name: str, text: str, constants: dict[str, float]) -> dict:
         # and a knife being drawn both do.
         not_firing = ("clipin", "clipout", "boltpull", "deploy", "draw", "slideback",
                       "sliderelease", "reload", "pinpull", "hit", "stab", "wall")
+        # Numbered takes are the common case, and a handful say so in words instead: the
+        # dual berettas fire elite_fire.wav, with no numeral anywhere, and were reported as a
+        # weapon that makes no shooting noise.
         fire = [x for x in sounds
-                if re.search(r"[-_]?\d+\.wav$", x) and not any(w in x.lower() for w in not_firing)]
+                if (re.search(r"[-_]?\d+\.wav$", x) or "_fire" in x.lower())
+                and not any(w in x.lower() for w in not_firing)]
         if fire:
             weapon["fire_sounds"] = fire
 
     # Numbers, resolved through the constants when the source names one.
-    upper = name.upper()
+    #
+    # A few weapons are filed under one name and declare their constants under another, so
+    # wpn_mp5navy.cpp wants MP5N_DAMAGE and not MP5NAVY_DAMAGE. Looking only under the
+    # filename left the MP5 with no damage, no clip and no range, which reads exactly like a
+    # weapon that has none rather than like a lookup under the wrong key.
+    ALIASES = {"mp5navy": "MP5N", "usp": "USP", "glock18": "GLOCK18", "elite": "ELITE"}
+    upper = ALIASES.get(name, name.upper())
     for key, suffixes in [
         ("damage", ["_DAMAGE"]),
         ("range_modifier", ["_RANGE_MODIFER", "_RANGE_MODIFIER"]),
