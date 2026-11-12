@@ -38,44 +38,81 @@ std::expected<ParsedSprite, SPRParseError> SPRParser::parse(
     const uint8_t* palette = reinterpret_cast<const uint8_t*>(spr_bytes.data() + cursor);
     cursor += 768; // 256 RGB colors
 
-    for (int32_t i = 0; i < header->num_frames && cursor < spr_bytes.size(); ++i) {
-        if (cursor + sizeof(SpriteFrameHeader) > spr_bytes.size()) break;
+    // Each top-level frame is introduced by dspriteframetype_t: an int32 that is
+    // 0 for "one frame follows" or 1 for "a group follows" (a member count, then
+    // that many frames). The retail corpus only uses 0, but the type word is
+    // always present: reading the frame header without skipping it shifts
+    // origin_y into width and decodes pixels from the wrong offset.
+    constexpr int32_t kFrameTypeSingle = 0;
+    constexpr int32_t kFrameTypeGroup = 1;
+    constexpr int32_t kMaxGroupMembers = 64;
 
-        auto* frame_hdr = reinterpret_cast<const SpriteFrameHeader*>(spr_bytes.data() + cursor);
-        cursor += sizeof(SpriteFrameHeader);
+    bool truncated = false;
+    for (int32_t i = 0; i < header->num_frames && !truncated; ++i) {
+        if (cursor + sizeof(int32_t) > spr_bytes.size()) break;
 
-        // width/height are int32_t. A negative value casts to a huge size_t, the
-        // multiplication wraps, and both the resize() below and the pixel loop then
-        // run out of bounds. GoldSrc sprites never exceed 4096 px on a side.
-        constexpr int32_t kMaxSpriteDim = 4096;
-        if (frame_hdr->width <= 0 || frame_hdr->height <= 0 ||
-            frame_hdr->width > kMaxSpriteDim || frame_hdr->height > kMaxSpriteDim) {
-            break;
+        int32_t frame_type = 0;
+        std::memcpy(&frame_type, spr_bytes.data() + cursor, sizeof(int32_t));
+        cursor += sizeof(int32_t);
+
+        int32_t members = 1;
+        if (frame_type == kFrameTypeGroup) {
+            if (cursor + sizeof(int32_t) > spr_bytes.size()) break;
+            std::memcpy(&members, spr_bytes.data() + cursor, sizeof(int32_t));
+            cursor += sizeof(int32_t);
+            if (members <= 0 || members > kMaxGroupMembers) {
+                break;
+            }
+        } else if (frame_type != kFrameTypeSingle) {
+            break; // unknown frame type: the rest of the stream cannot be delimited
         }
 
-        DecodedSpriteFrame frame;
-        frame.origin_x = frame_hdr->origin_x;
-        frame.origin_y = frame_hdr->origin_y;
-        frame.width = frame_hdr->width;
-        frame.height = frame_hdr->height;
+        for (int32_t member = 0; member < members; ++member) {
+            if (cursor + sizeof(SpriteFrameHeader) > spr_bytes.size()) {
+                truncated = true;
+                break;
+            }
 
-        size_t num_pixels = static_cast<size_t>(frame.width) * static_cast<size_t>(frame.height);
-        // Subtraction, not addition: cursor + num_pixels can wrap.
-        if (cursor > spr_bytes.size() || num_pixels > spr_bytes.size() - cursor) break;
+            auto* frame_hdr = reinterpret_cast<const SpriteFrameHeader*>(spr_bytes.data() + cursor);
+            cursor += sizeof(SpriteFrameHeader);
 
-        const uint8_t* indices = reinterpret_cast<const uint8_t*>(spr_bytes.data() + cursor);
-        cursor += num_pixels;
+            // width/height are int32_t. A negative value casts to a huge size_t, the
+            // multiplication wraps, and both the resize() below and the pixel loop then
+            // run out of bounds. GoldSrc sprites never exceed 4096 px on a side.
+            constexpr int32_t kMaxSpriteDim = 4096;
+            if (frame_hdr->width <= 0 || frame_hdr->height <= 0 ||
+                frame_hdr->width > kMaxSpriteDim || frame_hdr->height > kMaxSpriteDim) {
+                truncated = true;
+                break;
+            }
 
-        frame.rgba8_pixels.resize(num_pixels * 4);
-        for (size_t p = 0; p < num_pixels; ++p) {
-            uint8_t idx = indices[p];
-            frame.rgba8_pixels[p * 4 + 0] = palette[idx * 3 + 0]; // R
-            frame.rgba8_pixels[p * 4 + 1] = palette[idx * 3 + 1]; // G
-            frame.rgba8_pixels[p * 4 + 2] = palette[idx * 3 + 2]; // B
-            frame.rgba8_pixels[p * 4 + 3] = (idx == 255) ? 0 : 255; // 255 = Transparent index
+            DecodedSpriteFrame frame;
+            frame.origin_x = frame_hdr->origin_x;
+            frame.origin_y = frame_hdr->origin_y;
+            frame.width = frame_hdr->width;
+            frame.height = frame_hdr->height;
+
+            size_t num_pixels = static_cast<size_t>(frame.width) * static_cast<size_t>(frame.height);
+            // Subtraction, not addition: cursor + num_pixels can wrap.
+            if (cursor > spr_bytes.size() || num_pixels > spr_bytes.size() - cursor) {
+                truncated = true;
+                break;
+            }
+
+            const uint8_t* indices = reinterpret_cast<const uint8_t*>(spr_bytes.data() + cursor);
+            cursor += num_pixels;
+
+            frame.rgba8_pixels.resize(num_pixels * 4);
+            for (size_t p = 0; p < num_pixels; ++p) {
+                uint8_t idx = indices[p];
+                frame.rgba8_pixels[p * 4 + 0] = palette[idx * 3 + 0]; // R
+                frame.rgba8_pixels[p * 4 + 1] = palette[idx * 3 + 1]; // G
+                frame.rgba8_pixels[p * 4 + 2] = palette[idx * 3 + 2]; // B
+                frame.rgba8_pixels[p * 4 + 3] = (idx == 255) ? 0 : 255; // 255 = Transparent index
+            }
+
+            sprite.frames.push_back(std::move(frame));
         }
-
-        sprite.frames.push_back(std::move(frame));
     }
 
     return sprite;

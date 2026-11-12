@@ -112,6 +112,7 @@ if(QUEBRATSK_BUILD_TESTS)
     quebratsk_add_test(dxt_decoder_test  src/core/image/dxt_decoder.cpp)
     quebratsk_add_test(anim_decoder_test src/parsers/source1/anim_decoder.cpp)
     quebratsk_add_test(mdl10_parser_test src/parsers/goldsrc/mdl10_parser.cpp)
+    quebratsk_add_test(spr_parser_test   src/parsers/goldsrc/spr_parser.cpp)
     quebratsk_add_test(paa_parser_test
         src/parsers/rv_enfusion/paa_parser.cpp
         src/core/image/dxt_decoder.cpp
