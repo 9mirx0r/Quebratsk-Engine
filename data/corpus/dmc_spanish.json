@@ -1,0 +1,175 @@
+{
+  "app_id": 40,
+  "display_name": "Deathmatch Classic (Spanish)",
+  "duplicates": {
+    "cross_game_shared_bytes": 33264,
+    "cross_game_shared_files": 3,
+    "files_unique_to_game": 5,
+    "partners": {
+      "bshift": 3,
+      "dmc": 3,
+      "valve": 3
+    }
+  },
+  "files": [
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 44,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "commandmenu.txt",
+      "sha256": "28dcf2eeb7bb85186d228c691a9ddf73fe7ee13ea96d9e5917bc7a388fe8c9c4",
+      "size": 870,
+      "version": null
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/GIB_Legbone.mdl",
+        "numbodyparts": 1,
+        "numbones": 3,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/gib_1.mdl",
+      "sha256": "aa5bc46c4676d0cd87d1b1de31e80e9d276c17d8b81238a94e08f146a931c8c1",
+      "size": 6456,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/GIB_Skull.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/gib_2.mdl",
+      "sha256": "44eb5565d9748a171afb235b7eff9ad1ad3836567ca42853a50ffa3c2d6c34bb",
+      "size": 21728,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/GIB_B_Gib.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/gib_3.mdl",
+      "sha256": "26e56ee0c7c9aa13e91361c89c5a77914908b4bdfbd3e5215ea9517453b60e4a",
+      "size": 5080,
+      "version": 10
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 9,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "motd.txt",
+      "sha256": "f55e2402bac598a72c2d2347aaec365a6862caa00f0f666167a03f07b6192c40",
+      "size": 129,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 34,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "resource/dmc_spanish.txt",
+      "sha256": "dc47b7960d4230bea26876dddf0dba7949c1a33a212893f412edf038581b6527",
+      "size": 2486,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 66,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "spectatormenu.txt",
+      "sha256": "8559c7d36152cde7cfdc3b52facb7d03733de1c98a5e37fe6ed08247a528735c",
+      "size": 1363,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 355,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "titles.txt",
+      "sha256": "c2612129a2fc3bd8c67e7202086c99474e0dda5195bcd194001bb695a880777b",
+      "size": 4543,
+      "version": null
+    }
+  ],
+  "findings": {
+    "bsp_lump_layouts": {},
+    "maps_not_checked": [],
+    "maps_without_worldspawn": [],
+    "models_without_sidecar": [],
+    "parse_errors": [],
+    "wad_references": [],
+    "wads_missing": [],
+    "wads_only_in_other_game": [],
+    "zero_byte_files": []
+  },
+  "format_versions": {
+    "mdl": {
+      "10": 3
+    }
+  },
+  "game": "dmc_spanish",
+  "schema": 1,
+  "tool": "tools/corpus_scan.py",
+  "tool_version": "1.0.0",
+  "totals": {
+    "by_extension": {
+      ".mdl": {
+        "bytes": 33264,
+        "files": 3
+      },
+      ".txt": {
+        "bytes": 9391,
+        "files": 5
+      }
+    },
+    "bytes": 42655,
+    "files": 8
+  },
+  "variant_of": "dmc"
+}

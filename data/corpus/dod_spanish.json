@@ -1,0 +1,333 @@
+{
+  "app_id": 30,
+  "display_name": "Day of Defeat (Spanish)",
+  "duplicates": {
+    "cross_game_shared_bytes": 0,
+    "cross_game_shared_files": 0,
+    "files_unique_to_game": 21,
+    "partners": {}
+  },
+  "files": [
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 120,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "commandmenu.txt",
+      "sha256": "4ca12d3054481b42fc53d0fa0598bca1b5b0e24fbd6f5197222f5b8968134ced",
+      "size": 4205,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 27,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_anzio.txt",
+      "sha256": "48a0baae6e909ee6671972272f4535ba94a2f2e4daf8f4778ce256c87dfaeaae",
+      "size": 834,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 31,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_avalanche.txt",
+      "sha256": "3cfe4acb3c4fe870e849f86a6681389c0ea720fdbf8184503eb60baf02346c28",
+      "size": 1042,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 33,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_caen.txt",
+      "sha256": "c03bcfcd7ffbf82309fc675b90e8443c198d53422033897472227df18ee97b13",
+      "size": 998,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 39,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_charlie.txt",
+      "sha256": "4f51cba8f70d2863d1ecba35127db767a89e43d581b82da5cb9220aefa94bd15",
+      "size": 1216,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 31,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_chemille.txt",
+      "sha256": "13da36b2df8145dcaede77e95f3c984ff656704352f5a57f84d581b3672eb899",
+      "size": 900,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 33,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_donner.txt",
+      "sha256": "2976898e7fbb95c9d966c53af41300db62b727e8918d2985899f6830f6b62311",
+      "size": 1012,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 26,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_escape.txt",
+      "sha256": "956f0894d497671c537d224be7eec118c7dc15999c85b188c37a007479d72689",
+      "size": 791,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 33,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_flash.txt",
+      "sha256": "6559b8e2f0ff384a06bcff3d6108bfb7848da7fb1c071ce31155a1a147545a8d",
+      "size": 974,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 26,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_flugplatz.txt",
+      "sha256": "eb8e82abfb87a2e653dd073da883cd2c1e1e44d754fc8eb8dfc66ab088660e05",
+      "size": 960,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 27,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_forest.txt",
+      "sha256": "b55b51d1667a0d65ffe6684552404a043e35266cec0ea0068c58a3dafb948746",
+      "size": 804,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 37,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_glider.txt",
+      "sha256": "6ddd6be6663ad1843db8674fd0d4aa8eb15880842df0eed0e65671f4cede12da",
+      "size": 1342,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 43,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_jagd.txt",
+      "sha256": "e81027113e13224173b74bf7049902e9b366af4a113a6da81639cf35ca28819a",
+      "size": 1458,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 31,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_kalt.txt",
+      "sha256": "7b1185126d6c4b6d3050c51d16ce68df2313bfe54277a32dafc0398e47ee0956",
+      "size": 1016,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 33,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_kraftstoff.txt",
+      "sha256": "3f63deb4a60f65a069ea4f1d3ae06ea5365c189c9c6ad3e921da3321cfba6bd2",
+      "size": 1252,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 29,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_merderet.txt",
+      "sha256": "18742cacec9df8f6b949bb30b353ce205f59019b4afacf806cdfd9d6cad14bde",
+      "size": 870,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_switch.txt",
+      "sha256": "91fe385c9751466b5a427e5cb7abf5655fd8c99d534d6b3b0315465252fdca13",
+      "size": 401,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 29,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_vicenza.txt",
+      "sha256": "fb5c213f500593085ddb4bc6a9d8081e6252df0322507177485fd65b8e532857",
+      "size": 1322,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 39,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dod_zalec.txt",
+      "sha256": "3941112a23858b13f047256a9ae81cf9ac069c0e9846b9981dc1626fd64224b3",
+      "size": 1334,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 21,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "motd.txt",
+      "sha256": "673c7d6a7e158584399b3262ea3c82bebbc7cb9c741b2052876a97e6d4d9de14",
+      "size": 1373,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 1747,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "resource/dod_spanish.txt",
+      "sha256": "d686082f01b0d880707c9fa6e85e3821043de0e25ce361fcc689cb972a2ac68c",
+      "size": 197682,
+      "version": null
+    }
+  ],
+  "findings": {
+    "bsp_lump_layouts": {},
+    "maps_not_checked": [],
+    "maps_without_worldspawn": [],
+    "models_without_sidecar": [],
+    "parse_errors": [],
+    "wad_references": [],
+    "wads_missing": [],
+    "wads_only_in_other_game": [],
+    "zero_byte_files": []
+  },
+  "format_versions": {},
+  "game": "dod_spanish",
+  "schema": 1,
+  "tool": "tools/corpus_scan.py",
+  "tool_version": "1.0.0",
+  "totals": {
+    "by_extension": {
+      ".txt": {
+        "bytes": 221786,
+        "files": 21
+      }
+    },
+    "bytes": 221786,
+    "files": 21
+  },
+  "variant_of": "dod"
+}

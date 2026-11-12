@@ -1,0 +1,245 @@
+{
+  "bsp_lump_layouts": {
+    "bshift": 37,
+    "standard": 360
+  },
+  "corpus_root_name": "Half-Life",
+  "duplicates": {
+    "files": 7460,
+    "groups": 3472,
+    "redundant_bytes": 253964028
+  },
+  "findings": {
+    "maps_not_checked": 0,
+    "maps_without_worldspawn": 0,
+    "models_without_sidecar": 3,
+    "parse_errors": 0,
+    "wad_references": 1455,
+    "wads_missing": 36,
+    "wads_only_in_other_game": 6,
+    "zero_byte_files": 1
+  },
+  "format_versions": {
+    "bsp": {
+      "30": 397
+    },
+    "mdl": {
+      "10": 3311,
+      "9": 1
+    },
+    "spr": {
+      "2": 1361
+    },
+    "wad": {
+      "3": 126
+    }
+  },
+  "games": [
+    {
+      "app_id": 130,
+      "bytes": 208238950,
+      "display_name": "Blue Shift",
+      "files": 3268,
+      "folder": "bshift",
+      "unique_files": 481,
+      "variant_of": null
+    },
+    {
+      "app_id": 130,
+      "bytes": 9896000,
+      "display_name": "Blue Shift (HD pack)",
+      "files": 128,
+      "folder": "bshift_hd",
+      "unique_files": 71,
+      "variant_of": "bshift"
+    },
+    {
+      "app_id": 10,
+      "bytes": 241622791,
+      "display_name": "Counter-Strike 1.6",
+      "files": 1066,
+      "folder": "cstrike",
+      "unique_files": 893,
+      "variant_of": null
+    },
+    {
+      "app_id": 10,
+      "bytes": 26459518,
+      "display_name": "Counter-Strike 1.6 (HD pack)",
+      "files": 90,
+      "folder": "cstrike_hd",
+      "unique_files": 0,
+      "variant_of": "cstrike"
+    },
+    {
+      "app_id": 10,
+      "bytes": 1949175,
+      "display_name": "Counter-Strike 1.6 (Spanish)",
+      "files": 81,
+      "folder": "cstrike_spanish",
+      "unique_files": 80,
+      "variant_of": "cstrike"
+    },
+    {
+      "app_id": 80,
+      "bytes": 310795028,
+      "display_name": "Condition Zero",
+      "files": 1686,
+      "folder": "czero",
+      "unique_files": 1225,
+      "variant_of": null
+    },
+    {
+      "app_id": 80,
+      "bytes": 12585728,
+      "display_name": "Condition Zero (Spanish)",
+      "files": 516,
+      "folder": "czero_spanish",
+      "unique_files": 516,
+      "variant_of": "czero"
+    },
+    {
+      "app_id": 100,
+      "bytes": 1143475885,
+      "display_name": "Condition Zero: Deleted Scenes",
+      "files": 6133,
+      "folder": "czeror",
+      "unique_files": 5662,
+      "variant_of": null
+    },
+    {
+      "app_id": 100,
+      "bytes": 156441522,
+      "display_name": "Condition Zero: Deleted Scenes (Spanish)",
+      "files": 2711,
+      "folder": "czeror_spanish",
+      "unique_files": 2710,
+      "variant_of": "czeror"
+    },
+    {
+      "app_id": 40,
+      "bytes": 33414263,
+      "display_name": "Deathmatch Classic",
+      "files": 418,
+      "folder": "dmc",
+      "unique_files": 216,
+      "variant_of": null
+    },
+    {
+      "app_id": 40,
+      "bytes": 42655,
+      "display_name": "Deathmatch Classic (Spanish)",
+      "files": 8,
+      "folder": "dmc_spanish",
+      "unique_files": 5,
+      "variant_of": "dmc"
+    },
+    {
+      "app_id": 30,
+      "bytes": 346202861,
+      "display_name": "Day of Defeat",
+      "files": 1488,
+      "folder": "dod",
+      "unique_files": 1343,
+      "variant_of": null
+    },
+    {
+      "app_id": 30,
+      "bytes": 221786,
+      "display_name": "Day of Defeat (Spanish)",
+      "files": 21,
+      "folder": "dod_spanish",
+      "unique_files": 21,
+      "variant_of": "dod"
+    },
+    {
+      "app_id": 50,
+      "bytes": 218078680,
+      "display_name": "Opposing Force",
+      "files": 1237,
+      "folder": "gearbox",
+      "unique_files": 1177,
+      "variant_of": null
+    },
+    {
+      "app_id": 50,
+      "bytes": 11200080,
+      "display_name": "Opposing Force (HD pack)",
+      "files": 100,
+      "folder": "gearbox_hd",
+      "unique_files": 51,
+      "variant_of": "gearbox"
+    },
+    {
+      "app_id": 60,
+      "bytes": 10329119,
+      "display_name": "Ricochet",
+      "files": 95,
+      "folder": "ricochet",
+      "unique_files": 89,
+      "variant_of": null
+    },
+    {
+      "app_id": 60,
+      "bytes": 3767,
+      "display_name": "Ricochet (Spanish)",
+      "files": 2,
+      "folder": "ricochet_spanish",
+      "unique_files": 2,
+      "variant_of": "ricochet"
+    },
+    {
+      "app_id": 20,
+      "bytes": 96632663,
+      "display_name": "Team Fortress Classic",
+      "files": 415,
+      "folder": "tfc",
+      "unique_files": 362,
+      "variant_of": null
+    },
+    {
+      "app_id": 20,
+      "bytes": 196843,
+      "display_name": "Team Fortress Classic (Spanish)",
+      "files": 45,
+      "folder": "tfc_spanish",
+      "unique_files": 44,
+      "variant_of": "tfc"
+    },
+    {
+      "app_id": 70,
+      "bytes": 431063262,
+      "display_name": "Half-Life",
+      "files": 3900,
+      "folder": "valve",
+      "unique_files": 1083,
+      "variant_of": null
+    },
+    {
+      "app_id": 70,
+      "bytes": 9067684,
+      "display_name": "Half-Life (HD pack)",
+      "files": 115,
+      "folder": "valve_hd",
+      "unique_files": 50,
+      "variant_of": "valve"
+    },
+    {
+      "app_id": 70,
+      "bytes": 48016168,
+      "display_name": "Half-Life (Spanish)",
+      "files": 1105,
+      "folder": "valve_spanish",
+      "unique_files": 1087,
+      "variant_of": "valve"
+    }
+  ],
+  "schema": 1,
+  "tool": "tools/corpus_scan.py",
+  "tool_version": "1.0.0",
+  "totals": {
+    "bytes": 3315934428,
+    "files": 24628,
+    "games": 22
+  }
+}

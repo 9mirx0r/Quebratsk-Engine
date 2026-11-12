@@ -1,0 +1,1433 @@
+{
+  "app_id": 10,
+  "display_name": "Counter-Strike 1.6 (HD pack)",
+  "duplicates": {
+    "cross_game_shared_bytes": 26459518,
+    "cross_game_shared_files": 90,
+    "files_unique_to_game": 0,
+    "partners": {
+      "cstrike": 5,
+      "czero": 90
+    }
+  },
+  "files": [
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/ak47.tga",
+      "sha256": "b5724648ee8850d337dbdd8800b086d808b6767792a2f25dc79cb9092315f85a",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 196,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/arctic.tga",
+      "sha256": "3dbb2b31268d058812dd7969327bafb23b1285489b5b7a77c0b8f1151c742812",
+      "size": 150572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/aug.tga",
+      "sha256": "564edc67402996a2ef401bd3fb297abccd0c5297935aea0a4f5a59ed1ba1be97",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/awp.tga",
+      "sha256": "d30bbcacb431f9954ac05d27c6a322456bd422ff7ac4e18a2e6cbde38b931360",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 40,
+        "image_type": 2,
+        "width": 40
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/bullet.tga",
+      "sha256": "878811cef8403b2696d535a60cb906f8e08555f2bee983388a247e74be807ae6",
+      "size": 6444,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/ak47.tga",
+      "sha256": "b5724648ee8850d337dbdd8800b086d808b6767792a2f25dc79cb9092315f85a",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/aug.tga",
+      "sha256": "564edc67402996a2ef401bd3fb297abccd0c5297935aea0a4f5a59ed1ba1be97",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/awp.tga",
+      "sha256": "d30bbcacb431f9954ac05d27c6a322456bd422ff7ac4e18a2e6cbde38b931360",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/defaultpistol.tga",
+      "sha256": "f4113b3c16a66d43583e2593e546a10a9db5c6b4eaaebb58c66a8710fa6d5536",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/defaultpistol_career.tga",
+      "sha256": "f4113b3c16a66d43583e2593e546a10a9db5c6b4eaaebb58c66a8710fa6d5536",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/defaultrifle.tga",
+      "sha256": "f4113b3c16a66d43583e2593e546a10a9db5c6b4eaaebb58c66a8710fa6d5536",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/defaultrifle_career.tga",
+      "sha256": "f4113b3c16a66d43583e2593e546a10a9db5c6b4eaaebb58c66a8710fa6d5536",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/defuser.tga",
+      "sha256": "2c212a489b87766bac9dd2d62afcf4ebaced2363bc9c5c6233f85b14dfdc4147",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/deserteagle.tga",
+      "sha256": "3e57ea8993bd7bb8dd0dfc0fb6657e40a2f564d6ca32c9a4d58e0ba758072f8c",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/elites.tga",
+      "sha256": "ad581299f62b109a372b28c15f4eea9a2ab75e20ec1f70551cf584f0844862c2",
+      "size": 40300,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/famas.tga",
+      "sha256": "c881133c9a05708617a31828c8b57d897fbd07e4b817067b03c4e36c40e70c48",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/fiveseven.tga",
+      "sha256": "5377c8283950f61567a9a8b768bf5b4e59801d2a5af8c67f5068a5d1add32d1c",
+      "size": 28365,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/flashbang.tga",
+      "sha256": "8f2e79d4854070ac0d67a516ef645fe66e6ec9a6d544194a1de1f414e8c9e2a9",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/g3sg1.tga",
+      "sha256": "c00771c2d05bbc90d06ba16020a07cc52b1a8b255a9704af489aa77f4cda71b9",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/galil.tga",
+      "sha256": "c07530ca596e9a10496f5774fc6fe9253e392600c3cfe77a6567d355d3f54a0f",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/glock18.tga",
+      "sha256": "288734db9b6adb98b3f8ec3d108c1d11893927070afd1c41794021e33bbd298e",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/hegrenade.tga",
+      "sha256": "5699ea1265dde3df493a82c4c9fec6778fab20ab5cfba393f04c599d161f3fe6",
+      "size": 21531,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 100,
+        "image_type": 2,
+        "width": 100
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/helmet.tga",
+      "sha256": "61b0cae1ab46d6c4191eed9d15d0f9eb34923bcbe6ba355324af07cd20102f8e",
+      "size": 40044,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/kevlar.tga",
+      "sha256": "60fe19c7f1e2929356c9d26987e2ebd9878456c0797db579e3e56d4501c0b05c",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/kevlar_helmet.tga",
+      "sha256": "9965f2a662f293cdf978df9346b611c38cebb22e7612206516141d85b459b711",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/m249.tga",
+      "sha256": "664264946b90b3ec23cf5e97c7096e60170e1a1c0a9b6bc4eb8c78633699af55",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/m3.tga",
+      "sha256": "72645e482134d8a79fa7d98e0ef663ce869cb411ca0a0570849f179aa34ea5a7",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/m4a1.tga",
+      "sha256": "9c5b49f1c69bbc1fb981d6ac81313828d7d6bfca2156eb8fdd74b84c6094a8de",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/mac10.tga",
+      "sha256": "d95a2ca71e8d3874a6be67f2e6db4dc42123ae2c781ac5a30143726cb995c702",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/mp5.tga",
+      "sha256": "119a1e22c5d422cc7074c0336f8d0c62a15902865aafdba8b91f74729515292d",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/nightvision.tga",
+      "sha256": "0653a4d48f3cc69b7d1d3399b26cd32496ad26a10293d89aaa885414abedb1aa",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/p228.tga",
+      "sha256": "981ce1414054c3c9ff663ffaac031897f7ab0272e95f7fd97d42b06dd6a177e1",
+      "size": 28818,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/p90.tga",
+      "sha256": "8dcf08e0823b0dfde7b9ef46f7a68534e9ec2b04e6391527a54f918ffabbe341",
+      "size": 50055,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/scout.tga",
+      "sha256": "551392fae43d827680883a5c9d6d826d52eca6d8a52b5923a57f2317d5cb72d9",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/sg550.tga",
+      "sha256": "2f2848ba929af05d7e5e960066bde782f2e8bfc9ae77cf097e42f262beab1023",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/sg552.tga",
+      "sha256": "173c9cf437a63fbf7ee69c18f7a61ed41e3555baaed8317bc95f5a7ed18f4c1c",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/shield.tga",
+      "sha256": "8bd1db5963f43219507c82f397ef450f9711aef8db94ac6dfaffe46726a1fae7",
+      "size": 54358,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/smokegrenade.tga",
+      "sha256": "2585cfadb42f29730cd2da89464666898fe6c658cd9664338db55c27d988a08e",
+      "size": 21531,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/tmp.tga",
+      "sha256": "cdf863839e302bc18cc757e6c1c54cd3526fbea20b84e6509354565e486af73c",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/ump45.tga",
+      "sha256": "bcff900f4b1f774098d684865782b6fa2d012cc38f4dfeb818d8afe00964b526",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/usp45.tga",
+      "sha256": "e59abe20b89d9b03f37f17dbff096ed86e486c14072299fc2429d3a690380f5b",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/buy_presets/xm1014.tga",
+      "sha256": "3c3d1d60edc15b9f6eaccb2b8e6f6eaf6a450a2409d8f0d74fcfbb0d5af25a01",
+      "size": 18119,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 25,
+        "image_type": 2,
+        "width": 25
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/cartridge.tga",
+      "sha256": "b3c70d9549e5d688d4f62812f8091abb3237780da51c68c5484ed1ead5c1e371",
+      "size": 2544,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 63,
+        "image_type": 2,
+        "width": 63
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/crosshair.tga",
+      "sha256": "b003131a512d2db1c9a320cc555172ae0bc6f40a9ff45e44204310c0072fa085",
+      "size": 11951,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/deserteagle.tga",
+      "sha256": "3e57ea8993bd7bb8dd0dfc0fb6657e40a2f564d6ca32c9a4d58e0ba758072f8c",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/elites.tga",
+      "sha256": "ad581299f62b109a372b28c15f4eea9a2ab75e20ec1f70551cf584f0844862c2",
+      "size": 40300,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/famas.tga",
+      "sha256": "c881133c9a05708617a31828c8b57d897fbd07e4b817067b03c4e36c40e70c48",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/fiveseven.tga",
+      "sha256": "5377c8283950f61567a9a8b768bf5b4e59801d2a5af8c67f5068a5d1add32d1c",
+      "size": 28365,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/flashbang.tga",
+      "sha256": "dbc3e794c9b13d428d9f801b11f4c9e738e7f679dfa80589eaf5ed2d4b68b08f",
+      "size": 21529,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/g3sg1.tga",
+      "sha256": "c00771c2d05bbc90d06ba16020a07cc52b1a8b255a9704af489aa77f4cda71b9",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/galil.tga",
+      "sha256": "c07530ca596e9a10496f5774fc6fe9253e392600c3cfe77a6567d355d3f54a0f",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 196,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/gign.tga",
+      "sha256": "1ca99f128bf4719a897018a0a41f3556c27f3847c02aa3e7c86d9e428bed8b39",
+      "size": 150572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/glock18.tga",
+      "sha256": "288734db9b6adb98b3f8ec3d108c1d11893927070afd1c41794021e33bbd298e",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 196,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/gsg9.tga",
+      "sha256": "8286e7bb721f748c9e903cbd06bbdbeb7f77ad0bae72e7b14c4cf1a2f185bd7b",
+      "size": 150572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 196,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/guerilla.tga",
+      "sha256": "01c167b26f97a7cf125896bdcd9537709acdc168a461f412f3888818a7b30b16",
+      "size": 150572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/hegrenade.tga",
+      "sha256": "5699ea1265dde3df493a82c4c9fec6778fab20ab5cfba393f04c599d161f3fe6",
+      "size": 21531,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 196,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/leet.tga",
+      "sha256": "761a6f165747a57480a103397ec352de133262c2a254f6703b739d8b0dd48b3c",
+      "size": 150572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/m249.tga",
+      "sha256": "664264946b90b3ec23cf5e97c7096e60170e1a1c0a9b6bc4eb8c78633699af55",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/m3.tga",
+      "sha256": "72645e482134d8a79fa7d98e0ef663ce869cb411ca0a0570849f179aa34ea5a7",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/m4a1.tga",
+      "sha256": "9c5b49f1c69bbc1fb981d6ac81313828d7d6bfca2156eb8fdd74b84c6094a8de",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/mac10.tga",
+      "sha256": "d95a2ca71e8d3874a6be67f2e6db4dc42123ae2c781ac5a30143726cb995c702",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 196,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/militia.tga",
+      "sha256": "44737dfc459664579ba334e32c87c2fed57b46ce068295ef02da6b1192257a8f",
+      "size": 150572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/mp5.tga",
+      "sha256": "119a1e22c5d422cc7074c0336f8d0c62a15902865aafdba8b91f74729515292d",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/p228.tga",
+      "sha256": "981ce1414054c3c9ff663ffaac031897f7ab0272e95f7fd97d42b06dd6a177e1",
+      "size": 28818,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/p90.tga",
+      "sha256": "8dcf08e0823b0dfde7b9ef46f7a68534e9ec2b04e6391527a54f918ffabbe341",
+      "size": 50055,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 196,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/sas.tga",
+      "sha256": "e1eda52aff930b0566a0c21b3868bf3f3c5e91e7c0c13d2bf5c375fd4ee16ab9",
+      "size": 150572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/scout.tga",
+      "sha256": "551392fae43d827680883a5c9d6d826d52eca6d8a52b5923a57f2317d5cb72d9",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/sg550.tga",
+      "sha256": "2f2848ba929af05d7e5e960066bde782f2e8bfc9ae77cf097e42f262beab1023",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/sg552.tga",
+      "sha256": "173c9cf437a63fbf7ee69c18f7a61ed41e3555baaed8317bc95f5a7ed18f4c1c",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 40,
+        "image_type": 2,
+        "width": 40
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/shell.tga",
+      "sha256": "9b188cc740352d88ffcd26ac60d914a6a082295fcbb6195bd219e3ea7f760e38",
+      "size": 6444,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/shield.tga",
+      "sha256": "8bd1db5963f43219507c82f397ef450f9711aef8db94ac6dfaffe46726a1fae7",
+      "size": 54358,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/smokegrenade.tga",
+      "sha256": "2585cfadb42f29730cd2da89464666898fe6c658cd9664338db55c27d988a08e",
+      "size": 21531,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 196,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/spetsnaz.tga",
+      "sha256": "9537624c2f6324a9e819cfdd81bd03516f622438e81671faca3bcac01b40311c",
+      "size": 150572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 196,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/terror.tga",
+      "sha256": "694104164fb8e67abd788f4abcb198d5c7d77883c1d6e7e0c65f96101139a9ec",
+      "size": 150572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/tmp.tga",
+      "sha256": "cdf863839e302bc18cc757e6c1c54cd3526fbea20b84e6509354565e486af73c",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/ump45.tga",
+      "sha256": "bcff900f4b1f774098d684865782b6fa2d012cc38f4dfeb818d8afe00964b526",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 196,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/urban.tga",
+      "sha256": "fae8ca413f6ee529ab32b9ac6bd76933b8e1929cfff580e6bbfba80291ae1519",
+      "size": 150572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 128,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/usp45.tga",
+      "sha256": "e59abe20b89d9b03f37f17dbff096ed86e486c14072299fc2429d3a690380f5b",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 10,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/xm1014.tga",
+      "sha256": "3c3d1d60edc15b9f6eaccb2b8e6f6eaf6a450a2409d8f0d74fcfbb0d5af25a01",
+      "size": 18119,
+      "version": null
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "arctic.mdl",
+        "numbodyparts": 2,
+        "numbones": 35,
+        "numseq": 111,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/arctic/arctic.mdl",
+      "sha256": "da652a066ba05ed8813e2338edd27250e476ff334b1ac7c56be77c17d3a8d3b2",
+      "size": 1793644,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "gign.mdl",
+        "numbodyparts": 2,
+        "numbones": 34,
+        "numseq": 111,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/gign/gign.mdl",
+      "sha256": "7903a17db98042533fea784ff88bf353acf13d008ef201c49f215b048cffb54f",
+      "size": 1719012,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "GSG9.mdl",
+        "numbodyparts": 2,
+        "numbones": 36,
+        "numseq": 111,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/gsg9/gsg9.mdl",
+      "sha256": "a5c36e90bd0a22fab08d2e3c26355ea41342d2f2eaf1c20667fc5b57c7398d43",
+      "size": 1776884,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "guerilla.mdl",
+        "numbodyparts": 2,
+        "numbones": 35,
+        "numseq": 111,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/guerilla/guerilla.mdl",
+      "sha256": "c460e56104139fb4fad84e6979a536f31459a728051de8165fa2b519f1684eb3",
+      "size": 1796072,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "leet\\leet.mdl",
+        "numbodyparts": 2,
+        "numbones": 35,
+        "numseq": 111,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/leet/leet.mdl",
+      "sha256": "77d1dec78144b27df538ee5815c4aff5d284b8aee3b672496e255f50745ca305",
+      "size": 1854480,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "militia.mdl",
+        "numbodyparts": 2,
+        "numbones": 35,
+        "numseq": 111,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/militia/militia.mdl",
+      "sha256": "6a7474ec16712a8ace691966a9cece0a26c856040529f0b3f9cbec34d6d00767",
+      "size": 1801696,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "SAS\\sas.mdl",
+        "numbodyparts": 2,
+        "numbones": 35,
+        "numseq": 111,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/sas/sas.mdl",
+      "sha256": "badd00e3a6885cf4c0c65c59fb53f9a96e9c33b60cb6a35a123b8036df36b16c",
+      "size": 1756516,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "spetsnaz.mdl",
+        "numbodyparts": 2,
+        "numbones": 35,
+        "numseq": 111,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/spetsnaz/spetsnaz.mdl",
+      "sha256": "e81303f985563dd04ad71c2f293b82515043021d0c21185a7c90416b4ef1ab0c",
+      "size": 1751300,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "terror\\terror.mdl",
+        "numbodyparts": 2,
+        "numbones": 33,
+        "numseq": 111,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/terror/terror.mdl",
+      "sha256": "fbc9393faa4d3abb079a2cebefb3037a30f4534801087c032206efe4ab5ed859",
+      "size": 1743128,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "urban\\urban.mdl",
+        "numbodyparts": 2,
+        "numbones": 35,
+        "numseq": 111,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/urban/urban.mdl",
+      "sha256": "3c617982cc5f8ee2e6a98cee6cc3e0aeb563600d777d2907ddc72aabff350c65",
+      "size": 1755432,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "vip.mdl",
+        "numbodyparts": 1,
+        "numbones": 38,
+        "numseq": 111,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/vip/vip.mdl",
+      "sha256": "6e56f499baec7d418e1ee432414c6f35e21da49f61885260133179d89da14854",
+      "size": 1935400,
+      "version": 10
+    }
+  ],
+  "findings": {
+    "bsp_lump_layouts": {},
+    "maps_not_checked": [],
+    "maps_without_worldspawn": [],
+    "models_without_sidecar": [],
+    "parse_errors": [],
+    "wad_references": [],
+    "wads_missing": [],
+    "wads_only_in_other_game": [],
+    "zero_byte_files": []
+  },
+  "format_versions": {
+    "mdl": {
+      "10": 11
+    }
+  },
+  "game": "cstrike_hd",
+  "schema": 1,
+  "tool": "tools/corpus_scan.py",
+  "tool_version": "1.0.0",
+  "totals": {
+    "by_extension": {
+      ".mdl": {
+        "bytes": 19683564,
+        "files": 11
+      },
+      ".tga": {
+        "bytes": 6775954,
+        "files": 79
+      }
+    },
+    "bytes": 26459518,
+    "files": 90
+  },
+  "variant_of": "cstrike"
+}

@@ -1,0 +1,1584 @@
+{
+  "app_id": 60,
+  "display_name": "Ricochet",
+  "duplicates": {
+    "cross_game_shared_bytes": 310995,
+    "cross_game_shared_files": 6,
+    "files_unique_to_game": 89,
+    "partners": {
+      "bshift": 2,
+      "dmc": 2,
+      "tfc": 2,
+      "valve": 3
+    }
+  },
+  "files": [
+    {
+      "detail": {
+        "lump_types": {
+          "66": 4
+        },
+        "numlumps": 4
+      },
+      "extension": ".wad",
+      "format": "wad",
+      "path": "cached.wad",
+      "sha256": "a3e6e07a9e95a7fa076fc15306a029a8efdddb4ffc6d2c9b141e0a76f1f51a43",
+      "size": 857660,
+      "version": 3
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 237,
+        "truncated": false
+      },
+      "extension": ".lst",
+      "format": "lst",
+      "path": "delta.lst",
+      "sha256": "4c7ff4f7d5fe63432a9f23955dd7abc2b50f5bc61d9b889e33b0d19586ce2782",
+      "size": 11325,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 10,
+        "width": 32
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "game.tga",
+      "sha256": "2e5609292c90116c2bff7e1dd64929e15d0866ac1f2353c857d751b27ef68f2d",
+      "size": 3067,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/discbk.tga",
+      "sha256": "0412bc9fb9b6d4ccfd01f7f28c231120b5a4671dfdbe894a6d5095e82e4db773",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/discdn.tga",
+      "sha256": "896725fbe1bdc6b704c30762b504c7464496683006c9d9816c7d29776eb609ad",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/discft.tga",
+      "sha256": "bc52b2c41e0fa3b66379f2864f46e06817eb65c37a704f8101419d3fa00928af",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/disclf.tga",
+      "sha256": "a79c13e85b047f466010b8a422046e6f485721748cf1776346243cef92a57dd0",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/discrt.tga",
+      "sha256": "b86c93ee3c466d91cf6c063b4589e3ea0b1b7afe07a8c4c03b5567e6b836f1d1",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/discup.tga",
+      "sha256": "4fbeb85c3771493106940af2dc0c3c1346b64630f87e76b091e06a16a9abc88e",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 32,
+        "truncated": false
+      },
+      "extension": ".lst",
+      "format": "lst",
+      "path": "gfx/shell/kb_act.lst",
+      "sha256": "13c2a5891963eec76c3cf66a429db3588e9c9b567939df0048e6d391686319fe",
+      "size": 1190,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 69,
+        "truncated": false
+      },
+      "extension": ".lst",
+      "format": "lst",
+      "path": "gfx/shell/kb_def.lst",
+      "sha256": "b1c250e503cd7076a42a2992d36a8e77c39eb315a831412440238d207fd5a95c",
+      "size": 1324,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 64
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_discblue.tga",
+      "sha256": "fd8c5227dc51e68a5e15ea469e7c790b5c241f71533001c4c84224d0cd338b09",
+      "size": 8236,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 64
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_discblue2.tga",
+      "sha256": "38c50d99b4c8367573ff1cce7cbe47af4c0eec347c01fd185656b32f5da06cd7",
+      "size": 8236,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 64
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_discgrey.tga",
+      "sha256": "c6b60204821c30633c8be86bc47af517cdf14e0f37041490f91a3fe5169eb29d",
+      "size": 8236,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 64
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_discred.tga",
+      "sha256": "64d7a2880950b9f62a702e7883a18b27b522a654965a5e8bd24d23508e82125b",
+      "size": 8236,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 64
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_discred2.tga",
+      "sha256": "d0e056cc6d6497be80bf312b1efd7a313f7d3d1d9b15b677399358b82bd9ac61",
+      "size": 8236,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 64
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_fast.tga",
+      "sha256": "ac8abd86bed764f975b27c33251fcc6449d70fedffca165959171949aec75742",
+      "size": 8236,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 64
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_freeze.tga",
+      "sha256": "10967cc6034e40267d955be94df0e9cca9cc5ae343954d213e55fac2654a4727",
+      "size": 8236,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 32
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_frozen.tga",
+      "sha256": "c433b4fbd619507fb60a12217ed71be0eda1bba594724a100eae405ee235cb78",
+      "size": 4140,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 64
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_hard.tga",
+      "sha256": "647ba48dea2fde96d9144839fbdbc342fde9c58bbceff9b914220de7a8c38e55",
+      "size": 8236,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 64
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_triple.tga",
+      "sha256": "5beb7307ee7cbb9edf8b85710ce03b2c3ff47fa7c2649af59152a335cd4e7834",
+      "size": 8236,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 3,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "mapcycle.txt",
+      "sha256": "740a1a49b36769d7e182b4e0a96eb0ec3958a5e3d381bdb9f9d56b87bf5b082e",
+      "size": 39,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\ricochet\\ricochet.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/rc_arena.bsp",
+      "sha256": "0a305f8792703f38666306d64723dd90d4f4b7a8df053c9216243431a379c67b",
+      "size": 595824,
+      "version": 30
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\ricochet\\ricochet.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/rc_deathmatch.bsp",
+      "sha256": "ef715a6121cd626d6541974ca37772e0212617bb714c2af5c844d8b37b31ca8a",
+      "size": 285148,
+      "version": 30
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\ricochet\\ricochet.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/rc_deathmatch2.bsp",
+      "sha256": "2e12c394b35cb3ff6489656a7d60898a050201b83b0f5c9bef37c1f617bd6550",
+      "size": 935280,
+      "version": 30
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "discwar\\models\\disc.mdl",
+        "numbodyparts": 1,
+        "numbones": 9,
+        "numseq": 3,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/disc.mdl",
+      "sha256": "d65231acf6576fdd0093705f4e2e8daea2336ca202e7636188b8eb966145147a",
+      "size": 12076,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "discwar\\models\\kill_disc.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/disc_hard.mdl",
+      "sha256": "b3147d1f267983b2cb1d4094fe1fb552e27b37e081fd0b6197db62aacb2e09ef",
+      "size": 25280,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "ricochet\\models\\male_head.mdl",
+        "numbodyparts": 1,
+        "numbones": 14,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/head.mdl",
+      "sha256": "67558b736081319c1834f02331d80a75a272456cd94edf1a2b6b891c21c1e94b",
+      "size": 61700,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "discwar\\models\\p_disc.mdl",
+        "numbodyparts": 1,
+        "numbones": 20,
+        "numseq": 3,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_disc.mdl",
+      "sha256": "9d4ad220a84e6a475e6fe89ba6eed509f6fff919f02ca5dd5520a2f5f4f3497b",
+      "size": 13428,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "discwar\\models\\p_kill_disc.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_disc_hard.mdl",
+      "sha256": "99730b6737d8d598290a070b892e2e878a2cb18f3b340df924d1f99f86b5257e",
+      "size": 26640,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "discwar\\models\\player\\female\\female.mdl",
+        "numbodyparts": 2,
+        "numbones": 81,
+        "numseq": 37,
+        "numseqgroups": 1,
+        "numskinfamilies": 4,
+        "numtextures": 9
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/female/female.mdl",
+      "sha256": "2fd45adc349a7907b5474b0960b70b6b04a1a213e9a42538f828d514e08b33ef",
+      "size": 979720,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "ricochet\\models\\player\\male\\male.mdl",
+        "numbodyparts": 2,
+        "numbones": 81,
+        "numseq": 39,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 7
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/male/male.mdl",
+      "sha256": "aacee0200ec2ef8302ae9ba85d2cbb720b483ab0c98d70f171928a869d0732f9",
+      "size": 1637348,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/ball.mdl",
+        "numbodyparts": 1,
+        "numbones": 3,
+        "numseq": 2,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/pow_curve.mdl",
+      "sha256": "d94ef678221966af8614f4a371c0c004d41c2fc1b8e3b3776b58954e7a64091e",
+      "size": 23792,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "discwar\\models\\pow_fast.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/pow_fast.mdl",
+      "sha256": "20308c8f2c9c8e43185ca4049db7cf5cdaafaeec86e0e03434692b7eac6665bf",
+      "size": 11012,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "discwar\\models\\pow_freeze.mdl",
+        "numbodyparts": 1,
+        "numbones": 17,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/pow_freeze.mdl",
+      "sha256": "02d881a9c44df588ab5ee7de1ffb9df62a4b06b48b747513c208879613cefebc",
+      "size": 76756,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "discwar\\models\\pow_hard.mdl",
+        "numbodyparts": 1,
+        "numbones": 3,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/pow_hard.mdl",
+      "sha256": "64f0fd40f8a935622bffc39cc6fdc27ccc83e6911ac664b1290122c2dc68aa22",
+      "size": 13940,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "discwar\\models\\pow_triple.mdl",
+        "numbodyparts": 1,
+        "numbones": 3,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/pow_triple.mdl",
+      "sha256": "1cb6af226f2ae12b02fa9dd8185abc52cc4bb032ee6f9f81630d57cb06917730",
+      "size": 22504,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/presentlg.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/pow_visual.mdl",
+      "sha256": "435ca4750aaff810bb57b9156e827eb0047610abb016b3f6ff0cb7660aaa7995",
+      "size": 46844,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/v_grenade.mdl",
+        "numbodyparts": 2,
+        "numbones": 49,
+        "numseq": 8,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 7
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_disc.mdl",
+      "sha256": "571f8f9ceb6bd33b62ec96f2a879da60fbcf1aded60e3fe13ea8c93f3f00a03f",
+      "size": 88884,
+      "version": 10
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_1_a_loading.tga",
+      "sha256": "ff5872019ea156a25324a9f154ba21f18603ec158676639cf0090c760770070b",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_1_b_loading.tga",
+      "sha256": "b8624bbc2def387be83c3f925147c16363bde0855074b48b9685abcd3c8d7484",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_1_c_loading.tga",
+      "sha256": "f29ab8026d76ed82c87f009016269837fc2531f0c140c88b8a67b20236b9d41e",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 32
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_1_d_loading.tga",
+      "sha256": "34629838f9a22061ddced49b96f338699ee05a42ed2155529bf914fcdcd52c86",
+      "size": 24620,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_2_a_loading.tga",
+      "sha256": "25091fcdb7e34255ecf11c6c197ad574520101d52e768f5da9478a6952120ed3",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_2_b_loading.tga",
+      "sha256": "fd2a81f3abdeb81bcc36c3c10f2c502705a9dc221cab71c59c224e7e0737a0ce",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_2_c_loading.tga",
+      "sha256": "9501cd4aef35c628246b35edc98fc71fbfd46803738c441506be784fe393915f",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 32
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_2_d_loading.tga",
+      "sha256": "7a40ff5f3b05c24ce15e47d9bb505459396963d54f389ad36378623b277dae12",
+      "size": 24620,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 88,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_3_a_loading.tga",
+      "sha256": "8487ee1e5ea2321ca00c925174aa19d50fb57774266d555bfa38da8deac50bb5",
+      "size": 67628,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 88,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_3_b_loading.tga",
+      "sha256": "28c5cb5ae83880a52c803f13bb1f8b0ac208379837c1337da9347b7487a22b3f",
+      "size": 67628,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 88,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_3_c_loading.tga",
+      "sha256": "58350c10285ae708bc5e10e6000760cf41625553176b0465b840a8d557415da6",
+      "size": 67628,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 88,
+        "image_type": 2,
+        "width": 32
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_3_d_loading.tga",
+      "sha256": "4d9f859431886c2589d194ce12f455ba1aad91df49cc215ec2cd58e2e6b89f1d",
+      "size": 8492,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 212
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/game_menu.tga",
+      "sha256": "e5b58827d43cd238063177317475a02f8870d3dcbe4a941f1288622efb171149",
+      "size": 27180,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 212
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/game_menu_mouseover.tga",
+      "sha256": "04cd8c626d511f6697d0649bd4f849ce5317f93ed736547fd5eb346cc0d7694b",
+      "size": 27180,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 50,
+        "truncated": false
+      },
+      "extension": ".res",
+      "format": "res",
+      "path": "resource/GameMenu.res",
+      "sha256": "33889fccf61b8c5c6bfd32468601ccbcda3762e756055e872c2a74de669d78ba",
+      "size": 717,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 9,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "resource/ricochet_english.txt",
+      "sha256": "b89663c2134bf79b1aa88a7277dde0557d2e74bf9f522cce7ea60b09e4ea0bde",
+      "size": 300,
+      "version": null
+    },
+    {
+      "detail": {
+        "lump_types": {
+          "67": 65
+        },
+        "numlumps": 65
+      },
+      "extension": ".wad",
+      "format": "wad",
+      "path": "ricochet.wad",
+      "sha256": "779da7ed44c25a40a11dd86701e1faea1bd76a819bb9bd09d6d0d5095e1c5518",
+      "size": 1233312,
+      "version": 3
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.55
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/decap.wav",
+      "sha256": "b5ac2eed147bc132d78fc31420002e3420f25d77e681058711281034e86e85c2",
+      "size": 12250,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.688
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/dischit.wav",
+      "sha256": "adb8d7093ab0e6ce5a7403237aaea37e9650111ab4ec7e39975f10686788da00",
+      "size": 15290,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.765
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/discreturn.wav",
+      "sha256": "03e4c867a81a159c624c1514d4c92645164f6d17e43cd8ebb2a3d976ec46f9b2",
+      "size": 39034,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.294
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/Items/gunpickup2.wav",
+      "sha256": "20087801878fea420e66f9311f8cd71455ba8ec38044becc4ecadd155becd917",
+      "size": 6600,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.508
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/powerup.wav",
+      "sha256": "68e4f8f993567f3835468d5a21f38d03247d1362e31191a48f963b5d48416819",
+      "size": 33370,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.416
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/pspawn.wav",
+      "sha256": "9d7ee1fb12626594dc12b64a6cd79e26f6f8c76e3c0a9d5147395168fb277cba",
+      "size": 31354,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.34
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/r_tele1.wav",
+      "sha256": "cbc1eced5a46da936e406f7b0ecbe494a999211b2c196ccb72472ce3bbacd63f",
+      "size": 29658,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.392
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/scream1.wav",
+      "sha256": "95cdc1b35e3c02a5ecc1fb2d1ff58c2334e0d2dae04cd9ed5be360a9e02379d3",
+      "size": 52860,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.823
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/scream2.wav",
+      "sha256": "3293624300948ba800491461d6e6c4ac3f98a3a1fa861af43bf6c469505d7aef",
+      "size": 62370,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.508
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/scream3.wav",
+      "sha256": "42a54026d41c3a81daaa53f17ccec226ad6792d8d8cb0f3eeff7a000ddb383f4",
+      "size": 55418,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.837
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/shatter.wav",
+      "sha256": "cbd8714b70e46392389d8e22dbd944a807c6e2df6f8d73e612852ae321615567",
+      "size": 40634,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.567
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/triggerjump.wav",
+      "sha256": "78d35f0b1d4dbceac4ec13d5ade32d3f0759fc0d53cddc56287dd8e9a713c081",
+      "size": 6378,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.915
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/Vox/die.WAV",
+      "sha256": "19af56afec33016ef138b659b8b71bc20ec50521c47d8a185a3469dc794f62ce",
+      "size": 10216,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.213
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/Vox/four.wav",
+      "sha256": "a517b8dafe030cd9608dd242636e7050aabd5b49ea498257723c356c2e8a68bf",
+      "size": 4822,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.213
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/Vox/one.WAV",
+      "sha256": "a517b8dafe030cd9608dd242636e7050aabd5b49ea498257723c356c2e8a68bf",
+      "size": 4822,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.213
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/Vox/three.WAV",
+      "sha256": "a517b8dafe030cd9608dd242636e7050aabd5b49ea498257723c356c2e8a68bf",
+      "size": 4822,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.213
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/Vox/two.WAV",
+      "sha256": "a517b8dafe030cd9608dd242636e7050aabd5b49ea498257723c356c2e8a68bf",
+      "size": 4822,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.962
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/Weapons/altfire.wav",
+      "sha256": "b577ab22331d8f50ee8f530d44b2434f801da63b600944d9901225ae5cb2c526",
+      "size": 21348,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.536
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/Weapons/cbar_miss1.wav",
+      "sha256": "1526712fdc84d6fc9cebf6a67def3960a64fae4dfd442e66f9ace70f88045801",
+      "size": 11946,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.843
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/Weapons/rocket1.wav",
+      "sha256": "ab68e9cfcd8fbcca383c78a4dfddb1d528c013ea92a215b5415c53941269f00a",
+      "size": 40844,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.197
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/Weapons/xbow_hit1.wav",
+      "sha256": "7d0d0589eded18df451f62019c144da28f4e10342b809676e7aa65952816c73c",
+      "size": 4470,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.252
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/Weapons/xbow_hit2.wav",
+      "sha256": "560c7cc02ecc5c6152a1c6e8ecb1146b6b7f4acf0d064c8c84817d002e129658",
+      "size": 5676,
+      "version": null
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 16,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 16
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/320_0bounce.spr",
+      "sha256": "92deae04ff137d4222b14110aa851278a73e4e71a2829de2a33d563908b11cb4",
+      "size": 1086,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 16,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 16
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/320_1bounce.spr",
+      "sha256": "0b44d829407a2317fa0b02e88ded2da57b17076f4e4cc6c7c96c4a3b7c4e8b59",
+      "size": 1086,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 16,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 16
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/320_2bounce.spr",
+      "sha256": "14ee0c9647ba1e0392b3f1406fd388a2c842c1725d4e22de8e1c0ffa96eea7b8",
+      "size": 1086,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 16,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 16
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/320_3bounce.spr",
+      "sha256": "e1068338dddff537b90536157a57c23eb5582e46cd604044a353da26d37931dd",
+      "size": 1086,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 16,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 16
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/320_decapitate.spr",
+      "sha256": "adc41493bd370d8d8fa4dd530aaea124ef734e0db0274a55d3caa0fd3eea6fbf",
+      "size": 1086,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 16,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 16
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/320_falling.spr",
+      "sha256": "459bee5d95de46280c7e4b6a52a1436094423295379e9f8ef6420bc597d47b92",
+      "size": 1086,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 32,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 32
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/640_0bounce.spr",
+      "sha256": "c4d23592e81f6475c6b7a3454f5b26d06d3111816da6c30fb57559bb4e2ac7ec",
+      "size": 1854,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 32,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 32
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/640_1bounce.spr",
+      "sha256": "f01b081928cea14ab0a85bd3f73023ecd80fb5dc4aeaddad696f9e3d6e412230",
+      "size": 1854,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 32,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 32
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/640_2bounce.spr",
+      "sha256": "9b72940691f0a1994d573d5a6ab04196e2a1168bde9b3274c28289de84e3946d",
+      "size": 1854,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 32,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 32
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/640_3bounce.spr",
+      "sha256": "dc1bb529be7b01e0873e74a92ab8ea09e3d254bc3bd031cefe44d0b994b98fca",
+      "size": 1854,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 32,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 32
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/640_decapitate.spr",
+      "sha256": "9d480f3b19cd3db0014a4a16dec465bfa3a4a298d43eca36617f7fdd9a6213cb",
+      "size": 1854,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 32,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 32
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/640_falling.spr",
+      "sha256": "eb262b2ae9e32a6873e5276ac89fe632b52511d2b40dda760240068927ed0489",
+      "size": 1854,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 20,
+        "height": 64,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 64
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/discreturn.spr",
+      "sha256": "bb3e5ea8265ddf3177885609ac09fcfd43bf19e7097bb67dc206c054c1eb8357",
+      "size": 83130,
+      "version": 2
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 229,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/hud.txt",
+      "sha256": "65c0bd9b9b09e18540a125a70168e7d8e1cd3b408a2a686c2bec3dbab9df39bd",
+      "size": 7649,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/weapon_disc.txt",
+      "sha256": "503168a49ba06add48eb636f4e8a6c334c17dc922825ff85eb9da43100063878",
+      "size": 360,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "steam_appid.txt",
+      "sha256": "39fa9ec190eee7b6f4dff1100d6343e10918d044c75eac8f9e9a2596173f80c9",
+      "size": 2,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 300,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "Titles.txt",
+      "sha256": "14daccfc29a84a49a6de4cca98c89de0a20aabc386c892912f80e4d70dcacbd4",
+      "size": 3160,
+      "version": null
+    }
+  ],
+  "findings": {
+    "bsp_lump_layouts": {
+      "standard": 3
+    },
+    "maps_not_checked": [],
+    "maps_without_worldspawn": [],
+    "models_without_sidecar": [],
+    "parse_errors": [],
+    "wad_references": [
+      {
+        "basename": "ricochet.wad",
+        "map": "maps/rc_arena.bsp",
+        "reference": "\\tffree\\ricochet\\ricochet.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "ricochet.wad",
+        "map": "maps/rc_deathmatch.bsp",
+        "reference": "\\tffree\\ricochet\\ricochet.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "ricochet.wad",
+        "map": "maps/rc_deathmatch2.bsp",
+        "reference": "\\tffree\\ricochet\\ricochet.wad",
+        "resolved": "game"
+      }
+    ],
+    "wads_missing": [],
+    "wads_only_in_other_game": [],
+    "zero_byte_files": []
+  },
+  "format_versions": {
+    "bsp": {
+      "30": 3
+    },
+    "mdl": {
+      "10": 14
+    },
+    "spr": {
+      "2": 13
+    },
+    "wad": {
+      "3": 2
+    }
+  },
+  "game": "ricochet",
+  "schema": 1,
+  "tool": "tools/corpus_scan.py",
+  "tool_version": "1.0.0",
+  "totals": {
+    "by_extension": {
+      ".bsp": {
+        "bytes": 1816252,
+        "files": 3
+      },
+      ".lst": {
+        "bytes": 13839,
+        "files": 3
+      },
+      ".mdl": {
+        "bytes": 3039924,
+        "files": 14
+      },
+      ".res": {
+        "bytes": 717,
+        "files": 1
+      },
+      ".spr": {
+        "bytes": 100770,
+        "files": 13
+      },
+      ".tga": {
+        "bytes": 2756131,
+        "files": 31
+      },
+      ".txt": {
+        "bytes": 11510,
+        "files": 6
+      },
+      ".wad": {
+        "bytes": 2090972,
+        "files": 2
+      },
+      ".wav": {
+        "bytes": 499004,
+        "files": 22
+      }
+    },
+    "bytes": 10329119,
+    "files": 95
+  },
+  "variant_of": null
+}

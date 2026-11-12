@@ -1,0 +1,6929 @@
+{
+  "app_id": 20,
+  "display_name": "Team Fortress Classic",
+  "duplicates": {
+    "cross_game_shared_bytes": 905263,
+    "cross_game_shared_files": 53,
+    "files_unique_to_game": 362,
+    "partners": {
+      "bshift": 9,
+      "dmc": 35,
+      "dod": 1,
+      "gearbox": 4,
+      "ricochet": 2,
+      "valve": 18
+    }
+  },
+  "files": [
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 60,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "1024_textscheme.txt",
+      "sha256": "d7cc16feac5f24649ac4dfc6d8df8ab11495bcd67de6e526eca2e97bf46e6d27",
+      "size": 1240,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 60,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "1152_textscheme.txt",
+      "sha256": "404b9d67b4d872958384b7292e5c07d90700ce46e545c7bb2d39f51edc2fd440",
+      "size": 1252,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 60,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "1280_textscheme.txt",
+      "sha256": "83dadf7363ac5e53ff7a0957f0b60aed0cc916b7392825475f77ab26a7e45289",
+      "size": 1240,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 60,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "1600_textscheme.txt",
+      "sha256": "af949c27a36f559d6563cefb8dde41417679d4cc3a25071a7ea892e1f19ae3f7",
+      "size": 1241,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "2fort.cfg",
+      "sha256": "23ca0bd6eb48a10587a7d11e60bd00e6b1df27ef463fea2d441e6720be3d6189",
+      "size": 21,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 94,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "640_textscheme.txt",
+      "sha256": "c9ef064ad5958aeb35dd58cebc11c8f9d72bc03d9cc846aab657e91581695236",
+      "size": 1995,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 60,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "800_textscheme.txt",
+      "sha256": "5b820284a10e4f788e4f4c91bc7945657eaa333d65c42a110c12afcb6104e4ef",
+      "size": 1240,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 10,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "autoexec.cfg",
+      "sha256": "dc8f40b704110f6187fbb80bf2e81916645e7d65c67ebba18f59465fbc0f4bd7",
+      "size": 131,
+      "version": null
+    },
+    {
+      "detail": {
+        "lump_types": {
+          "66": 4
+        },
+        "numlumps": 4
+      },
+      "extension": ".wad",
+      "format": "wad",
+      "path": "cached.wad",
+      "sha256": "781bcd92084916ce44ed36200243db1af4bb44e2421e7f041160e256929bee07",
+      "size": 857660,
+      "version": 3
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "civilian.cfg",
+      "sha256": "be418a69a24a25b3a1accf0eeb1897b9d34a9f8a1f19629b3c460fc44cf510df",
+      "size": 25,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 38,
+        "truncated": false
+      },
+      "extension": ".res",
+      "format": "res",
+      "path": "classes/default.res",
+      "sha256": "947dee07d0468d8b7fe4970f4a219e995ba34e74f347c792ba53fc3d7116fe77",
+      "size": 615,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_civilian.txt",
+      "sha256": "8121455ddaa08f0497e814fd7c5263e736a2a35c43aef62857855dfa1eda9feb",
+      "size": 103,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 37,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_demoman.txt",
+      "sha256": "513b58c2920078f577fca402674ca1e9665f25c704886a4b895b990f9e047f9f",
+      "size": 3882,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 43,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_engineer.txt",
+      "sha256": "f2b2971968147fab18d187baf4370ad92b2bb670655e5a0dcc0897dca3352f56",
+      "size": 6797,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 28,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_hwguy.txt",
+      "sha256": "42194e06a5cd36de131ba45eda0a8e43f3468030611ef90731b3a1830e4d049b",
+      "size": 2579,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 32,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_medic.txt",
+      "sha256": "dc71d144fe9797089117f1ce787261163c9b08d52fc190ebe161e2c4907099f8",
+      "size": 2404,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 28,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_pyro.txt",
+      "sha256": "25c08fa1597cd7a2103b88c729ebfdb5caf6e0cf3dc905ddd822c89ae1cc6f50",
+      "size": 2757,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 33,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_scout.txt",
+      "sha256": "efbf9a38f34bcd1b476b23d0ca3fc2d95fde12423bfc8514fa9a2cbee97475e2",
+      "size": 2034,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 31,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_sniper.txt",
+      "sha256": "40ec516c8dd34f84177ad8d5dce83e686ec41285c7efd8881d751cb2317faba5",
+      "size": 2458,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 22,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_soldier.txt",
+      "sha256": "508992d53e5569fa0d8ba63284f1f42be7a367d15a6e1fe4778deb14ecde6e15",
+      "size": 1875,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 49,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_spy.txt",
+      "sha256": "03cb843f0fd22093407d4fa4bd02cd4dc73cc3078a35fc15b31afb259e00d796",
+      "size": 4811,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_civilian.txt",
+      "sha256": "8121455ddaa08f0497e814fd7c5263e736a2a35c43aef62857855dfa1eda9feb",
+      "size": 103,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_demoman.txt",
+      "sha256": "00fc2345c13f04acd17389fcbd92e6bfac811e88775a410588c8860b90335d0b",
+      "size": 219,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 16,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_engineer.txt",
+      "sha256": "8dc3d2873248fad9c49582ab468c22ea24fef6ff7fa44a6caf905465bc2a1c15",
+      "size": 275,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_hwguy.txt",
+      "sha256": "d0e14927a067d6556443c3871d01886f3dc21d0586472069a914950fac7e6eea",
+      "size": 233,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 15,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_medic.txt",
+      "sha256": "278abedbb30d20e62bcdb962383b44490f486d71fc06a96ac44882224cdad7e2",
+      "size": 270,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_pyro.txt",
+      "sha256": "cd1ca02b25eab7379d81526c84f596ee55d42e8926fbd31b6b0d7c0e2abbbab4",
+      "size": 210,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 2,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_randompc.txt",
+      "sha256": "1facd693a5767aaf6820e9d3c7afaba7f43e1f728516c47089dc8314337b8561",
+      "size": 83,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_scout.txt",
+      "sha256": "696f380afb9f96eda5ba2ef67e150f430fb9ac8eb8bef286e051e4e16072066a",
+      "size": 244,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_sniper.txt",
+      "sha256": "d4e16d1fb850570bb1a5730255b82ba2f17f8d74c212abd8f2d794e6aaf3baa8",
+      "size": 151,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_soldier.txt",
+      "sha256": "7c2387f1e3b2b343494bf427a6dc2b63f12bbbbbe1180bf5429faeab8c7c0803",
+      "size": 183,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 17,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_spy.txt",
+      "sha256": "ad05c449295192bed54aa55fdb512da4ed194ccddc9c993b968ac74cf7d64023",
+      "size": 316,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 282,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "commandmenu.txt",
+      "sha256": "aef5288ef52ca69f26db057141e47a6e1b515aacaff3de850dd4ba6a40251776",
+      "size": 11355,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 157,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "config.cfg",
+      "sha256": "64f6c721e3f40211e91be8786feb5de34cabf94cfb0f34c4b5b9ddd9d3b40e3c",
+      "size": 2996,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "cz2.cfg",
+      "sha256": "af720a21638d1f262bad08fd05f92bb232c8bb5c1c10bee14504c4153b69b3c0",
+      "size": 26,
+      "version": null
+    },
+    {
+      "detail": {
+        "lump_types": {
+          "67": 7
+        },
+        "numlumps": 7
+      },
+      "extension": ".wad",
+      "format": "wad",
+      "path": "decals.wad",
+      "sha256": "33f8e07f5a076ba1bf6b81fcbf08ea046f37f8feb747cf5ec9f744f3a7b55eed",
+      "size": 18500,
+      "version": 3
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 95,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "default.cfg",
+      "sha256": "d79093d8ef144c2e450ca1503ce03645b2c5794dfc56a95b56e15534bb4ba946",
+      "size": 1431,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 240,
+        "truncated": false
+      },
+      "extension": ".lst",
+      "format": "lst",
+      "path": "delta.lst",
+      "sha256": "e87dbafa1597517ac366377e72e4abb150b23b5e746644ea5f3374edee1214f3",
+      "size": 11472,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "demoman.cfg",
+      "sha256": "a641c6f8e03a74757893f42ba019b28c60d06140afac4796acf43b80ac93446a",
+      "size": 23,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 8,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "download.txt",
+      "sha256": "12b6b701a483d5d66fa33b212c4b1cbddb7a17356f13fa721fa7535422ef4f0d",
+      "size": 1654,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "dustbowl.cfg",
+      "sha256": "23ca0bd6eb48a10587a7d11e60bd00e6b1df27ef463fea2d441e6720be3d6189",
+      "size": 21,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "engineer.cfg",
+      "sha256": "62ee171c54f14de89bb31852035acaf5126232af7d452ea840e32f6cc5701e29",
+      "size": 24,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "epicenter.cfg",
+      "sha256": "42747c5add14d08721ad70e0c533bad082921e0fad8da082ec458f5bdaf84302",
+      "size": 25,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 48,
+        "image_type": 10,
+        "width": 48
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "game.tga",
+      "sha256": "4ab0dc26d139e74302f856ee247b5c06676ac7acad4d9f376fa4402eb146a93a",
+      "size": 4495,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/avantiBK.tga",
+      "sha256": "e7ee02be34d39225e1e0ed13708dbc75d1ca8b2469ce2f526ab4c3d0f68fa605",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/avantiDN.tga",
+      "sha256": "a8a2482a8aca5d13ca053455fa3084d9aab517eb6364f891f30fe6a9978bf0cb",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/avantiFT.tga",
+      "sha256": "1d56d29dad4152a76e7d4e8325b6a81594719aee5d3747bb224f1047aa0aa382",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/avantiLF.tga",
+      "sha256": "1cb81e48638800f02d3ca555c42fae34208af1cb40d545edd820a8b6afca1ed0",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/avantiRT.tga",
+      "sha256": "70b62ffa7679e6e9ffbc8a336bc1ce8f9569c1e9f7097406ae68aa3ef044ca20",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/avantiUP.tga",
+      "sha256": "765f031e6418979f8da3b556a379e00a73792e6d01df8d4dd4e40d8f54e75bff",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/dustbowlBK.tga",
+      "sha256": "5738dedaa85521fd9a44177a49eb6a219d402de9a331c5eff3efd2bfc1fd46ec",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/dustbowlDN.tga",
+      "sha256": "c5c5172a763fce71dddc681a79ae2946f5f58dc0f8c3011f585abd771c99aa99",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/dustbowlFT.tga",
+      "sha256": "4add5fe7da2e9813141ebe3f51c264379ceebe1e3f379bf597732758f5402cf8",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/dustbowlLF.tga",
+      "sha256": "520e265ed32b346ef3105e9cfd5216d21c74a6919b2215873c50a6a9e911ed26",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/dustbowlRT.tga",
+      "sha256": "88b66e3f76ce10f461bb170e30b534cc1e040a81d7e539c3e9f3673489c0d511",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/env/dustbowlUP.tga",
+      "sha256": "12a4566128d643da96e58b81bd2804de1c3623d54e824fe8937636abd87c1909",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 64,
+        "truncated": false
+      },
+      "extension": ".lst",
+      "format": "lst",
+      "path": "gfx/shell/kb_act.lst",
+      "sha256": "1e67243d81061737cf579c807313a89d905460851a4abf3537c5f2a4481e94bf",
+      "size": 2256,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 69,
+        "truncated": false
+      },
+      "extension": ".lst",
+      "format": "lst",
+      "path": "gfx/shell/kb_def.lst",
+      "sha256": "f4394812e32a61bb54913c42fd7c8bff2272c30aa96a09533aee0a89a43298e5",
+      "size": 1262,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 16,
+        "image_type": 2,
+        "width": 16
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_arrow.tga",
+      "sha256": "4bb145e25d5552b6b1f4fa78f9f3644287d18b4918c86572bdf3499bdb5ecdac",
+      "size": 1068,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 16,
+        "image_type": 2,
+        "width": 16
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_arrowdn.tga",
+      "sha256": "796b228b39cec8bcda487406ba8378cf5e6dcf3eca8ea3d0d2dad1e125139176",
+      "size": 1068,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 16,
+        "image_type": 2,
+        "width": 16
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_arrowup.tga",
+      "sha256": "4d946659bf601ab72fb566f2a8a6e50b03160769560b1eeb1ab89e35b491364b",
+      "size": 1068,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 64,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_banner.tga",
+      "sha256": "c57e1ab0a9ef6e559a7c84f442173b4ce60e565834782d519c173912b802e9ba",
+      "size": 32812,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 16,
+        "image_type": 2,
+        "width": 16
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_checked.tga",
+      "sha256": "126ac79a5bdbc71f8b79d01fe5f416edbb690249efa959b723a874ca46b8449b",
+      "size": 1068,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_civilianblue.tga",
+      "sha256": "bbafe52384e67870ae98b8350c9224ca806977511734d2d6ba8857e0e4e5eb07",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_demomanblue.tga",
+      "sha256": "976212a86974cbd48da3cee2fc2c29b6315600b4cc39fc1fe1e6d3465fcb3d13",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_demomanred.tga",
+      "sha256": "aa8ddcd5fe1a8f05f3a96ccf5bde4e05eb958b75df19a17f1bd7da3db3d648fc",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_engineerblue.tga",
+      "sha256": "dec62039225d1c9f3d2fc0634cf8980d27088abdfc6f401c3e5e17863e05e0b2",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_engineerred.tga",
+      "sha256": "7faba6ba87bca59219f30328768764ad9a5b73b2eb4f620c609dd85af55e0e9f",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 22,
+        "image_type": 2,
+        "width": 22
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_hud_health.tga",
+      "sha256": "204bb1618cc196eb4f790da671cabb9469acd54109250b061e20d7c6cc17b361",
+      "size": 2079,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_hwguyblue.tga",
+      "sha256": "3a5e92c6a38a33f3a158b728fee58ca9d9ad47b1a338a7c18624631ce5f1fd9a",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_hwguyred.tga",
+      "sha256": "606682da2b6865fd6a4a6c7f91f9e2bffae308a6d540aa874dac5a90115e8ecd",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_medicblue.tga",
+      "sha256": "35ce88fca61765093789e835fc07807c2bf39152d6335d72cd6aa19b46c9b89d",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_medicred.tga",
+      "sha256": "7ff41f8a4b473203894a3d4d8137cb7a68452cb8f1a696a9295dacad9ccce961",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_pyroblue.tga",
+      "sha256": "34f8339d3a72816d3e143ce023e96613b9406b220412d9cf2e731e81c9ba1c28",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_pyrored.tga",
+      "sha256": "9ab219b92e8e71fc5975d199ef796f834ca5daf2b7da45272a7d64c8c02865c9",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_randompcblue.tga",
+      "sha256": "5fc3ae5821e0c1ec1de8615457476cfc2a12f22d3346ff68f3bbe07352336940",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_randompcred.tga",
+      "sha256": "afd5c62ac1c15a8bdcf376cb646a5b1b9ab96942c1eff11c0784ab5e939639c3",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_scoutblue.tga",
+      "sha256": "79e574b15dbc6b795c332f7f225eb9adf4bf2f75117f1f18854d860776e46bc2",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_scoutred.tga",
+      "sha256": "d8fdee523941bce021614e38967a689c6995c08eee5589ee6da3d7b04229fb65",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_sniperblue.tga",
+      "sha256": "b301ee6b8087628cd1901dfe510947c1e0c89c0c791b98f0494b7a3c10b8a41d",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_sniperred.tga",
+      "sha256": "c74ec885b013c7b03b542f6ac6e44bfe7f89fc3faf29680bcd640d640975655e",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_soldierblue.tga",
+      "sha256": "4d96d2db1f1f2ba49246276eeaedf649a9bd6594269f14f75015fcb53ad2961b",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_soldierred.tga",
+      "sha256": "0f2cbaf9e4a9338d01f7cfeb8dd4c302e41cae94d52aac4664ee0830b2b65648",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_spyblue.tga",
+      "sha256": "a6c17641f37521f6bfcea8af83c879ad50a50ce1fd1220137ff5c5e0e7eb16b8",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 128
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_spyred.tga",
+      "sha256": "882d72bf67d163ebdb409e8486b4cb4e7d849c49948821625df37108a4ebb07f",
+      "size": 131116,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 16,
+        "image_type": 2,
+        "width": 16
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "gfx/vgui/640_unchecked.tga",
+      "sha256": "8d0abf3ab748b5035a18d041f8b8baa82d709dc5b1124ef62ec6ec9f6e0d713c",
+      "size": 1068,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "hunted.cfg",
+      "sha256": "77843c9af58fb1d3dba66f24a1bd353744a493dd0682766d7db4904b4ebf0625",
+      "size": 22,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "hwguy.cfg",
+      "sha256": "5fa89d72caf62425cb614df785cc1d8ec33f6922590c2ae49f4bcd3ff98e0f4b",
+      "size": 21,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 48,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "listenserver.cfg",
+      "sha256": "26b44d3b5a9def7dc1f4fdfb425d1762ab4d161623771174b785c36da9b35059",
+      "size": 970,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 28,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "mapcycle.txt",
+      "sha256": "51d9742825200fb49aad8eec1acad4e20398d69af7a2b457456cf3367d11ed51",
+      "size": 1196,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\tfc\\tfc.wad",
+          "\\tffree\\valve\\halflife.wad",
+          "\\tffree\\valve\\liquids.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/2fort.bsp",
+      "sha256": "5f004857ba1dc596509cec86df5af5a547e7d1180dec75fe0abf4ec9974c291f",
+      "size": 2488684,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/2fort.txt",
+      "sha256": "619cc9bae15ef68570fc00489f58edea8a0803d0eb865f13db068fe5872fa62b",
+      "size": 364,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\hl1\\valve\\halflife.wad",
+          "\\hl1\\valve\\liquids.wad",
+          "\\hl1\\tfc\\tfc2.wad",
+          "\\hl1\\tfc\\tfc.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/avanti.bsp",
+      "sha256": "5042ccf891fcdac99f1089a806f8b5f4f3eee4045859abfe0b9f5042d77e3824",
+      "size": 2563012,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 25,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/avanti.txt",
+      "sha256": "37c5ac979fb3f90326de302f821602e2108cc2d4b1a490f1ee6c97475c42333d",
+      "size": 869,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\valve\\halflife.wad",
+          "\\tffree\\tfc\\tfc.wad",
+          "\\tffree\\valve\\liquids.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/badlands.bsp",
+      "sha256": "0b1acf3e882c2561877a6f32471aa3248dc1bc80cc65339d75c9bbf3b16673bb",
+      "size": 2889252,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/badlands.txt",
+      "sha256": "d3aacd0082fb7b23a530f4f96a23bad05baf652bfebf3a806d2f8c96b2f487fe",
+      "size": 355,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\tfc\\tfc2.wad",
+          "\\tffree\\tfc\\tfc.wad",
+          "\\tffree\\valve\\halflife.wad",
+          "\\tffree\\valve\\liquids.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/casbah.bsp",
+      "sha256": "bff026ab363ab811c11152de47ab6ae7fa6fe659352f1609494b71aa5be0d5ac",
+      "size": 2560432,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 10,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/casbah.txt",
+      "sha256": "4cdf3b19ecbb7b8d165434d5171cf1d0d74e65cf92239ef611c9287ea3fa5fc5",
+      "size": 253,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\quiver\\valve\\halflife.wad",
+          "\\tffree\\valve\\liquids.wad",
+          "\\tffree\\tfc\\tfc.wad",
+          "\\tffree\\tfc\\decals.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/crossover2.bsp",
+      "sha256": "5890e235713fb61f43457a0d1e8ba935b1c50a4b067e1bfdd0b868dd6eeab675",
+      "size": 2402972,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/crossover2.txt",
+      "sha256": "4f1ebef32f60445f2e284ba67943dff1a2f1a82328a2cffccb51af8287052a08",
+      "size": 361,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\quiver\\valve\\halflife.wad",
+          "\\quiver\\valve\\liquids.wad",
+          "\\quiver\\tfc\\tfc.wad",
+          "\\quiver\\valve\\xeno.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/cz2.bsp",
+      "sha256": "9e5d14d06fcd622a6f8045a9c25aa69891fc8076d7110e7f5e7b174c5fadb242",
+      "size": 2752724,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/cz2.txt",
+      "sha256": "44f7008d612547ea7d0d6f0a2701a5a90cdf9e389ea4ba849b6a5befb4f69e60",
+      "size": 310,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 38,
+        "truncated": false
+      },
+      "extension": ".res",
+      "format": "res",
+      "path": "maps/default.res",
+      "sha256": "5bd994fbe56909792b4a964b77d74f87f3e0a0e4659e639c44f404770fef98dd",
+      "size": 610,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\half-life\\valve\\halflife.wad",
+          "\\half-life\\valve\\liquids.wad",
+          "\\half-life\\tfc\\decals.wad",
+          "\\half-life\\tfc\\tfc.wad",
+          "\\half-life\\tfc\\tfc2.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/dustbowl.bsp",
+      "sha256": "6521402fb9b5494160bf70efe98632491d8d37d240ef919469a0d57b009e3333",
+      "size": 3331976,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dustbowl.txt",
+      "sha256": "001a4a4892440dd180571feb13a1b50612bfecc9dbc41a4ea27728849363f0db",
+      "size": 413,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\valve\\liquids.wad",
+          "\\tffree\\tfc\\tfc.wad",
+          "\\tffree\\valve\\halflife.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/epicenter.bsp",
+      "sha256": "c0274cb283ba2a8ba4b6c56ac2133efb0ed6a4270d9c2efc63238ed4d78a5b9c",
+      "size": 2206536,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 10,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/epicenter.txt",
+      "sha256": "1ea0360e7be8d43b80486fb4b719dbdc2a349c5066c80f728f6f5f06e5400990",
+      "size": 284,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\tfc\\tfc2.wad",
+          "\\tffree\\tfc\\tfc.wad",
+          "\\tffree\\valve\\halflife.wad",
+          "\\tffree\\valve\\liquids.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/flagrun.bsp",
+      "sha256": "ba6977eb6d655b2c77b0ca85ce204503b6e3e7a44e88420a1f87e02a43295858",
+      "size": 2824084,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/flagrun.txt",
+      "sha256": "8a45b9b14ffc8b1cfc53c9639bf5029e8ff2d1c669f0cb9f7afc937e8cd95731",
+      "size": 371,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\valve\\halflife.wad",
+          "\\tffree\\tfc\\tfc.wad",
+          "\\tffree\\valve\\liquids.wad",
+          "\\tffree\\valve\\xeno.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/hunted.bsp",
+      "sha256": "206b393e75af304287251436e6439d1ad0201080e9407227c356d4b4245e9248",
+      "size": 2005872,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/hunted.txt",
+      "sha256": "d02d088c917412a1f5a5e878175ced1721c24ca4e67858f1c130e28191900b13",
+      "size": 416,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\quiver\\valve\\halflife.wad",
+          "\\quiver\\valve\\liquids.wad",
+          "\\quiver\\tfc\\tfc.wad",
+          "\\quiver\\valve\\xeno.wad",
+          "\\quiver\\valve\\decals.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/push.bsp",
+      "sha256": "811a258d800b79f16e388b9dd563f147cb84f1686b958acc28e1ec1b1b591b66",
+      "size": 1106292,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/push.txt",
+      "sha256": "25e85f821f57e66c9a1c3e9d717fd4741b7a015d2b3fe2d11363026f8bc5d29f",
+      "size": 338,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\half-life\\valve\\halflife.wad",
+          "\\half-life\\valve\\decals.wad",
+          "\\half-life\\valve\\liquids.wad",
+          "\\half-life\\tfc\\tfc2.wad",
+          "\\half-life\\tfc\\tfc.wad",
+          "\\half-life\\tfc\\ravelin.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/ravelin.bsp",
+      "sha256": "c66f6a8585adf06165f8699de33b751db2ff2aa196c4f8018fc7089c5996bd84",
+      "size": 4251628,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 15,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/ravelin.txt",
+      "sha256": "b1191a47de0ef8c5cb66d57a1f9437eda70d71b6dc99e0efa4fe89fe08ad95e4",
+      "size": 445,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\valve\\halflife.wad",
+          "\\tffree\\tfc\\tfc.wad",
+          "\\tffree\\valve\\liquids.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/rock2.bsp",
+      "sha256": "6538f8c7afc9698f5319a6c70621e0cab994e64a8f2f5ef2ffc274dbd0356d30",
+      "size": 3856672,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/rock2.txt",
+      "sha256": "4672aad0a0a12f7395a27bbe39eb5763c92e4d05a158a8febeea3c5f3181023e",
+      "size": 389,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\tfc\\tfc.wad",
+          "\\tffree\\valve\\halflife.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/warpath.bsp",
+      "sha256": "d077a3de6dce9574453b3493f5400059b0b327f08bce67c1eae46288c961046e",
+      "size": 3735624,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 16,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/warpath.txt",
+      "sha256": "94486db275ba45be32ac9bb858bbf22b91f20bef69c8491a001e7adc0aa2399e",
+      "size": 576,
+      "version": null
+    },
+    {
+      "detail": {
+        "entity_lump_index": 0,
+        "has_worldspawn": true,
+        "lump_layout": "standard",
+        "nonempty_lumps": 15,
+        "wad_refs": [
+          "\\tffree\\valve\\halflife.wad",
+          "\\tffree\\tfc\\tfc.wad",
+          "\\tffree\\valve\\liquids.wad"
+        ]
+      },
+      "extension": ".bsp",
+      "format": "bsp",
+      "path": "maps/well.bsp",
+      "sha256": "0792ff801f5ab4edbe3ff7ca00ea8d097b85bc2cecec833e353da60896a30654",
+      "size": 2266312,
+      "version": 30
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/well.txt",
+      "sha256": "4f83b1370a178e8647d21c398e44809ff91663e057300a3042452e5b99a8f7d9",
+      "size": 406,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "medic.cfg",
+      "sha256": "68480083912c36da5e4ff4fdb26b26502b90b533a960932356cb9c8bba114eba",
+      "size": 21,
+      "version": null
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/backpack.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/backpack.mdl",
+      "sha256": "377424731aad426bcabb02da5bf0c2bda36e94681e6e5560f0001f6e534843a2",
+      "size": 21480,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/ball.mdl",
+        "numbodyparts": 1,
+        "numbones": 3,
+        "numseq": 2,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/ball.mdl",
+      "sha256": "d94ef678221966af8614f4a371c0c004d41c2fc1b8e3b3776b58954e7a64091e",
+      "size": 23792,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "f:/quiver/tf1/models/base.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/base.mdl",
+      "sha256": "3287831ec5f4cef3e9e19ad41e4601d86efbb9454caa01f5b681c7bc5ddce965",
+      "size": 26752,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf2/models/flag.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 5,
+        "numtextures": 6
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/bigrat.mdl",
+      "sha256": "5994c218534c5945e43402966a15a10f2e1f81f294251a3bb6f6ab1b381c37a0",
+      "size": 35112,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/bomblet.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/bomblet.mdl",
+      "sha256": "e6e2c1efe003f002a3e92ad70191cbbf8d94aae6a652679920e69d6230146e93",
+      "size": 3296,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/caltrop.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/caltrop.mdl",
+      "sha256": "d7bdfb119df349ab3c7b0138a42cc627cb567e0084b091370c98d429e5a61a72",
+      "size": 7868,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/chainammo.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 5
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/chainammo.mdl",
+      "sha256": "63396e462772360eb724bab9bddbe907665376447a5a3eaa7b51c14c2d46d793",
+      "size": 17852,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/conc_grenade.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/conc_grenade.mdl",
+      "sha256": "9a757dfeac981b92e9510fd3c7cca14176d17d30246d665696ff519413922364",
+      "size": 8568,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/Detpack.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/detpack.mdl",
+      "sha256": "7dbeb5d9f73d27258e3182db63202e3d60d162d265a69176ed87ab5c04caf1f0",
+      "size": 30776,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/Dispenser.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/dispenser.mdl",
+      "sha256": "0e13f00b69cab0c5e3520d1c4deb54bedf3eed253c22685af7d615acd3dc1bc5",
+      "size": 27700,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/emp_grenade.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/emp_grenade.mdl",
+      "sha256": "03606983ab787572ba2348d52058adbcb2b6bca176301344a79caa1aa1ef7976",
+      "size": 9336,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/flag.mdl",
+        "numbodyparts": 1,
+        "numbones": 21,
+        "numseq": 5,
+        "numseqgroups": 1,
+        "numskinfamilies": 5,
+        "numtextures": 7
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/flag.mdl",
+      "sha256": "c721dac8703eaf06f5cb1553cc2a24a53eed0335f112adef315b56e66bf42df0",
+      "size": 87956,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/G_Armor.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/g_armor.mdl",
+      "sha256": "7dc76803fe386038a29b438f2588e501bc4650fb862797cb4ea5a8a7748f3f08",
+      "size": 21008,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/Gasmask.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/gasmask.mdl",
+      "sha256": "bd26130fdb141c6172307ff43e68b66e21c41ba0fdeca686722cb04eb6b811ba",
+      "size": 9388,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/Invis.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/invis.mdl",
+      "sha256": "c60bd566cd84ded42a456a7abf16c6ab1c778842e78a7e3322c0299308a86ae0",
+      "size": 7916,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/keycard.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 2,
+        "numseqgroups": 1,
+        "numskinfamilies": 4,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/keycard.mdl",
+      "sha256": "f95dabe32944f2fb0c03fad6255bdf3f51febbfe1133da042c93f7951b693827",
+      "size": 71424,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/Mirv_Grenade.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/mirv_grenade.mdl",
+      "sha256": "0dbae3ab2dcc4a13036a870432c9a2f0f1c37ab08d276446e07c5e9736fa69ed",
+      "size": 12316,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/nail.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/nail.mdl",
+      "sha256": "44041ea2c4b4ae41a41272bc21294bad1a66b869b6c0aed0a9f921d51c2d3af3",
+      "size": 2220,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/Napalm.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/napalm.mdl",
+      "sha256": "79dbfc2d3d1fcc48e88ca2fe954c72c7b5e58601cc4ff4d1a14e23b169b538d7",
+      "size": 5300,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/ngrenade.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/ngrenade.mdl",
+      "sha256": "bdf4549a3e4bbde0135f3acc596ca8fc438f4eb869f6224392d65c8d82cdebd3",
+      "size": 12072,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_9mmhandgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_9mmhandgun.mdl",
+      "sha256": "c45ec572f1c2aff7da517a20f438441325d33d939ed038afb0a2c5ea33ca4668",
+      "size": 28252,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/p_9mmhandgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_9mmhandgun2.mdl",
+      "sha256": "ac2af6aa3f53dcda6f84394c3b619f91174e53734a92cc2ed1bec312667cfb0a",
+      "size": 17860,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_crowbar.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_crowbar.mdl",
+      "sha256": "b855861b2de3ec3c8080fdf268fbc99f46a62e855cd6bd143df5432f6fd8bdb3",
+      "size": 4852,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/p_crowbar.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_crowbar2.mdl",
+      "sha256": "e43f5eb1768fa13cf8730e526c03f5d22322c759c4cb4f5d8a2dd9275176b297",
+      "size": 4852,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_egon.mdl",
+        "numbodyparts": 1,
+        "numbones": 11,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_egon.mdl",
+      "sha256": "77c2ea6a59809f52bd8692f57259c55951dde4d7817c9fdc3dd4befd1b3ee74f",
+      "size": 87408,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/p_egon.mdl",
+        "numbodyparts": 1,
+        "numbones": 11,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_egon2.mdl",
+      "sha256": "db3a6a27617aeba758f1a2e7270d1e50aa4b5380d5cc27d7675e4a6483e6daf8",
+      "size": 37548,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_glauncher.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_glauncher.mdl",
+      "sha256": "43ff2eb0ae0b288837808145d9bb6f580d3c8f34ee285ab9e93deccdd5c649b5",
+      "size": 44472,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/p_glauncher.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_glauncher2.mdl",
+      "sha256": "6e254eab40eab877bdec23a82fc3ea17f83d971b5c9de8f8036ba6c05b671e4f",
+      "size": 15472,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/p_grenade.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_grenade.mdl",
+      "sha256": "78b5161121d8738bf9131a1d7aa8c8fe37a06360e9708c02d79208081e421198",
+      "size": 19432,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/p_grenade.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_grenade2.mdl",
+      "sha256": "78b5161121d8738bf9131a1d7aa8c8fe37a06360e9708c02d79208081e421198",
+      "size": 19432,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_knife.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_knife.mdl",
+      "sha256": "87777d4151da7222482fff1b1a62ae1281a8f0b0e0b43815c9333afeb19e6953",
+      "size": 206132,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/p_knife.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_knife2.mdl",
+      "sha256": "99df33a01526c9652e97f26130dcd95187c90554854b817f2720ed1851fa25bb",
+      "size": 17420,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_medkit.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_medkit.mdl",
+      "sha256": "c1be20600f852e821000b67ed24c7179eb26f9ff9493d97f93e7c5c309ef9f46",
+      "size": 9908,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/p_medkit.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_medkit2.mdl",
+      "sha256": "dbd60ef9c77a3848a15883327fcc1cd18b9196f035c1081bc69e20fed8b94124",
+      "size": 9908,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_mini.mdl",
+        "numbodyparts": 1,
+        "numbones": 14,
+        "numseq": 4,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_mini.mdl",
+      "sha256": "2805e92d466b9c48fe6559b2d99c710b665ecf1b203322dd5c540bbc986de932",
+      "size": 86124,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/p_mini.mdl",
+        "numbodyparts": 1,
+        "numbones": 13,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 5
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_mini2.mdl",
+      "sha256": "d51df1f5ad4a4f5950ff94c6fe1479d40f85868ad1f049cd1c12f14321a79402",
+      "size": 39676,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_nailgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 13,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_nailgun.mdl",
+      "sha256": "40b0122838fb9d8a36c9f50ef782777581fd6e2f32b4865daa7d0ecff5619603",
+      "size": 28312,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/p_nailgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_nailgun2.mdl",
+      "sha256": "b07601d43f27613f8e0d382cca8b6449cf52e58189cc2eea6716c94ff6cb9a2d",
+      "size": 23468,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_rpg.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_rpg.mdl",
+      "sha256": "281b2a617cf3a92049a13545abc6554588910e53b5b1316ec5aa8280ed0882ef",
+      "size": 27572,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/p_rpg.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_rpg2.mdl",
+      "sha256": "39bcf4f02c2cbf1a06583828d0a894239188a907ae61424d439683e4c997a4fc",
+      "size": 41004,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_shotgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_shotgun.mdl",
+      "sha256": "33f216e592c9d09eb7020f19aa557815fe0b9d4f191bb239ab8fb6f5ffa82541",
+      "size": 28164,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/p_shotgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_shotgun2.mdl",
+      "sha256": "0462d6b8a8e96edbd8150a1fc89a7929a8f4e51c95076757abcadbfc81243fc1",
+      "size": 13468,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_smallshotgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_smallshotgun.mdl",
+      "sha256": "fd25ea3751faa1e7c608e0c19344eb087fff06de39012fd6e3b35a361379e249",
+      "size": 26996,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_snailgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_snailgun.mdl",
+      "sha256": "478a923e7825a8490102f0439535b13384921c6ec09eb0aa76acedfc501b18c7",
+      "size": 29424,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/p_Snailgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_snailgun2.mdl",
+      "sha256": "9eebd9b3dfe83da503f8803601a69c119cb041f542b3d0e94b1ebef984092bf6",
+      "size": 24452,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_sniper.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_sniper.mdl",
+      "sha256": "1245c941a632698d35adb22f386a461dad4df3e521b022a015448e0e615f8d0c",
+      "size": 36252,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/p_sniper.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_sniper2.mdl",
+      "sha256": "ef4adb9e51bf0c1a5b1596ae3476e36182abe4aa3aa51802713a5979a407ade5",
+      "size": 20428,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_spanner.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_spanner.mdl",
+      "sha256": "9ccccb20b5c9f2bd5f3db225abfe08783ce5133a86ecfd2a8375f8216873c404",
+      "size": 30312,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/p_spanner.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_spanner2.mdl",
+      "sha256": "7557f138c5e21c8b250bcc9f8b3bd312ef31bd4359996786319e4530d5677f33",
+      "size": 23016,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_Spygun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_spygun.mdl",
+      "sha256": "b66985edfac7485ab0f1d293f5931f5bc252ed40dd54ee657074a8700746b862",
+      "size": 40064,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\engines\\workHL\\tfc\\models\\p_Srpg.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_srpg.mdl",
+      "sha256": "91d8c2f2b4d7f22f16fb24b5940ec15b111448381f84771dada0bea951d41fb5",
+      "size": 27572,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/p_umbrella.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_umbrella.mdl",
+      "sha256": "d147b4098ed17b28666e6de03f928735925e9c10ae0c530baddfcd029bd5adcb",
+      "size": 17124,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/p_umbrella.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_umbrella2.mdl",
+      "sha256": "d147b4098ed17b28666e6de03f928735925e9c10ae0c530baddfcd029bd5adcb",
+      "size": 17124,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/Pent.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/pent.mdl",
+      "sha256": "a0c23e1b7d2a553147644c5fc9b033583031a110f494bf8af15d1fa7db49d521",
+      "size": 10912,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/pipebomb.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 2,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/pipebomb.mdl",
+      "sha256": "505bec32938bdf01839e80a19fe75ed7cb68b6f322be831dd350b05bda902cae",
+      "size": 5084,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/player/civilian/civilian.mdl",
+        "numbodyparts": 1,
+        "numbones": 26,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/civilian/civilian.mdl",
+      "sha256": "c3844f8c2863ce8f5fee1102c6a2ce88bd67e266118c5f8ca8a5f5bcca1248ad",
+      "size": 323888,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\pru\\sabaneta\\demo.mdl",
+        "numbodyparts": 1,
+        "numbones": 53,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/demo/demo.mdl",
+      "sha256": "35da074fe80073c082fd782c2c094121b79b20042272c8f2bb13e99e22b79ce2",
+      "size": 682940,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/player/demo/demo.mdl",
+        "numbodyparts": 1,
+        "numbones": 30,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/demo/demo2.mdl",
+      "sha256": "3c60455f33e46984dd3658b2808d28fed3cc57e8e3d0512265b41c48560359e6",
+      "size": 310340,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\pru\\sabaneta\\engineer.mdl",
+        "numbodyparts": 1,
+        "numbones": 53,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/engineer/engineer.mdl",
+      "sha256": "36e4a989901a9da4ff3aace9e7b0a28c0b0928ff40f6f364d9adbb91fcfef258",
+      "size": 675356,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/player/engineer/engineer.mdl",
+        "numbodyparts": 1,
+        "numbones": 28,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/engineer/engineer2.mdl",
+      "sha256": "05f6337ce01b0a5f5b879749797dd3c8c9dbc50cedcb3b948d549fc6b20429db",
+      "size": 306612,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\pru\\sabaneta\\hvyweapon.mdl",
+        "numbodyparts": 1,
+        "numbones": 53,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/hvyweapon/hvyweapon.mdl",
+      "sha256": "eecd017d2e096dbb6b542f9866982dcf89b22d84adc1224cfcc9019902f85c29",
+      "size": 745896,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/player/hvyweapon/hvyweapon.mdl",
+        "numbodyparts": 1,
+        "numbones": 28,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/hvyweapon/hvyweapon2.mdl",
+      "sha256": "b5738e4f2cea2c6948a653824d75e3d34c19b6d5e42bc09c79156c08cd1d9c1f",
+      "size": 312176,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\pru\\sabaneta\\medic.mdl",
+        "numbodyparts": 1,
+        "numbones": 51,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/medic/medic.mdl",
+      "sha256": "62ff34c4d8116b925f06f1fd7dd8852c83056691027eccf3ede877fa5baacdb6",
+      "size": 652116,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/player/medic/medic.mdl",
+        "numbodyparts": 1,
+        "numbones": 30,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/medic/medic2.mdl",
+      "sha256": "96081beb136be8179e0a46b1e37ee56b43d4293e00bef7d616306b0a270b9d2d",
+      "size": 309052,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "C:\\pru\\sabaneta\\pyro.mdl",
+        "numbodyparts": 1,
+        "numbones": 53,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/pyro/pyro.mdl",
+      "sha256": "ca97dceeb465d6c13933d1ae5953c1cafcbc38f4038350845a4ed23064360384",
+      "size": 677568,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/player/pyro/pyro.mdl",
+        "numbodyparts": 1,
+        "numbones": 30,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/pyro/pyro2.mdl",
+      "sha256": "92c44d5360ec41ed95e1c6f682891ff6c428d192d7cc231943c7bbfd4f516282",
+      "size": 314676,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "C:\\pru\\sabaneta\\scout.mdl",
+        "numbodyparts": 1,
+        "numbones": 53,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/scout/scout.mdl",
+      "sha256": "13eb63b01f08d92b81ac01101a7bb31b0ca3c3bf4ea1b01ba1542fad1fbfd2b1",
+      "size": 685128,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/player/scout/scout.mdl",
+        "numbodyparts": 1,
+        "numbones": 31,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/scout/scout2.mdl",
+      "sha256": "0f0d8066fa807c244f5a205a88e5a06b75d10ffad900e81fe4d0ae3e471150e3",
+      "size": 311552,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "C:\\pru\\sabaneta\\sniper.mdl",
+        "numbodyparts": 1,
+        "numbones": 49,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/sniper/sniper.mdl",
+      "sha256": "2abd560f2c6153d7153903470b820af037b3be9b9ddeef3533acfafde52c07ca",
+      "size": 618464,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/player/sniper/sniper.mdl",
+        "numbodyparts": 1,
+        "numbones": 30,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/sniper/sniper2.mdl",
+      "sha256": "10eae0c7be91dc1f9f84f0ce0de9d33b92f122f1cb6c1c0e3fce49a017229710",
+      "size": 310024,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "C:\\pru\\sabaneta\\soldier.mdl",
+        "numbodyparts": 1,
+        "numbones": 53,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/soldier/soldier.mdl",
+      "sha256": "418b7f95a5250501858d1d42e74299a4e8c2295079c91282ca8e24072f4fc8b5",
+      "size": 807724,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/player/soldier/soldier.mdl",
+        "numbodyparts": 1,
+        "numbones": 28,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/soldier/soldier2.mdl",
+      "sha256": "42502da801cd5b9fd864f6ff6d44ab69b1862ff47af8416b25f1ec9ac6fca573",
+      "size": 307516,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\pru\\sabaneta\\spy.mdl",
+        "numbodyparts": 1,
+        "numbones": 53,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/spy/spy.mdl",
+      "sha256": "3296c269094a20ccb5e2d6d78632da60346bb99b92e0ca359983e269ac0a1192",
+      "size": 674452,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/player/spy/spy.mdl",
+        "numbodyparts": 1,
+        "numbones": 28,
+        "numseq": 77,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/player/spy/spy2.mdl",
+      "sha256": "f462dc91dc4483be4ba83d254a148b43fe9b182991091e2491583a01e3f0518d",
+      "size": 305308,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/presentlg.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/presentlg.mdl",
+      "sha256": "435ca4750aaff810bb57b9156e827eb0047610abb016b3f6ff0cb7660aaa7995",
+      "size": 46844,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "valve/models/presentsm.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/presentsm.mdl",
+      "sha256": "ae2067e58a72206f33e78395c38111ce66aa5834b8a67ed0cf999ed69fa9e878",
+      "size": 33320,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/quad.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/quad.mdl",
+      "sha256": "7be9f448f71b4480fe22bec54d865690b97d68ba09ec6961152f8fb374f5f60d",
+      "size": 8300,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/R_Armor.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/r_armor.mdl",
+      "sha256": "0c9c523c5dffdcf67b5d5b9a5ebfd5a3a4d5d7975b09ef67215f89dfc276c77e",
+      "size": 21008,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "models/sentry1.mdl",
+        "numbodyparts": 1,
+        "numbones": 4,
+        "numseq": 3,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/sentry1.mdl",
+      "sha256": "92afb57ad69f57237f9e296503d9cdba4e44173701908ea04c4f07ef0a92fae7",
+      "size": 30040,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/sentry2.mdl",
+        "numbodyparts": 1,
+        "numbones": 4,
+        "numseq": 3,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/sentry2.mdl",
+      "sha256": "cf2bc69f660939bbda279e98f1a06fa7671bccc5f1a2eb37acfff31cd49d9626",
+      "size": 33956,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/sentry3.mdl",
+        "numbodyparts": 1,
+        "numbones": 6,
+        "numseq": 3,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/sentry3.mdl",
+      "sha256": "8381ad7b242f865b83659ca6c7b167acb9086cc475041fe260035f75f8870f69",
+      "size": 34200,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/Spy_Grenade.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/spy_grenade.mdl",
+      "sha256": "113c815bba0e1bc44c65b8954342f759879160b103fba448cdd604a37745fa6d",
+      "size": 3436,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "teleporter.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/teleporter.mdl",
+      "sha256": "1076e576adc6568c1e1aaa522c6f858650faf85819474bd9dfb3bd2198165fa9",
+      "size": 264000,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_flame.mdl",
+        "numbodyparts": 2,
+        "numbones": 32,
+        "numseq": 11,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 7
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_flame.mdl",
+      "sha256": "733b266272ecbee327a1cac62ad1c8bf2492b791251ede30877ab2ebd7c3da0b",
+      "size": 127436,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_tfac.mdl",
+        "numbodyparts": 1,
+        "numbones": 13,
+        "numseq": 7,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 5
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfac.mdl",
+      "sha256": "0fa7116f10770d3c0dd3cbad72407f1103e7fa8a48e4a240199111f22363d7d8",
+      "size": 67296,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_tfc_12gauge.mdl",
+        "numbodyparts": 2,
+        "numbones": 32,
+        "numseq": 10,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 7
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_12gauge.mdl",
+      "sha256": "1fc1402fe3820a01ab07d501062159647801d20d3e3e6285a3e89a86a966ed9a",
+      "size": 131628,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_tfc_crowbar.mdl",
+        "numbodyparts": 1,
+        "numbones": 11,
+        "numseq": 11,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 6
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_crowbar.mdl",
+      "sha256": "371596028d4b8d624710188cefec6ade42a3845b32c29225e66d27455d3dc7fb",
+      "size": 47356,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/v_tfc_knife.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 6,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 7
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_knife.mdl",
+      "sha256": "6e90b8beb7a9587a5afe143b36bf9b7cc9df3d6ff66ba8743c04c73ef100153b",
+      "size": 53020,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/v_tfc_medkit.mdl",
+        "numbodyparts": 1,
+        "numbones": 47,
+        "numseq": 6,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 8
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_medkit.mdl",
+      "sha256": "39bdd3ecb6c82958141a7a3e8383a57f7c6c8e50e223772dae1abce1659bbffc",
+      "size": 149044,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_tfc_Nailgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 26,
+        "numseq": 8,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 6
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_nailgun.mdl",
+      "sha256": "b34778496cf0af4a31713939dbf91bc3593bb3137a19a8896b2dc32e8920f62a",
+      "size": 87904,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_tfc_pistol.mdl",
+        "numbodyparts": 3,
+        "numbones": 48,
+        "numseq": 10,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 11
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_pistol.mdl",
+      "sha256": "fdf0f984efceabb0aa882e3c47f5f6952fb907cb104729f735305d905574c590",
+      "size": 134016,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_tfc_railgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 13,
+        "numseq": 4,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 5
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_railgun.mdl",
+      "sha256": "9508863a15a903097a6665b77fab6915c981b5996537e7002a17be0f3f5d85d0",
+      "size": 116984,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/v_tfc_rpg.mdl",
+        "numbodyparts": 3,
+        "numbones": 32,
+        "numseq": 12,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 24
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_rpg.mdl",
+      "sha256": "e4396d516a58a95b6c67d135b335e6c4bb5bfd28fe12e3dd3439af1f30b91790",
+      "size": 156360,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_tfc_shotgun.mdl",
+        "numbodyparts": 2,
+        "numbones": 32,
+        "numseq": 10,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 10
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_shotgun.mdl",
+      "sha256": "da6e51466b59e8497dcf8a003ed113881f24a405d9a4c8af1ec26337e3f876bb",
+      "size": 94652,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_tfc_sniper.mdl",
+        "numbodyparts": 1,
+        "numbones": 20,
+        "numseq": 9,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 11
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_sniper.mdl",
+      "sha256": "21c3e37fec6434c52e1b1cca39751764d875b2aee90a852e79a5e19e36ebd2af",
+      "size": 139212,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/engines/workHL/tfc/models/v_tfc_spanner.mdl",
+        "numbodyparts": 1,
+        "numbones": 11,
+        "numseq": 6,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 6
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_spanner.mdl",
+      "sha256": "20d0f949a6520a6bfc06a19dd34a00bad49c1ab83e99edd5d5ff6178a2bbbef3",
+      "size": 107016,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_tfc_SuperNailgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 19,
+        "numseq": 8,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 6
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfc_supernailgun.mdl",
+      "sha256": "904e3b4421c07de07d0b967e7611467205acc07b3a292b1deda1d2e92bf15971",
+      "size": 84144,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_tfgl.mdl",
+        "numbodyparts": 1,
+        "numbones": 33,
+        "numseq": 12,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 9
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tfgl.mdl",
+      "sha256": "9fddfe5e2067fc6f75259f76a4484b949b164a85d1cf6c003acd195c04c0a67d",
+      "size": 126896,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tfc/models/v_umbrella.mdl",
+        "numbodyparts": 1,
+        "numbones": 11,
+        "numseq": 11,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 7
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_umbrella.mdl",
+      "sha256": "edc458427c5a2009624eeb3e297ddd554b16f3c505b31a2629f20c1507d498e7",
+      "size": 67368,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "tf1/models/Y_Armor.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/y_armor.mdl",
+      "sha256": "48adf0fbd278aac49df7f33587a3427f2b4dd1eaa60e5656efadd1c9bdf26b1e",
+      "size": 21008,
+      "version": 10
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 16,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "motd.txt",
+      "sha256": "7e60ba29f2a8c30c5c1b56d3f2d6de5e4258f08b3abd21a2ca612356c8523333",
+      "size": 171,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/2fort.tga",
+      "sha256": "6de24f9af2ddeae530bdef88fd8a552fb051cd12eaf3d1d9af90daf4bda3ced0",
+      "size": 464727,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/2fort.txt",
+      "sha256": "306ad4d3ec6f63de8765b4a139e7a34069f52d38a4557003e7bdb9a67507acfd",
+      "size": 152,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/avanti.tga",
+      "sha256": "8acd52c376bbfae33bffe9c1d897c56eb77ad705d109a5e0963d0608b8eb1efd",
+      "size": 722637,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/avanti.txt",
+      "sha256": "5c6192fb6b6dabc8053d80437c8262e31819e3b974992e3d21292dad94720573",
+      "size": 156,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/badlands.tga",
+      "sha256": "3350bae1433ddf0f7dbba3221e0fc47a1d88e7ddc82b0d4a625b5103d93f9ee4",
+      "size": 715360,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/badlands.txt",
+      "sha256": "24414492c1623da2467a652da1b1bc2b78287ac2b353b6aeace6b6e62030bd77",
+      "size": 157,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/casbah.tga",
+      "sha256": "668bbc210a4ad25faeb1677610875ca70a8788b1eb226fabc5f5a1aee1cabc61",
+      "size": 741004,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/casbah.txt",
+      "sha256": "604cc20fe6675afed329e9bed1e002bdec7b8293ba120d81db46e1c44d3feda7",
+      "size": 155,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/crossover2.tga",
+      "sha256": "ed051b2356bd7ac5e868a2b464a278d717770b582c1bc3cf960ba4171a555397",
+      "size": 577054,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/crossover2.txt",
+      "sha256": "2d6494b3c8794fa1e2aea24d06cf528d2daa9b0283aea1e4605b15ec8a994896",
+      "size": 160,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/cz2.tga",
+      "sha256": "2824ffc54365f87d88135f05d0aa5c4ab10857e207ae86f7147d24dc60aae4c0",
+      "size": 971024,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/cz2.txt",
+      "sha256": "ddf8f807110efbecbfd4c63f73f7e9d296ec87d867927de3edb2f025e1564172",
+      "size": 150,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/dustbowl.tga",
+      "sha256": "129a9843d663796702c39e5719d24f5763e7f17ec98c2f43caa6c95a78d638c8",
+      "size": 1007232,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/dustbowl.txt",
+      "sha256": "0c892db49d1ac4ef9e7faa44b4708e20f5c9fe0744d7dcc1f1234186a6052667",
+      "size": 161,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/epicenter.tga",
+      "sha256": "d4066c67f55c4b11dae8ce17f60799bfcf9323e9f1a059bb10c345dcfb83e4bf",
+      "size": 1273397,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/epicenter.txt",
+      "sha256": "f8db5587451556ec98ed17d4a7a85b00f222c73645b8ec5dcd17de1ea9a04ba1",
+      "size": 159,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/flagrun.tga",
+      "sha256": "985c124e8c09a37537528497e2ccfc4c4ace7472bd3b22c0587ed660f9f1117f",
+      "size": 866954,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/flagrun.txt",
+      "sha256": "3661aa43add9e1c08f1723f569217e718f5b1dbec555d52a494a6811e3f98729",
+      "size": 154,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/hunted.tga",
+      "sha256": "1ab546889d8a45180e485371879cffbe87e7308347a76687765da8a0993f977c",
+      "size": 959700,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/hunted.txt",
+      "sha256": "a0ff1bf1b3b2174d8fe2052311a1cd4cfa6ad19ca4ae53bef3dacbc1d82690e8",
+      "size": 159,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/push.tga",
+      "sha256": "1079cce00b883ea6ed0af523dd7abeb7e925ae23648839c0813bf04df7970305",
+      "size": 476049,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/push.txt",
+      "sha256": "517f74aedc1d2b44e60d9393564bc53ae0d21feee25dbdbc498dfe8958e6516f",
+      "size": 147,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/ravelin.txt",
+      "sha256": "620f0251f269ddb15ccf4ed9da0283da8e61c133e9392e0119663886461dd93b",
+      "size": 154,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/rock2.tga",
+      "sha256": "3e60685a7f48060b1173dfc0e51edfe2f727dcba7f7f579f555da3ad9ac0e803",
+      "size": 920022,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/rock2.txt",
+      "sha256": "3a1bb0e95fb6281e7c5cdce95cfe5fac404817c6b4fdedee982cf2b4881e0746",
+      "size": 150,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/warpath.tga",
+      "sha256": "5e58e423f8cc3b12e2b640cd150f76cf6ac0b8866b806686c9208c132365de7a",
+      "size": 1182810,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/warpath.txt",
+      "sha256": "7c978d935ce71b0dcf84433b0512dca79b9e94cdb56fcc31be8d2d335903481a",
+      "size": 152,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 768,
+        "image_type": 10,
+        "width": 1024
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "overviews/well.tga",
+      "sha256": "d7993520f71b7667715353263ea887121ab8cd2031c8cabdcd3b82c545ad28b4",
+      "size": 681482,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "overviews/well.txt",
+      "sha256": "ff23f3726091225887f13eb85d001c3f3daa74bba6b87c4cdd69606faa142b01",
+      "size": 148,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "pyro.cfg",
+      "sha256": "3c4c6fb6ca5a7d61ffdc2ab78685e8bfa0dbb128c205726d1a1241570f53e790",
+      "size": 20,
+      "version": null
+    },
+    {
+      "detail": {
+        "lump_types": {
+          "67": 14
+        },
+        "numlumps": 14
+      },
+      "extension": ".wad",
+      "format": "wad",
+      "path": "ravelin.wad",
+      "sha256": "8fb7b0cf554f8136270cee6e6fd367939a03103279756aeae05d3cb29aa50ca2",
+      "size": 59428,
+      "version": 3
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_1_a_loading.tga",
+      "sha256": "289e6a9f69a3e60b1b4057638980447b9a20e9c0d4bd02089e4fbd6ee0a593ff",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_1_b_loading.tga",
+      "sha256": "d684aec3861282ba98496799c74dd195af0e2338f01300761d6c71c65f8e9591",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_1_c_loading.tga",
+      "sha256": "5d2fc8723610a703c708e30ce42e8b94e0bc229bd21f63475a60232f974b1a05",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 32
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_1_d_loading.tga",
+      "sha256": "3e6838c79dba2a9a7486b462481be703db24800bc468a17dfa20d7985c6818ae",
+      "size": 24620,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_2_a_loading.tga",
+      "sha256": "8f2e9d2ee0eeadbc148852d685f269817785a701bef13b496c140edde28e9e22",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_2_b_loading.tga",
+      "sha256": "6bb37fa678934c042e35c9482a8ac33874f11626b26a404c2184bb33e1390387",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_2_c_loading.tga",
+      "sha256": "928d1d68a7acd928e7485e0fb87b945f5588f330b09c74e1375c0441375fc5fb",
+      "size": 196652,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 256,
+        "image_type": 2,
+        "width": 32
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_2_d_loading.tga",
+      "sha256": "fa548767fc7c519ca1435aea66923fad4065d390d72f5b587f9f41dc1b78e3ed",
+      "size": 24620,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 88,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_3_a_loading.tga",
+      "sha256": "d8b14368e979c7c994c9025f3b4c37a09d7392e2d7b5150aafc29564382569fe",
+      "size": 67628,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 88,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_3_b_loading.tga",
+      "sha256": "5cb3b90f460eaa05122f2f6ed1c03a47c3e252fd6c085a2dd1b2261d25843300",
+      "size": 67628,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 88,
+        "image_type": 2,
+        "width": 256
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_3_c_loading.tga",
+      "sha256": "f2a485de9c58dc569b2c4d8785513ab59a563430d038ac1db76d99cf0a5ba21c",
+      "size": 67628,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 88,
+        "image_type": 2,
+        "width": 32
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/background/800_3_d_loading.tga",
+      "sha256": "41236ca51b9108f43437d7928f31c2d377be6125f134ee7446f0366459b97a02",
+      "size": 8492,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 212
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/game_menu.tga",
+      "sha256": "b6b97204866476e930267b1fa2f182c05cdb659449131802beae0d0e3d4a768f",
+      "size": 27180,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 212
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/game_menu_mouseover.tga",
+      "sha256": "823933eba009b7a0294729428a453892a06fced092dd9c9d9bda18c38a14d0a2",
+      "size": 27180,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 49,
+        "truncated": false
+      },
+      "extension": ".res",
+      "format": "res",
+      "path": "resource/GameMenu.res",
+      "sha256": "5ea08ebb11c77bdbfbb34be3d4e75da00c75c14b87113c2fafeffd9a767edf36",
+      "size": 730,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 32,
+        "colormapped": false,
+        "height": 32,
+        "image_type": 2,
+        "width": 512
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/logo_game.tga",
+      "sha256": "22eea998d425438db8cb3d5737c014d07de335eab7c83e2a0f0e9a0640308c9a",
+      "size": 65580,
+      "version": null
+    },
+    {
+      "detail": {
+        "bpp": 24,
+        "colormapped": false,
+        "height": 18,
+        "image_type": 2,
+        "width": 104
+      },
+      "extension": ".tga",
+      "format": "tga",
+      "path": "resource/menu_hl_no_icon.tga",
+      "sha256": "cf9691ff48a23ec5037cc3e84e00986bd413f1424e02a1f5f47cbe0fdd3b5520",
+      "size": 5660,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 476,
+        "truncated": false
+      },
+      "extension": ".res",
+      "format": "res",
+      "path": "resource/OptionsSubMultiplayer.res",
+      "sha256": "2de4b0fa051f32dd5acad478096be4fc76987a86b47fbad70655c6d5057029a1",
+      "size": 8681,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 46,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "resource/tfc_english.txt",
+      "sha256": "0cb4a72dbdac0327b3e119d4576ef07e293e9ab69c98432543711ff546a540bb",
+      "size": 2254,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 106,
+        "truncated": false
+      },
+      "extension": ".res",
+      "format": "res",
+      "path": "resource/UI/BottomSpectator.res",
+      "sha256": "501bbb57f2228271088b620fda0d0852bc52ef49e818c32afc8445c03b767dec",
+      "size": 1772,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 280,
+        "truncated": false
+      },
+      "extension": ".res",
+      "format": "res",
+      "path": "resource/UI/Classmenu.res",
+      "sha256": "246d1132d315f87e91b1371f71e5cab4f5a477dd227296c5adbe23f7bdb34f00",
+      "size": 4762,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 62,
+        "truncated": false
+      },
+      "extension": ".res",
+      "format": "res",
+      "path": "resource/UI/ScoreBoard.res",
+      "sha256": "b84d04eca25931570de4b57a9617db74bb2a9bc6d1b57d021702f9850dc56cfc",
+      "size": 1036,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 200,
+        "truncated": false
+      },
+      "extension": ".res",
+      "format": "res",
+      "path": "resource/UI/Spectator.res",
+      "sha256": "339c3117369a337600ebfa54b126da492e3363e6d5ca56b0c88db5b066eb9a25",
+      "size": 3181,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 159,
+        "truncated": false
+      },
+      "extension": ".res",
+      "format": "res",
+      "path": "resource/UI/Teammenu.res",
+      "sha256": "46767777bff6b564463e7d5630486b47d5c736973f576b0d1742a37d875f866e",
+      "size": 2562,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".lst",
+      "format": "lst",
+      "path": "rooms.lst",
+      "sha256": "c0c4ea7b56760198ede637151cafa8a1bb183259314eb68bdb970c59134f1070",
+      "size": 186,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "scout.cfg",
+      "sha256": "4c2632f3ab5e0b2150f7da3b7121db81b538df18b80ae57b09ba635a00cba639",
+      "size": 21,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 37,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "server.cfg",
+      "sha256": "71b4639b29d03478bcfebf8928a1f225ba4ee82ddd9595a4ed94c1e508f345d8",
+      "size": 677,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "sniper.cfg",
+      "sha256": "4c75a14d786770294e8c5cbd9b6091fbdd8477270d0e0973fee363c0b3727092",
+      "size": 22,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "soldier.cfg",
+      "sha256": "4a955ddee9fab029ed1013aa3444dd47d875279efb188d9c2b2abcead7f6f053",
+      "size": 23,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 16,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.996
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/ambience/bell.wav",
+      "sha256": "b380d672eba9e471761ce91d321b7c54526002df7067386ca61ffa7b3d8b5686",
+      "size": 132150,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 2.267
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/ambience/fire1.wav",
+      "sha256": "5c081b57aa3ca6bd9411acbada6e4577814c4eba0fc65aec2933b146a695079f",
+      "size": 25042,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 7.988
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/ambience/goal_1.wav",
+      "sha256": "d492fbe8dfb6e39fabdc153ecf7ef2d8a1c48be826e1b03bfbfc05b95711a204",
+      "size": 88164,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.192
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/armoron_1.wav",
+      "sha256": "064711373b63edfa612cd86ffb7ac024b949ab47d7945cc9f8567a15e5cad1b0",
+      "size": 48464,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.874
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/damage.wav",
+      "sha256": "106eaa0040ed9ad93a037db5f8a6f4e29bb1551b3dfb722b37f31e1ff057e5c7",
+      "size": 20702,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.274
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/damage2.wav",
+      "sha256": "567c94ae31c20900a0267c0b1a4c6c933715011f094dbbe70a5c50b1bde113b7",
+      "size": 14096,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 4.74
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/damage3.wav",
+      "sha256": "aaf1fd636a08c5113f8dd3be2dd41f5121e2174c9ad3e290c881c533fdddaed5",
+      "size": 52305,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.262
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/health1.wav",
+      "sha256": "e15cfffd58124c2e7585b8d09d1859a43945e4463ef89b0459e69b3798c84fe0",
+      "size": 2936,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.53
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/inv1.wav",
+      "sha256": "7fea4cda8c69284ce2ba0f2554119591bdb1fe125b08ee13a98ebd939fd81eac",
+      "size": 16910,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 4.512
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/inv2.wav",
+      "sha256": "63ea80837c673627d0bd3f937a120075e6563ba0372c06b01a06d06fdf7525c0",
+      "size": 49790,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 4.803
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/inv3.wav",
+      "sha256": "78e57e09288195b2fea2e3b01d830e9336c9f3e7e2dedfc08ea804d3b3912895",
+      "size": 53096,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.864
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/itembk2.wav",
+      "sha256": "3e1d9669de3c5fb71f625d2198e2d3045ceb355b063691a9390ecf9c814df232",
+      "size": 9567,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 2.037
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/protect.wav",
+      "sha256": "3e6c147b15da63da33693d8c595b76880dcca38dfcba36a4c66d574aba8277df",
+      "size": 22502,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 3.252
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/protect2.wav",
+      "sha256": "ec15ea8ed3e6ee091b0e5488e1b4b41d79ee3b1d32052096fa979e1981adb2e3",
+      "size": 35894,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 2.112
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/protect3.wav",
+      "sha256": "88482f0d9e9f2532e28f56a7f85ef57275360a421432dc89ebf30583d1e8733d",
+      "size": 23330,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.443
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/r_item1.wav",
+      "sha256": "c53a9422df122bc9d6c68626b829c351f71ca82af9ec34d55c0626d0d349200c",
+      "size": 4926,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.795
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/items/r_item2.wav",
+      "sha256": "1aeb6da9c81d7058fa448469b74edf6f5cdb857b65055941420bc23e8beea4b7",
+      "size": 8808,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.683
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/b1.wav",
+      "sha256": "1f3bd80843767d8093471c20e201e8bac2ee67f7319f0c8bd3e34e8c61bfa009",
+      "size": 18604,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.687
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/b2.wav",
+      "sha256": "24d7499297045c2aa04278d7a7eb057cb63361dfff5ac0dcd5361d6395acd038",
+      "size": 18648,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 5.236
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/endgame.wav",
+      "sha256": "1e8b143a105de0df9ba8f20268d0656bca4f817faee763a550f7a572046379fd",
+      "size": 115572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 8.589
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/party1.wav",
+      "sha256": "11ee5654c3014a54566669b84f234b4d9c8fc537493c321fb956bc8580b8eb5a",
+      "size": 94741,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 4.404
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/party2.wav",
+      "sha256": "e82b946044f3f3fbb3fe32c0a69438b38c0d679a44991b28b4606a1c62675500",
+      "size": 48603,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.201
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/r_tele1.wav",
+      "sha256": "ed49d2594f9b04c3ff29e0d6b423945ab7e90f4a722cc6a48310e21f0f90561a",
+      "size": 13282,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 2.368
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/r_tele2.wav",
+      "sha256": "4a85eca0fa11c85d18fb4b8eebe58757466ff074371e3b0dc62ee40daaaaea86",
+      "size": 26148,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.201
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/r_tele3.wav",
+      "sha256": "ed49d2594f9b04c3ff29e0d6b423945ab7e90f4a722cc6a48310e21f0f90561a",
+      "size": 13282,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.201
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/r_tele4.wav",
+      "sha256": "ed49d2594f9b04c3ff29e0d6b423945ab7e90f4a722cc6a48310e21f0f90561a",
+      "size": 13282,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.184
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/talk.wav",
+      "sha256": "043c7db547473536d128eeee88fd53a4873ae8f2452e6d1d376c944532a40602",
+      "size": 2077,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.591
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/teleport_in.wav",
+      "sha256": "3114947e5a738697907eef7fb7de9b11676c78d305405b8c881129e94d4ebba2",
+      "size": 35194,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.559
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/teleport_out.wav",
+      "sha256": "af8f75f6bd59576ae1bc4df979ce8b8eeb46062161542fcf86939cb23a73d4e6",
+      "size": 34490,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.363
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/teleport_ready.wav",
+      "sha256": "22622d682726aeb5ded965027d73b72d34a8a0c66dd121faff8d1da623f9a2e2",
+      "size": 52218,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.619
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/axhit1.wav",
+      "sha256": "df3e92598ff516e03f453a5f3325202639274c49d87569e7aea6dd03cca0039c",
+      "size": 6906,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.226
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/death1.wav",
+      "sha256": "d641d2f6c57173de75899a021adee79c45e1e0024b2f093179cc7e0224529140",
+      "size": 13564,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.916
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/death2.wav",
+      "sha256": "b15eb47fc16168ab972028c4dd53517020cb3489ecebde3a11edc1063ab62c53",
+      "size": 10146,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.56
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/death3.wav",
+      "sha256": "f1d919760790757604f1258b889610be527c62fde3b81e4344e66262dec2012f",
+      "size": 17241,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.63
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/death4.wav",
+      "sha256": "bec0e8c550e04f817e230e9edfb31e63ba4aa56890e1b103bef26f75bd51d6cd",
+      "size": 6994,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.093
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/death5.wav",
+      "sha256": "db8e66c91aa28d2d574e69e130713d84a34dcd781aa21e6e34904b4ddfd102ff",
+      "size": 12090,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.272
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/drown1.wav",
+      "sha256": "c50c42a96ce69a1adfb2e4a3b4fb0191af16b24a7d153b2f2e5d549776024db1",
+      "size": 14072,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.943
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/drown2.wav",
+      "sha256": "c9a0fdfaf60f8e93644eb50a898b063641058ce87daf6931e256c840fa576968",
+      "size": 10444,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.0
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/gib.wav",
+      "sha256": "f9acfa04012fb134b3b46aaa6d47b1259b6acf56be1963238750d285f56d66a1",
+      "size": 11070,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.059
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/h2odeath.wav",
+      "sha256": "05333f29669aa244d48ed62d2a927308c6c3bf1ec08bf2f3564990b3cb54179a",
+      "size": 11716,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.394
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/pain1.wav",
+      "sha256": "9510b9f39c3b7d130d2518297d497482db2053a3615842ee0229aced2e38446f",
+      "size": 4388,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.538
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/pain2.wav",
+      "sha256": "2495778a20bd6d631521b2cbd159fe94c0701c63d6a9731098068b171aeb73ca",
+      "size": 5976,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.261
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/pain3.wav",
+      "sha256": "a7de5cf8ea3bf20722cde4c9bbfc7ba05850ca706302eb637f35512e414e3269",
+      "size": 2922,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.276
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/pain4.wav",
+      "sha256": "388c72cde482e74b6453c3111d82bb8e75d315ac0112bc4881e58a2e15a0cea6",
+      "size": 3092,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.409
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/pain5.wav",
+      "sha256": "30a06629b330f736d402ed6326388080c6170afc4a49fbe03aa0bcc08f258d6c",
+      "size": 4550,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.319
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/pain6.wav",
+      "sha256": "f261c7160bbae2cd90949943adc5929b055ba7258f25235300f2a069f898bdd9",
+      "size": 3556,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.222
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/player/plyrjmp8.wav",
+      "sha256": "6711302119c27b3428821a31054e9ed612d4a086e6eccf9c54e56bcf8f4f0052",
+      "size": 2496,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 193,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sound/sentences.txt",
+      "sha256": "7f22c89c3182d8c2637b8afe3b8c17ba016b20225b9a5f4756107be6dc16128d",
+      "size": 7285,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.709
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/speech/saveme1.wav",
+      "sha256": "fe3762f18c8d51a0d626858829dff0af5fd9981a765f047b7d0bee520f7c9ec9",
+      "size": 7856,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 3.376
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/speech/saveme2.wav",
+      "sha256": "39ed89e01ee94d4491cb879b34c6e2a365c78681ecc8eac06964921294ffba11",
+      "size": 37268,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.094
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/vox/captured.wav",
+      "sha256": "224d776f2c9b68b8b55d251c94a87d1baf7494cb0335c77157567c778d20bf90",
+      "size": 12184,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 5.236
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/vox/endgame.wav",
+      "sha256": "1e8b143a105de0df9ba8f20268d0656bca4f817faee763a550f7a572046379fd",
+      "size": 115572,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.5
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/vox/enemy.wav",
+      "sha256": "026a04d107a20f1fdb49153dc05ed25427e1af44f2bc68b3cd3de772200a5c9e",
+      "size": 5553,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.953
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/vox/flag.wav",
+      "sha256": "ca3d0a32395055122f04f9fdf9a8f1e3e7da949fec0696d170e930b18a58a64c",
+      "size": 10638,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.995
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/vox/holds.wav",
+      "sha256": "c8d0d4e87bf59957ea32f7a89753f4f0a9212b50185b1f17a690da6477b815d9",
+      "size": 11100,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.506
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/vox/nerve_gas_released.wav",
+      "sha256": "1ef3180d18e8fb7766600e5abebb8898a7604bf53913be2bbfddca97437f9134",
+      "size": 16649,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.1
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/vox/null.wav",
+      "sha256": "5271b9aa2961809f47fadecb693be2eebde2dbed62fbc4f5f4889fcd8c4a65f8",
+      "size": 1244,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.719
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/vox/reset.wav",
+      "sha256": "cf9402509dc3af3ad5c1fd71a03b523cb8f08b6366cca6488a2f680c67ca9d73",
+      "size": 8056,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.053
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/vox/returned.wav",
+      "sha256": "92c3eca20ae1a30893dde89889e0700bf3e26d27c8f8cffc2ad6ac04baf3a0d5",
+      "size": 11732,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.968
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/vox/scores.wav",
+      "sha256": "1e6f771ab821bf6bada2081170728e6ba4b7218e481005a170447dc394ccc1ae",
+      "size": 10802,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.712
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/vox/stolen.wav",
+      "sha256": "5e86662666d17618bf7131b33986a503cd3cc3e96b0d46ff06c9ad7744c6d6e9",
+      "size": 7970,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.389
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/airgun_1.wav",
+      "sha256": "23760b36fa3fb69505123133da1f2498789ed0ccf019d8d541313d68c8de6554",
+      "size": 8706,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.533
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/asscan1.wav",
+      "sha256": "99051357506060f614a194d79fdc5f3da9cf48fb0df538d6fa2e64d35f48d943",
+      "size": 33857,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.606
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/asscan2.wav",
+      "sha256": "c5f54c9ccb81139df9cad69a7abef1fcc9a7e079fe1d206f2da3aded2f520a4c",
+      "size": 13674,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 3.365
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/asscan3.wav",
+      "sha256": "8b03d84df7713d6a9af637a9cc0ceeb8aca50f7cb96df0b249d603cb2066b7be",
+      "size": 74232,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.4
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/asscan4.wav",
+      "sha256": "cee465e2535cb97a1c52250ac743f3ff40a22a59aaf64501a104eefb66431c18",
+      "size": 8934,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.161
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/ax1.wav",
+      "sha256": "3d121b84ded869694b254407517ba7fef3251565816592b34dc52fa4212b0b1b",
+      "size": 1814,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 3.735
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/building.wav",
+      "sha256": "c5bbab0060a5bf3751c1d41e28d3361228b8292576e31a7d639206a60db4d14c",
+      "size": 41219,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 2.073
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/concgren_blast1.wav",
+      "sha256": "4497865f93f2e91bc36a06eca9d5f6fc91cfda7f312b17a06bf42e6848478406",
+      "size": 22992,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.201
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/concgren_blast2.wav",
+      "sha256": "e98ae0db51d467af4a8a79e9c72454b4a07ee5e0189f95f703a019b61579c2c7",
+      "size": 13338,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.134
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/concgren_blast3.wav",
+      "sha256": "3788a8241521f6e6c0f5496b931ba88c314f90c9207a45abfdc39e039ecf225b",
+      "size": 12642,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.673
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/dartgun.wav",
+      "sha256": "841e42c5078d02ad9b6807b0d749491015d82107fdefefb0cd97e08509366170",
+      "size": 14894,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.241
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/emp_1.wav",
+      "sha256": "bcab748414396bb160627c51331ca183a761d2f922728ff37de9b74d85b818a7",
+      "size": 27496,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.423
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/flmfire2.wav",
+      "sha256": "732d86153e1f27e43c9560d5fc9fff1bee1c2d4e52f09a0d92ea2860eb9f22fa",
+      "size": 31428,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 2.163
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/flmgrexp.wav",
+      "sha256": "88125687694bf3335b0ccf12700b3a7953c39daafb95ad79bc5a03e663a8efed",
+      "size": 23886,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.098
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/railgun.wav",
+      "sha256": "0606f5a2360dc0a62ad574a0671c6d609c4e5ce7df34c09fbaa8e9bafdaeeb5e",
+      "size": 24246,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 3.621
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/sgun1.wav",
+      "sha256": "0eb4d7a9817d72ed7a2ce346b0f7d394035ce6f116e3cb31cfc4d5385948a216",
+      "size": 39970,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.311
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/shotgn2.wav",
+      "sha256": "9546c16d3d76ec757162deeb4f1e33266b04082996e051d6f0bc10353e67447c",
+      "size": 28942,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.644
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/sniper.wav",
+      "sha256": "801b16b7c7b118e2a8e093e7ece7ecc0f223dbc5bd07b154370c0ed5e9109e76",
+      "size": 14242,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.18
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/spike1.wav",
+      "sha256": "8f42e75d4fd9e9d42dc6491273ac6dc95445b8d3af92f41b2e4620e0688bb711",
+      "size": 4020,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.0
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/spike2.wav",
+      "sha256": "6856546ec16688b573c2e7189b6b24a17c811eaebf5310de477375c883ee51b9",
+      "size": 22094,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 3.91
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/timer.wav",
+      "sha256": "9db2df31aaa5324e3c915ab271bab12d0691dfa2bd40e32617de1786e50cf9bb",
+      "size": 86338,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.1
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/tink1.wav",
+      "sha256": "0ae519279bd4eaf26cab6a86a64c9c84b08c819d7dc0965185669b3402e7df99",
+      "size": 1144,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 2.302
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/turridle.wav",
+      "sha256": "4fe012cbca2a31f53cd281fb2c3ada3074d3579cca8581c9a266da48d9e56f94",
+      "size": 25422,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.0
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/turrset.wav",
+      "sha256": "bccc317eca9e9f00701f35e4e5546d4b56393937938a7f1147804cfbf25a4b0d",
+      "size": 11070,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.0
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/turrspot.wav",
+      "sha256": "70a20288e030013634cb7c4845258fcd0497c45666fa9c4bb02f05be4083bb5f",
+      "size": 11070,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 56,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "spectatormenu.txt",
+      "sha256": "e44c01da753a028e8cf072869f8eb9824bbed2d2afa9259a1e19ad33bcf194d7",
+      "size": 993,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 34,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "spectcammenu.txt",
+      "sha256": "aa83f1ed4b6fe87393165b6cd72dc9ada2bbd03bd353c81cc8f8e58c61532d56",
+      "size": 726,
+      "version": null
+    },
+    {
+      "detail": {
+        "frames": 15,
+        "height": 64,
+        "synctype": 1,
+        "tex_format": 3,
+        "type": 2,
+        "width": 64
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/explode01.spr",
+      "sha256": "57d218b6846f2bb6267f61a7aab67035bf42d39f84082856e911162f5ff1f58d",
+      "size": 62550,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 15,
+        "height": 40,
+        "synctype": 1,
+        "tex_format": 3,
+        "type": 2,
+        "width": 40
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/explode02.spr",
+      "sha256": "a4e29fbb7b46c129c42bda3dfb37dff374314da8a3718606909a52fbff5ee022",
+      "size": 25110,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 16,
+        "height": 80,
+        "synctype": 1,
+        "tex_format": 3,
+        "type": 2,
+        "width": 48
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/fthrow.spr",
+      "sha256": "7d2c02c8fb8489e00bca905b9c9073262c6c6cafc1fa6693c785db51ec8a8152",
+      "size": 62570,
+      "version": 2
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 216,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/hud.txt",
+      "sha256": "6e41507e03d203539b38611f4b76f86357f8486b3c8b5da0e6bad78edf162e76",
+      "size": 6963,
+      "version": null
+    },
+    {
+      "detail": {
+        "frames": 2,
+        "height": 64,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 64
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/muzzleflash3.spr",
+      "sha256": "ed4a840d6bbf3bc3c175c2670e65fabb3fb0c0048a69e20627e45de3e6874122",
+      "size": 9042,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 15,
+        "height": 40,
+        "synctype": 1,
+        "tex_format": 3,
+        "type": 2,
+        "width": 40
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/opaqueexplode02.spr",
+      "sha256": "a4e29fbb7b46c129c42bda3dfb37dff374314da8a3718606909a52fbff5ee022",
+      "size": 25110,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 32,
+        "synctype": 1,
+        "tex_format": 2,
+        "type": 2,
+        "width": 32
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/particle.spr",
+      "sha256": "196991b9a9640a758ee125b676abcb65077368be2f7f28d38bc00fced3aaf251",
+      "size": 1854,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 12,
+        "height": 48,
+        "synctype": 1,
+        "tex_format": 3,
+        "type": 0,
+        "width": 16
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/playerflame.spr",
+      "sha256": "583375e93e79635ae4fec0a48bae875850e7fdf6382407282772522036245520",
+      "size": 10266,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 12,
+        "height": 48,
+        "synctype": 1,
+        "tex_format": 3,
+        "type": 0,
+        "width": 32
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/playerflameloop.spr",
+      "sha256": "b35df319b60332b67e735da78f164d97fc136d5b7f4395df8ef66d282810694b",
+      "size": 19482,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 2,
+        "height": 16,
+        "synctype": 1,
+        "tex_format": 3,
+        "type": 2,
+        "width": 16
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/saveme.spr",
+      "sha256": "33783c7701ffe1d04f8da18c7fed633b1669bcb5dec35685498dfa0ca462b472",
+      "size": 1362,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 64,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 64
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/shellchrome.spr",
+      "sha256": "7c6d3b5719cadce1f5ea55df021c4e5941c55d550e0686bb03a5ac78f0c350bc",
+      "size": 4926,
+      "version": 2
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_ac.txt",
+      "sha256": "62be70be7ff8a215e0eb3cd53547f0d71ac52bf4bf2c42627f03b22a1865c54b",
+      "size": 357,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 15,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_autorifle.txt",
+      "sha256": "12bb1d6cf36de48debf9e4b28b40baa02fb6c6e8713dd30e57b497769a774760",
+      "size": 503,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 5,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_axe.txt",
+      "sha256": "caf5295dcd87d4fe81b9874d50d0f4fc0883ca21269b9ca66a7a5949628b1706",
+      "size": 131,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_flamethrower.txt",
+      "sha256": "6ebaf4b1799c8515f323bfda32e282b2303972e44dcc45d61b9a0cc402f4a405",
+      "size": 354,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 9,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_gl.txt",
+      "sha256": "ca723f0a38ec3518f9a1cf67007f40f781abe893e03db8648cb64b88cf509d42",
+      "size": 286,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 9,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_ic.txt",
+      "sha256": "df214f40a81015e8acde3673395e34fa31d75e6500f726804de9d84e61e3f3b9",
+      "size": 281,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 5,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_knife.txt",
+      "sha256": "83b91076a5aaa5a5c00ea4ae26141f9200a37cb9f49fa22fea61f0d8a120b976",
+      "size": 144,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 5,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_medikit.txt",
+      "sha256": "54539b00d90f6a1c73f0b7d2c85c120d30dd5d711e96a4ac97be11e13f55a849",
+      "size": 144,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_ng.txt",
+      "sha256": "f379af11716130fb5219bfd21c02f58704623c0e3f7c7e210ed681ecc135e018",
+      "size": 349,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 9,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_pl.txt",
+      "sha256": "21c7b4bc04eb06025be49254ddb6e709acaf9d7846aae8d15ce93d6bf251d206",
+      "size": 284,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_railgun.txt",
+      "sha256": "4ca46a88e344ef58c2428ef221914a615fd1add6b9961aaf03923557947ee026",
+      "size": 348,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 9,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_rpg.txt",
+      "sha256": "3251df77c0733b1210f35aa876e834d3498b2d90ba45b2dd3cd0ecefbe312530",
+      "size": 275,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_shotgun.txt",
+      "sha256": "ed7f63009406d9f09c6620978d449dee4085ade62ceb7b5140a712db27e431b4",
+      "size": 359,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 15,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_sniperrifle.txt",
+      "sha256": "616bb9075ae521c3ee923a67d47fb5865780a1996b887c51ad14d3dcf2dc064e",
+      "size": 506,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 7,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_spanner.txt",
+      "sha256": "91208b2886b7a00450a464b9442c9dc766a4aa02f9cbd082b1041a272474d555",
+      "size": 207,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_superng.txt",
+      "sha256": "d698a2e9d8f073d6e3ed18c6a83beae5d0aa674a02e1151b9f7d98698252ea68",
+      "size": 351,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_supershotgun.txt",
+      "sha256": "1e4e70d1aa3f62de3444de55a41a507cff94f72e6173f6345fc56804a55e299c",
+      "size": 350,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sprites/tf_weapon_tranq.txt",
+      "sha256": "4147fa5fb0645729796ea76c48bf20f67ab94d48ff4674bb7a5e3f774c92ae62",
+      "size": 357,
+      "version": null
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 256,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 256
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/tfc_dmsg.spr",
+      "sha256": "75c7b3473e9ff58908b9e140eea66f29d533c3c814401cc7cea6153fc9b80c92",
+      "size": 66366,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 256,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 256
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/tfchud01.spr",
+      "sha256": "a18690e57ea0b489057ae1d850e503a163d3cdae06d644468837de716d8f4ae3",
+      "size": 66366,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 256,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 256
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/tfchud02.spr",
+      "sha256": "76b35c702d119c940ce5973374b33363ec4afd26b10bd06e33dfbd934a9a0045",
+      "size": 66366,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 256,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 256
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/tfchud03.spr",
+      "sha256": "78ff0ee54f89776835dffd982a03ab765f5cbd10d32eec7f95c3c5ced0ed1e25",
+      "size": 66366,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 256,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 256
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/tfchud04.spr",
+      "sha256": "6fedc4d41a85b547791d82efae803a75f157e6e70624c70e3120546473e0b351",
+      "size": 66366,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 256,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 256
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/tfchud05.spr",
+      "sha256": "6e7ed61e9e410dc58af25c18ef0eabc353dc8131324ee8493afb6d8b1a675fb7",
+      "size": 66366,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 256,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 256
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/tfchud06.spr",
+      "sha256": "59e8dbcbee7449c7ea4cb054fca91fdcf9531c1a34a91629a5c91d2c8f8dda2b",
+      "size": 66366,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 256,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 256
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/tfchud07.spr",
+      "sha256": "976f88d870c787c9b2a9a951c4ddcb07d9d124d0a99cea536946a97597d12702",
+      "size": 66366,
+      "version": 2
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "spy.cfg",
+      "sha256": "aab192925654ac3a75aada59942405bb3fac991a256bf85aa3a68041fc4c89e7",
+      "size": 19,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "steam_appid.txt",
+      "sha256": "f5ca38f748a1d6eaf726b8a42fb575c3c71f1864a8143301782de13da2d9202b",
+      "size": 2,
+      "version": null
+    },
+    {
+      "detail": {
+        "lump_types": {
+          "67": 279
+        },
+        "numlumps": 279
+      },
+      "extension": ".wad",
+      "format": "wad",
+      "path": "tfc.WAD",
+      "sha256": "492405bf5acc8290ae55705131926f8f25df941b8e571acd9b52a7c0f4d50333",
+      "size": 8605948,
+      "version": 3
+    },
+    {
+      "detail": {
+        "lump_types": {
+          "67": 395
+        },
+        "numlumps": 395
+      },
+      "extension": ".wad",
+      "format": "wad",
+      "path": "tfc2.wad",
+      "sha256": "7069724c3ddfa7d7437781e7b11c78473239d1f7a86fe049b20c46f11af0d6f2",
+      "size": 11472812,
+      "version": 3
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 3544,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "Titles.txt",
+      "sha256": "cdade3a5c25d6cdf20800d410f8f0d3a00562f68e8f0c6b77307e42ae70d2857",
+      "size": 37728,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "warpath.cfg",
+      "sha256": "23ca0bd6eb48a10587a7d11e60bd00e6b1df27ef463fea2d441e6720be3d6189",
+      "size": 21,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 1,
+        "truncated": false
+      },
+      "extension": ".cfg",
+      "format": "cfg",
+      "path": "well.cfg",
+      "sha256": "e53bbc6566653a4d5543c80809899d9075b10cc3b771ca2b22bc460689524e99",
+      "size": 20,
+      "version": null
+    }
+  ],
+  "findings": {
+    "bsp_lump_layouts": {
+      "standard": 15
+    },
+    "maps_not_checked": [],
+    "maps_without_worldspawn": [],
+    "models_without_sidecar": [],
+    "parse_errors": [],
+    "wad_references": [
+      {
+        "basename": "halflife.wad",
+        "map": "maps/2fort.bsp",
+        "reference": "\\tffree\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/2fort.bsp",
+        "reference": "\\tffree\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/2fort.bsp",
+        "reference": "\\tffree\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/avanti.bsp",
+        "reference": "\\hl1\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/avanti.bsp",
+        "reference": "\\hl1\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/avanti.bsp",
+        "reference": "\\hl1\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "tfc2.wad",
+        "map": "maps/avanti.bsp",
+        "reference": "\\hl1\\tfc\\tfc2.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/badlands.bsp",
+        "reference": "\\tffree\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/badlands.bsp",
+        "reference": "\\tffree\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/badlands.bsp",
+        "reference": "\\tffree\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/casbah.bsp",
+        "reference": "\\tffree\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/casbah.bsp",
+        "reference": "\\tffree\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/casbah.bsp",
+        "reference": "\\tffree\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "tfc2.wad",
+        "map": "maps/casbah.bsp",
+        "reference": "\\tffree\\tfc\\tfc2.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "decals.wad",
+        "map": "maps/crossover2.bsp",
+        "reference": "\\tffree\\tfc\\decals.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/crossover2.bsp",
+        "reference": "\\quiver\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/crossover2.bsp",
+        "reference": "\\tffree\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/crossover2.bsp",
+        "reference": "\\tffree\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/cz2.bsp",
+        "reference": "\\quiver\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/cz2.bsp",
+        "reference": "\\quiver\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/cz2.bsp",
+        "reference": "\\quiver\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "xeno.wad",
+        "map": "maps/cz2.bsp",
+        "reference": "\\quiver\\valve\\xeno.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "decals.wad",
+        "map": "maps/dustbowl.bsp",
+        "reference": "\\half-life\\tfc\\decals.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/dustbowl.bsp",
+        "reference": "\\half-life\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/dustbowl.bsp",
+        "reference": "\\half-life\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/dustbowl.bsp",
+        "reference": "\\half-life\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "tfc2.wad",
+        "map": "maps/dustbowl.bsp",
+        "reference": "\\half-life\\tfc\\tfc2.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/epicenter.bsp",
+        "reference": "\\tffree\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/epicenter.bsp",
+        "reference": "\\tffree\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/epicenter.bsp",
+        "reference": "\\tffree\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/flagrun.bsp",
+        "reference": "\\tffree\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/flagrun.bsp",
+        "reference": "\\tffree\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/flagrun.bsp",
+        "reference": "\\tffree\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "tfc2.wad",
+        "map": "maps/flagrun.bsp",
+        "reference": "\\tffree\\tfc\\tfc2.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/hunted.bsp",
+        "reference": "\\tffree\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/hunted.bsp",
+        "reference": "\\tffree\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/hunted.bsp",
+        "reference": "\\tffree\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "xeno.wad",
+        "map": "maps/hunted.bsp",
+        "reference": "\\tffree\\valve\\xeno.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "decals.wad",
+        "map": "maps/push.bsp",
+        "reference": "\\quiver\\valve\\decals.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/push.bsp",
+        "reference": "\\quiver\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/push.bsp",
+        "reference": "\\quiver\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/push.bsp",
+        "reference": "\\quiver\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "xeno.wad",
+        "map": "maps/push.bsp",
+        "reference": "\\quiver\\valve\\xeno.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "decals.wad",
+        "map": "maps/ravelin.bsp",
+        "reference": "\\half-life\\valve\\decals.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/ravelin.bsp",
+        "reference": "\\half-life\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/ravelin.bsp",
+        "reference": "\\half-life\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "ravelin.wad",
+        "map": "maps/ravelin.bsp",
+        "reference": "\\half-life\\tfc\\ravelin.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/ravelin.bsp",
+        "reference": "\\half-life\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "tfc2.wad",
+        "map": "maps/ravelin.bsp",
+        "reference": "\\half-life\\tfc\\tfc2.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/rock2.bsp",
+        "reference": "\\tffree\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/rock2.bsp",
+        "reference": "\\tffree\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/rock2.bsp",
+        "reference": "\\tffree\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/warpath.bsp",
+        "reference": "\\tffree\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/warpath.bsp",
+        "reference": "\\tffree\\tfc\\tfc.wad",
+        "resolved": "game"
+      },
+      {
+        "basename": "halflife.wad",
+        "map": "maps/well.bsp",
+        "reference": "\\tffree\\valve\\halflife.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "liquids.wad",
+        "map": "maps/well.bsp",
+        "reference": "\\tffree\\valve\\liquids.wad",
+        "resolved": "valve"
+      },
+      {
+        "basename": "tfc.wad",
+        "map": "maps/well.bsp",
+        "reference": "\\tffree\\tfc\\tfc.wad",
+        "resolved": "game"
+      }
+    ],
+    "wads_missing": [],
+    "wads_only_in_other_game": [],
+    "zero_byte_files": []
+  },
+  "format_versions": {
+    "bsp": {
+      "30": 15
+    },
+    "mdl": {
+      "10": 100
+    },
+    "spr": {
+      "2": 18
+    },
+    "wad": {
+      "3": 5
+    }
+  },
+  "game": "tfc",
+  "schema": 1,
+  "tool": "tools/corpus_scan.py",
+  "tool_version": "1.0.0",
+  "totals": {
+    "by_extension": {
+      ".bsp": {
+        "bytes": 41242072,
+        "files": 15
+      },
+      ".cfg": {
+        "bytes": 6580,
+        "files": 22
+      },
+      ".lst": {
+        "bytes": 15176,
+        "files": 4
+      },
+      ".mdl": {
+        "bytes": 13078860,
+        "files": 100
+      },
+      ".res": {
+        "bytes": 23949,
+        "files": 9
+      },
+      ".spr": {
+        "bytes": 753200,
+        "files": 18
+      },
+      ".tga": {
+        "bytes": 18283566,
+        "files": 71
+      },
+      ".txt": {
+        "bytes": 124572,
+        "files": 86
+      },
+      ".wad": {
+        "bytes": 21014348,
+        "files": 5
+      },
+      ".wav": {
+        "bytes": 2090340,
+        "files": 85
+      }
+    },
+    "bytes": 96632663,
+    "files": 415
+  },
+  "variant_of": null
+}

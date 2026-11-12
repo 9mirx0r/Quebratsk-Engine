@@ -1,0 +1,679 @@
+{
+  "app_id": 20,
+  "display_name": "Team Fortress Classic (Spanish)",
+  "duplicates": {
+    "cross_game_shared_bytes": 1035,
+    "cross_game_shared_files": 1,
+    "files_unique_to_game": 44,
+    "partners": {
+      "valve_spanish": 1
+    }
+  },
+  "files": [
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_civilian.txt",
+      "sha256": "1315623aab5a97be718887feedf7d31713d402db028785fb337e74dd7ea23157",
+      "size": 124,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 37,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_demoman.txt",
+      "sha256": "b680e288689e2fc76addf5ae23c1c31cc23addf411e9273bf05bc938981be0ab",
+      "size": 4349,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 43,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_engineer.txt",
+      "sha256": "535e076735d8f5adb093787a5034d9f9475cd0c244ee61307f578e74a1d3a63a",
+      "size": 7825,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 28,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_hwguy.txt",
+      "sha256": "74545e2cdf3c376baa95ab262b657cad79f5a844cd6da07a9064b2e70b400cc3",
+      "size": 2888,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 32,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_medic.txt",
+      "sha256": "b61dff5daaad7381b2cbe59d665d9443b8b15d2ee1c933779deb99ba0b78de85",
+      "size": 2651,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 28,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_pyro.txt",
+      "sha256": "5f24d738400c88e525a7f2775f546836e608b195a42cce3516e4b637bfeb8438",
+      "size": 2903,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 33,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_scout.txt",
+      "sha256": "551ccfc28d098590f2de51d4f0bdf8c14a08648a1bdcb62fab0973a9049b7972",
+      "size": 2373,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 31,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_sniper.txt",
+      "sha256": "d6a354780da31f031be79c4e43ff91d96a3116aa7d91785ab352ecae57da90a2",
+      "size": 2842,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 22,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_soldier.txt",
+      "sha256": "cf7ceaaa6ae9b5848ad781be9b95359f54689c5102d520f5708112f201e7af31",
+      "size": 2027,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 49,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/long_spy.txt",
+      "sha256": "84029d3233155b2db38b5e47f606a3d1878999ac0733b01d869081359c600549",
+      "size": 5085,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_civilian.txt",
+      "sha256": "6d7c02af6596426e554297d9dfb6797ac1df3e86c02621f2d723df94e9bbd185",
+      "size": 127,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_demoman.txt",
+      "sha256": "6f58ba2b420dbf93a212241972ed894662ffd529ea482b49b455c3b7378495b5",
+      "size": 281,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 16,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_engineer.txt",
+      "sha256": "77180f5135e65980a64148e2c243cad0b2a7953c44dd6b839aab2c713d37312e",
+      "size": 380,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_hwguy.txt",
+      "sha256": "68caaedc236d16cd84d56c41cc1c9ea916768b084e6a90f53f5ec47e97d0f4ba",
+      "size": 283,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 16,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_medic.txt",
+      "sha256": "c16865baa400c58f36a503f03c3cf874b984805faf16cf1b2e15c024715fa958",
+      "size": 353,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_pyro.txt",
+      "sha256": "21e55281c5513700f07cc2d63c32649dc91ce51a7d9075bb80919f07b3a781b4",
+      "size": 260,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 2,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_randompc.txt",
+      "sha256": "b81e504f2f2db8c03c30e2d675c33bab7dc468663b50a5fa607a3db57dd25d03",
+      "size": 78,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 16,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_scout.txt",
+      "sha256": "874c2f5dab41f3399d9cb5f4ce855d0f408f02c986c106952857f479a3aee77a",
+      "size": 342,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_sniper.txt",
+      "sha256": "b088e418966d40faeaab98af5f55d2b191e042a15db40bd907864426f76bd7cd",
+      "size": 201,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_soldier.txt",
+      "sha256": "9497e34ca5eef553ae493c8e430e85db1a91510ec580a858edb69ba3473270d1",
+      "size": 222,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 18,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "classes/short_spy.txt",
+      "sha256": "203d94efb6af27f3bb517b0afc52010228407de4221499e6fdf3f7768e1a2115",
+      "size": 410,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 282,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "commandmenu.txt",
+      "sha256": "da8175cc1b0ee25aa709da1b723a76bd5d2edad0678911b45fc8fe0985140e85",
+      "size": 12128,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/2fort.txt",
+      "sha256": "63fe24b920a126e17a1664aca3a69ac079de30f568377787f425edf49bc056ad",
+      "size": 390,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 28,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/avanti.txt",
+      "sha256": "0b263e71f4a7e4503e32bfce1433d3f07b2c18f91de6b288a5326a83866ab39b",
+      "size": 994,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/badlands.txt",
+      "sha256": "dc75f595b3596a2c87ddb13956c0a599468d3ac81133324c98d5270216d5770b",
+      "size": 346,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 11,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/casbah.txt",
+      "sha256": "1c43f2e8ce66f8cf7a9fc46ed8ccf261cd5677de7effceb3a3ad8cbbe27ca920",
+      "size": 319,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 12,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/crossover2.txt",
+      "sha256": "634cd4bd1e4b2ebb645d7480a71bc650f830115e3f34bcb6d28d12a0ea6dce55",
+      "size": 357,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/cz2.txt",
+      "sha256": "c930640cc1892ba8c637dac18087ecaecb5d30a6516b0748ca40cfb043ae152d",
+      "size": 377,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 14,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/dustbowl.txt",
+      "sha256": "94e8fe1f5f855d9f4a100c91795115e8d1faecab51564ffba6bb586b791dc5f9",
+      "size": 510,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 9,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/epicenter.txt",
+      "sha256": "453a8f0184c9036eb19db016d43b00d4596fa638f0599be242f82454ec8cf940",
+      "size": 344,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 13,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/flagrun.txt",
+      "sha256": "7cc71a1cd129ad172055c26c3355f6610d03dd09f7c0e211ef896b6fea1bafa5",
+      "size": 422,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 15,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/hunted.txt",
+      "sha256": "b5ac5c03962940821bd1b111ca0f41ca7ca9cc9241355a17849d9fb8a68a0d1b",
+      "size": 413,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 17,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/push.txt",
+      "sha256": "70ca2a07fa48f85e6eb9432e80d7d54108b484c239e7af43fdf2ae61cced9492",
+      "size": 404,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 17,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/rock2.txt",
+      "sha256": "7f03881e52acb19e898cfbff602a3c2229aa81c1eb49d0a231f7e43c3d3657b3",
+      "size": 416,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 18,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/warpath.txt",
+      "sha256": "449cb4e77e5d13bcdf9d15d63f79b26219e15ba22847847d7c991c2eae401037",
+      "size": 753,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 15,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/well.txt",
+      "sha256": "f7827ec2f3e445d254d7a766c1d98689d0b985f83aab35fe343b0ecec2bf54b4",
+      "size": 421,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 15,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "motd.txt",
+      "sha256": "96209c2597ab17482f00b7e629106d14d06171b59ff68114d9b445db6efe5003",
+      "size": 169,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 68,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "resource/tfc_spanish.txt",
+      "sha256": "fd9291c19cfc4d7cc40b8897a9ef5bfdda304024702091340dabbdfe311fc621",
+      "size": 5146,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 2.234
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/b1.wav",
+      "sha256": "90686e6d4f7aa722bfcd9dcc5f389ce20cbbff74ef70e1ebdac37c6006ff3b54",
+      "size": 24678,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.914
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/misc/b2.wav",
+      "sha256": "bcd2131e67f63213ecdf48561a28408b2d9eb5316997cbeffe34dde8948de839",
+      "size": 21144,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "utf-8",
+        "lines": 193,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sound/sentences.txt",
+      "sha256": "6972bc147f47807648f2153184fc0af872686ad217c56751ffef1aeee042e6c9",
+      "size": 3220,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.342
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/speech/saveme1.wav",
+      "sha256": "dbc195b493b84287e07681f588878c0d267eec9fad5386016f68accf9bac6711",
+      "size": 14842,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 2.881
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/speech/saveme2.wav",
+      "sha256": "6dd57d180b534897fe3a24a83bfa36ef06a200efc0cb2a7d8d5dea0081ad0c01",
+      "size": 31808,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 56,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "spectatormenu.txt",
+      "sha256": "e43d1ed65ce28c8c0025f0d899fcfcca10fe49097a69f3acf8b3d8f07e9f21e1",
+      "size": 1035,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 3463,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "Titles.txt",
+      "sha256": "e91085d3deb45c1c0c55bacc548e022009fbd5913752467b0e3f55c47db93bf7",
+      "size": 40203,
+      "version": null
+    }
+  ],
+  "findings": {
+    "bsp_lump_layouts": {},
+    "maps_not_checked": [],
+    "maps_without_worldspawn": [],
+    "models_without_sidecar": [],
+    "parse_errors": [],
+    "wad_references": [],
+    "wads_missing": [],
+    "wads_only_in_other_game": [],
+    "zero_byte_files": []
+  },
+  "format_versions": {},
+  "game": "tfc_spanish",
+  "schema": 1,
+  "tool": "tools/corpus_scan.py",
+  "tool_version": "1.0.0",
+  "totals": {
+    "by_extension": {
+      ".txt": {
+        "bytes": 104371,
+        "files": 41
+      },
+      ".wav": {
+        "bytes": 92472,
+        "files": 4
+      }
+    },
+    "bytes": 196843,
+    "files": 45
+  },
+  "variant_of": "tfc"
+}

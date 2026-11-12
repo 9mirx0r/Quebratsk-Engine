@@ -1,0 +1,1229 @@
+{
+  "app_id": 10,
+  "display_name": "Counter-Strike 1.6 (Spanish)",
+  "duplicates": {
+    "cross_game_shared_bytes": 21148,
+    "cross_game_shared_files": 1,
+    "files_unique_to_game": 80,
+    "partners": {
+      "cstrike": 1
+    }
+  },
+  "files": [
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 257,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "commandmenu.txt",
+      "sha256": "d295162e00ac133a7c1c27d3f76ec7f1bc3d6a110c8a96a6d98d3f82aeda1c2a",
+      "size": 7820,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 39,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/as_oilrig.txt",
+      "sha256": "37b389a72701260b7fc581743d0bc79efffa492f37a5e531aec74c8e550d7440",
+      "size": 1216,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 39,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/cs_747.txt",
+      "sha256": "27a3565bc5579f330e8ace1ee32f06eaccabdd5b437dce0597d05cdb986224f0",
+      "size": 940,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 29,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/cs_assault.txt",
+      "sha256": "6f9ae40bc083cfd863737b3ac50165d98eed2ead82132e83bb25cdea15bb0805",
+      "size": 812,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 31,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/cs_backalley.txt",
+      "sha256": "af4e21129516d8996ed7a3a9f1e5baea37a432089b85e37ff5ae8bda6ce3f585",
+      "size": 754,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 19,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/cs_estate.txt",
+      "sha256": "afd50a34c58a9d3bfd58f36bd99b8910ad4990107b4da83e8eaba9ff46c89555",
+      "size": 512,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 33,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/cs_havana.txt",
+      "sha256": "6e6d772c0449c762c1ca0ebfeec36247235d893977b6dbf0fc0a90344af1627f",
+      "size": 872,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 27,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/cs_italy.txt",
+      "sha256": "6da23de444769ac8e7dc183696078879019aac542ed663d06e7bd90731dd273c",
+      "size": 782,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 27,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/cs_militia.txt",
+      "sha256": "e4f2a97473e76b930afb0f1109a06b2420061fcdcbe2b016f35e2ca6ebd7c0b6",
+      "size": 728,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 37,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/cs_office.txt",
+      "sha256": "f43f7a4774ea404998a9734ded81ea703e697d1ba52249274970df6c7f988a24",
+      "size": 920,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 27,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/cs_siege.txt",
+      "sha256": "f46ff3e2b3696c9e59ae0c0e63e4e934a5345a2a34bcf8645e836b7e9891c588",
+      "size": 740,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 25,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_airstrip.txt",
+      "sha256": "1e0f575501db892d3871e9b3705e92e96fbc20c84f582e567253f10b487cd9bb",
+      "size": 988,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 23,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_aztec.txt",
+      "sha256": "f45573dc81e2eebfdb4519964d287466f2cc604925f7e3fd43de3ab5db7fd93f",
+      "size": 492,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 31,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_cbble.txt",
+      "sha256": "a4fdd27b5632bf032867c94780a79b09de5a0fc7d592579096cd4667888d4e41",
+      "size": 990,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 31,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_chateau.txt",
+      "sha256": "8b4785c635c2b25429bce9a09208bc60caff87158f04f03ee1cd7227ed04c67d",
+      "size": 900,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 31,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_dust.txt",
+      "sha256": "763013a619c012c40a4461ac82a9e689c6c073e2bc1ab946c2a56093ea9c406f",
+      "size": 916,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 33,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_dust2.txt",
+      "sha256": "4d2398db91a1fb89b40e994bbe152c679ba0c5459f26148d53fb3995262e3bd8",
+      "size": 1100,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 29,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_inferno.txt",
+      "sha256": "88f3e3ebacee9e989402371d96de36ac3ea2c1b5468c1b40d3ca6668d234cbfd",
+      "size": 840,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 29,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_nuke.txt",
+      "sha256": "51690c7494dd0b2f7f7bc9cb05d9ad623d2aface7b8ddb34a2c8f89ac05e5d38",
+      "size": 968,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 47,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_piranesi.txt",
+      "sha256": "7caf19f1e8062f4c1d0fb07b3122be41310c5faf9cc8d14c2f42f364ab390f5e",
+      "size": 1222,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 29,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_prodigy.txt",
+      "sha256": "35b690ea8cae8fcc1bf3eb504025b28ac184d6562b717fffb3875f200e6fbd63",
+      "size": 902,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 39,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_storm.txt",
+      "sha256": "8858a178f02a6696921079101f2693a31202fbc77a535cc81bd84a9a68493a58",
+      "size": 1052,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 63,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_survivor.txt",
+      "sha256": "99f231671bd78bb4b6abb9bd96b37e3c0de7672c9ba4f2b2889f9dc25dcf5d10",
+      "size": 1896,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 33,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_torn.txt",
+      "sha256": "ae2b94c67dae55e3d7c3b801dc529e8ea105326ed72dd880d2b23c708d6e964d",
+      "size": 842,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 25,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_train.txt",
+      "sha256": "76c14d11a175ca38a4062d6c6a5210f9ff65537370973996d33083d921be8084",
+      "size": 740,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 29,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "maps/de_vertigo.txt",
+      "sha256": "3522a9dea4b79e77a836d418491a4b7ad50ce2b03ebd971f94e597f55df7f24d",
+      "size": 764,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 40,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "motd.txt",
+      "sha256": "67afb2e19403de1269c58baf00eda80b346fe980503a40222960c35aa6fd3146",
+      "size": 758,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 337,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "readme.txt",
+      "sha256": "8d18d87455522daf4209cc2b61d72cb39a6e683d3899ec7ef9dde3736316925c",
+      "size": 17178,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 2702,
+        "truncated": true
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "resource/cstrike_spanish.txt",
+      "sha256": "5c079381663d1e96d92277bcd73ee4bd037d2291c9e371fb44466f86c45f0084",
+      "size": 356142,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.106
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/hostage/hos1.wav",
+      "sha256": "df8e4623ffc1a20c38d9b8d4f0d5ef9a442274b4bfa10b0541711226fafa2c9e",
+      "size": 12238,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.959
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/hostage/hos2.wav",
+      "sha256": "00bdb63e591883e045f84830e915a53a174d8905906fbbde4a61f86255423e31",
+      "size": 10620,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 0.768
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/hostage/hos3.wav",
+      "sha256": "b6a0dc0b52fa1fbfec91b0f7c2cb3248078256d0b1fa625acfd745a9768cb235",
+      "size": 8510,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.638
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/hostage/hos4.wav",
+      "sha256": "0b1a196002a721e303876a74f48f0c1df89abdbe41994d674ff995b7b03acfcd",
+      "size": 18104,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 11025,
+        "seconds": 1.043
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/hostage/hos5.wav",
+      "sha256": "11b159417da539398ac0884f377595a0062dafd5d8fb52a9240000d21e9997f0",
+      "size": 11544,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.726
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/blow.wav",
+      "sha256": "df08cd1c1a05aa02841a2cd9da7e0a7385cb8c131a5815966ce26c42acf4f521",
+      "size": 38098,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.776
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/bombdef.wav",
+      "sha256": "f69d0dc416bd54d99208afa71ba2e25963892edd5160676ee45bfba595e96435",
+      "size": 39194,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.586
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/bombpl.wav",
+      "sha256": "924dc4e7d9552de2de7bb47e49cb47e9615c6256219f2e6c74fe651ccac3ffe4",
+      "size": 35018,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.155
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/circleback.wav",
+      "sha256": "fd2320c5271fc2caa47b1d0c08169f6aad1e29cab6c7502e6f1c3912b52fbfcd",
+      "size": 25514,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.079
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/clear.wav",
+      "sha256": "26b2c7b6fbd57fc0523134b0b17fcaa28d1baaa2e9ab83a88198554f87ca4d5d",
+      "size": 23834,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.009
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/com_followcom.wav",
+      "sha256": "42c1009a4dabd740492314768e53acbbf315301fa4189ebc9a71be5d0508aa7d",
+      "size": 44340,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.22
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/com_getinpos.wav",
+      "sha256": "0f0ecad400c4d7ca3e087b45d631e5b4e49f7446e4a8f5d861711b53498b112b",
+      "size": 48998,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.321
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/com_go.wav",
+      "sha256": "ff8e2e6a4084f35e918a5cf23381563e130be8fd8851f57708fce24da1ce35da",
+      "size": 29168,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.52
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/com_reportin.wav",
+      "sha256": "77728395931728c0566227ac1c1c77afc700f5f42597650e22331c74285febb5",
+      "size": 33564,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.933
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/ct_affirm.wav",
+      "sha256": "4ae54ca643d1667202e892434e724122de986bc11fe2c17fc38f01c9fb8db633",
+      "size": 20614,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.321
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/ct_backup.wav",
+      "sha256": "6db062696b70be19cce25ed2a93d7236f62c6178167cb45e9ae9283d6fe3e84c",
+      "size": 29174,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.912
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/ct_coverme.wav",
+      "sha256": "f9343c9f862f322f8ed663af15eb42f834ace1e33c7e037d547656e78977a8c5",
+      "size": 20152,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.243
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/ct_enemys.wav",
+      "sha256": "bc5476fb873c56429285b7db66539ea3ad0a68ed2b617caeb851f769924ef82e",
+      "size": 27460,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.426
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/ct_fireinhole.wav",
+      "sha256": "941e397665624624f7f043ff64fa6396a210b0091c1310598b311a69871964ca",
+      "size": 31484,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.924
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/ct_imhit.wav",
+      "sha256": "117abf768ef964f027e6c37fc0889ef0655fd64ed9399641c5381096c3a2ef78",
+      "size": 20418,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.407
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/ct_inpos.wav",
+      "sha256": "d3b2ce75be59c5d63de9b7a2a9fe8f9afc629c9822c9cd0fac7a853e3dbd1d46",
+      "size": 31074,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.307
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/ct_point.wav",
+      "sha256": "693bec25b4531bea1fd04b9585121d441bcba3ccf9e15fd9c155ebafc91ae5e6",
+      "size": 28854,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.103
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/ct_reportingin.wav",
+      "sha256": "6913c1fc45c8347635cfae63366368b57bc06361ee839be51d53a4dc620228a8",
+      "size": 24356,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.876
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/ctwin.wav",
+      "sha256": "5f1bfff0ce3ae36efe5ac2dafdbd8fcffb670eb65de598c7aa491cbb8cf992fd",
+      "size": 41412,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.513
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/elim.wav",
+      "sha256": "100751e474a38d2fc2bce8d9ef16332498cfffcf21fbc1323bc0bae6cf4d214f",
+      "size": 55466,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.222
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/enemydown.wav",
+      "sha256": "df0329e71fbcfc8997ea8f4890b3ff1de1de6b281e12a65708e9dcf3e347e523",
+      "size": 26988,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.441
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/fallback.wav",
+      "sha256": "f9a9e5daf555404f6a9fd192bf49c117f840e477340661d65d695c176889cc11",
+      "size": 31814,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.203
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/fireassis.wav",
+      "sha256": "987a53cf628531c45db4240e462ede92c99df86c7fbd8c30ed72f9604715c6a6",
+      "size": 48632,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.775
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/flankthem.wav",
+      "sha256": "1ab9bf8e3257a47f1ff8e3e110ddb6675d01b5197eda10cb3a1be98d8660db5f",
+      "size": 17132,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.98
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/followme.wav",
+      "sha256": "7ce9efcdb74fcaac71cddf1714a7a3a8e7f7e9154e9f9065d42e9413196fec8a",
+      "size": 21654,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.837
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/getout.wav",
+      "sha256": "8056d4d4d46768baa2c9d978bc9956ae008b07ada16dd4d871b72bc0bdbeaa2f",
+      "size": 40544,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.368
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/go.wav",
+      "sha256": "8b6e1b1382323aae24213b7e2796190e02c708866cd5e6727a941cf033ea6af9",
+      "size": 30206,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.044
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/hitassist.wav",
+      "sha256": "8d09735e0c2bfc41582389df68782a38510ab28e9e5ae1d00fc92697adeeb9a1",
+      "size": 45106,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.351
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/hosdown.wav",
+      "sha256": "b2938a6a1e95e206a03eb27455451b4a71b483bae8b332f3eb3cbd21c8602111",
+      "size": 29832,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.368
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/letsgo.wav",
+      "sha256": "dc7b178b04dc38f6c6af5c412140ba55988ce2b619039e93415e5d9c3ed37c19",
+      "size": 30208,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.221
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/locknload.wav",
+      "sha256": "569588675f6b0976788413cb5dda760f5f03b3eaea04925299fa184ba9659dd9",
+      "size": 26970,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.542
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/matedown.wav",
+      "sha256": "91f87ed98d2e6341ebbd2ae179e5ff1559afd5df8caba2469b6dbafd0f4c7e05",
+      "size": 34044,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.651
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/meetme.wav",
+      "sha256": "621d147d7129d7263fe5419443fc94d0c38c83cc96062ea214ea7f53b7c3af28",
+      "size": 36452,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.538
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/moveout.wav",
+      "sha256": "fa5071d6b82d182a26b7847f57f432a507fe715df9f5695a8b0e0abe8f97f5bf",
+      "size": 33956,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.968
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/negative.wav",
+      "sha256": "c110a234f47350a08f3a88cf67aab7365fb1c594fbbe3dc93b81dbddd4a3a3d2",
+      "size": 21400,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.392
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/position.wav",
+      "sha256": "9551c98e4bc658e3226ee264452b00a03bd776690f3de2c0d6782fea21dafd59",
+      "size": 30736,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.545
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/regroup.wav",
+      "sha256": "4101152f0a1ac1a8d7c638a788940b3820b952ff0322e22113530be7f72e040b",
+      "size": 34102,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.439
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/rescued.wav",
+      "sha256": "4ded4396aa8d97785cedbaf8f90dab83dfc35218603c15225785399c9633dcb7",
+      "size": 31782,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.884
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/roger.wav",
+      "sha256": "265c26a51d3e8fdf8bf99ac0824be382ebac0d0d9655328873cdab5d87bd47f7",
+      "size": 19534,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.19
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/rounddraw.wav",
+      "sha256": "a21e7cba8b70ab591fc8b6f7a24d450e45b12943b32e7d1eed9f693fc6598927",
+      "size": 26286,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.58
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/sticktog.wav",
+      "sha256": "4cfdccd577339623792830476283f526546e127d969a9314797a3400c538726d",
+      "size": 34880,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.138
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/stormfront.wav",
+      "sha256": "7e325488b1516ae56d642f545689dd76cc8ed6b113d9a6127e769388451ebf5c",
+      "size": 25134,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.243
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/takepoint.wav",
+      "sha256": "7dec2d98032a21ff8e162b0ad0eb53952cfa43b2fb6d155e5758c7d5168812ea",
+      "size": 27452,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.645
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/terwin.wav",
+      "sha256": "e3004454872bcd5cfec7adc7f90615415a84ebe5ce3798e09ab13f5b5625c380",
+      "size": 36312,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 2.232
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/radio/vip.wav",
+      "sha256": "7f4a1adcd0281562ceb5fafee218131ebb375a894ca08ef929fad87cba183e82",
+      "size": 49264,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 713,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "sound/sentences.txt",
+      "sha256": "09d57cf3205db2203e23f08f46dcc25e032eb2fa47a05e48e2c257c4d261453a",
+      "size": 21148,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 2071,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "titles.txt",
+      "sha256": "87eed561e6a2741d1c293c04f3e29f4871f7e9138f403246a60be6b7a78ef08a",
+      "size": 23613,
+      "version": null
+    }
+  ],
+  "findings": {
+    "bsp_lump_layouts": {},
+    "maps_not_checked": [],
+    "maps_without_worldspawn": [],
+    "models_without_sidecar": [],
+    "parse_errors": [],
+    "wad_references": [],
+    "wads_missing": [],
+    "wads_only_in_other_game": [],
+    "zero_byte_files": []
+  },
+  "format_versions": {},
+  "game": "cstrike_spanish",
+  "schema": 1,
+  "tool": "tools/corpus_scan.py",
+  "tool_version": "1.0.0",
+  "totals": {
+    "by_extension": {
+      ".txt": {
+        "bytes": 449547,
+        "files": 31
+      },
+      ".wav": {
+        "bytes": 1499628,
+        "files": 50
+      }
+    },
+    "bytes": 1949175,
+    "files": 81
+  },
+  "variant_of": "cstrike"
+}

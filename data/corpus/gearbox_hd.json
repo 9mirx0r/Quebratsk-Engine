@@ -1,0 +1,1756 @@
+{
+  "app_id": 50,
+  "display_name": "Opposing Force (HD pack)",
+  "duplicates": {
+    "cross_game_shared_bytes": 1983244,
+    "cross_game_shared_files": 49,
+    "files_unique_to_game": 51,
+    "partners": {
+      "bshift_hd": 33,
+      "gearbox": 2,
+      "valve_hd": 45
+    }
+  },
+  "files": [
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/agibs.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/agibs.mdl",
+      "sha256": "b9e1e96b192ddd3dfdc9cab2904cb434cb90f8cce9f902b516bf6c3174100ddf",
+      "size": 34528,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "agrunt.mdl",
+        "numbodyparts": 2,
+        "numbones": 42,
+        "numseq": 32,
+        "numseqgroups": 2,
+        "numskinfamilies": 1,
+        "numtextures": 8
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/agrunt.mdl",
+      "sha256": "226aa2e225e50812359a8402d67ebdc330f8e22d3484a726e563d55bba79b844",
+      "size": 312936,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\agrunt01.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/agrunt01.mdl",
+      "sha256": "fbd5fe25ab0d69c9a9a4fb38eb964c464d676ad7723b84b1c3348b1a8a58d199",
+      "size": 32220,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "barney.mdl",
+        "numbodyparts": 2,
+        "numbones": 44,
+        "numseq": 73,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/barney.mdl",
+      "sha256": "573921180224418008170eba14226831a090abff28d86c83289d1f73d54cd76b",
+      "size": 531132,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "bullsquid.mdl",
+        "numbodyparts": 1,
+        "numbones": 53,
+        "numseq": 24,
+        "numseqgroups": 2,
+        "numskinfamilies": 2,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/bullsquid.mdl",
+      "sha256": "429c4d15cb7020b6dc74dd0585e699a5732a1b0fb3f47e75d020aafa744d8536",
+      "size": 305444,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\bullsquid01.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/bullsquid01.mdl",
+      "sha256": "b23990f426d019cb64b3e78087841d30a7d957245adcba9a2b57116cc007a838",
+      "size": 54752,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "cleansuit_scientist.mdl",
+        "numbodyparts": 3,
+        "numbones": 32,
+        "numseq": 74,
+        "numseqgroups": 1,
+        "numskinfamilies": 2,
+        "numtextures": 15
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/cleansuit_scientist.mdl",
+      "sha256": "bd5ea1be3ec94c834533d44f440a300c904b8fe5891a32df218670cfa71d6b99",
+      "size": 712920,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/crossbow_bolt.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/crossbow_bolt.mdl",
+      "sha256": "c4b055a65811dd4e4d5dfba74cb0603c0efd8ebb31148ce511e70f8170d0679d",
+      "size": 4956,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "gman.mdl",
+        "numbodyparts": 2,
+        "numbones": 55,
+        "numseq": 18,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 7
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/gman.mdl",
+      "sha256": "bdbee98abd2af4609a4421604567048bd10a396e4788a5f75e70664a48547590",
+      "size": 375020,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\grenade.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/grenade.mdl",
+      "sha256": "3de0d250a930b8663a9c93449bc036d0e5f0ee83aab09d57ace341da5598cfc5",
+      "size": 7640,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\hgrunt_medic.mdl",
+        "numbodyparts": 4,
+        "numbones": 26,
+        "numseq": 47,
+        "numseqgroups": 2,
+        "numskinfamilies": 1,
+        "numtextures": 8
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/hgrunt_medic.mdl",
+      "sha256": "5646246cee1798ab5f59f5d71f15650c4cd20b6f0d4379168b452a56b0decb8b",
+      "size": 329568,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\hgrunt_medic01.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/hgrunt_medic01.mdl",
+      "sha256": "cd46a969952de12600f5a39e51c3164914ba3872d648b8c0b7bc4323e9a7eb78",
+      "size": 22444,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\hgrunt_opfor.mdl",
+        "numbodyparts": 4,
+        "numbones": 27,
+        "numseq": 73,
+        "numseqgroups": 4,
+        "numskinfamilies": 1,
+        "numtextures": 23
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/hgrunt_opfor.mdl",
+      "sha256": "5734af6facd12a1e1e1c75af0e8bf79e1866d9fd663c0864a6a9b2bfb9a34634",
+      "size": 592404,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\hgrunt_opfor01.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/hgrunt_opfor01.mdl",
+      "sha256": "8b4247c9975c7576e5e6e9d909c3fda7d78913ea410126551c1b5b1af6ed1892",
+      "size": 63584,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\hgrunt_opfor02.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/hgrunt_opfor02.mdl",
+      "sha256": "f921ea897ce1a737fb68efba84813c5f50f264ee8018cb64d1676f167e5477dd",
+      "size": 63708,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\hgrunt_opfor03.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/hgrunt_opfor03.mdl",
+      "sha256": "ef0e4a53376d458d457ef2d683fa44566a6f64d4e954f2068e39a523e76ea158",
+      "size": 38940,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "C:\\sierra\\half-life\\gearbox\\models\\hgrunt_torch.mdl",
+        "numbodyparts": 4,
+        "numbones": 26,
+        "numseq": 52,
+        "numseqgroups": 3,
+        "numskinfamilies": 1,
+        "numtextures": 8
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/hgrunt_torch.mdl",
+      "sha256": "da457a8089514b44a578326f025c6404df59da1411beb2e14059e0bba82bfa60",
+      "size": 286832,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\hgrunt_torch01.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/hgrunt_torch01.mdl",
+      "sha256": "9bc2ba63b337eb695ea5b284ae9f093424916cb87e721a427f67435be28af687",
+      "size": 56080,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\hgrunt_torch02.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/hgrunt_torch02.mdl",
+      "sha256": "aff10139317dc6e850cb83474fb9b8ade1eb355af86ceb5756ecf239ef8c3f5c",
+      "size": 38496,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "houndeye.mdl",
+        "numbodyparts": 1,
+        "numbones": 17,
+        "numseq": 31,
+        "numseqgroups": 1,
+        "numskinfamilies": 3,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/houndeye.mdl",
+      "sha256": "af2547717649e1628a03a3b9092df4501eb406fadb6ce7aaae9158cf90225fd5",
+      "size": 243788,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "houndeye_dead.mdl",
+        "numbodyparts": 1,
+        "numbones": 17,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 3,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/houndeye_dead.mdl",
+      "sha256": "927273aff98809b0f13409df345497310b1fd036b7f44668f466cba194ad4169",
+      "size": 140028,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\intro_commander.mdl",
+        "numbodyparts": 3,
+        "numbones": 23,
+        "numseq": 6,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 5
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/intro_commander.mdl",
+      "sha256": "211984722e94e8d2590b3b52816f43032af4b11566f41fb1b7996847e2cf705f",
+      "size": 182880,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\intro_medic.mdl",
+        "numbodyparts": 1,
+        "numbones": 23,
+        "numseq": 7,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 5
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/intro_medic.mdl",
+      "sha256": "219cbf927e3a599293f588cf39cd135be0714e5136747ee180e2f0f7d3adf22f",
+      "size": 164692,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\intro_regular.mdl",
+        "numbodyparts": 3,
+        "numbones": 25,
+        "numseq": 5,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 6
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/intro_regular.mdl",
+      "sha256": "8b1173ebced9a3d58098ddcc0bf6d258f4f3f793e840bdaca51522445730fdaf",
+      "size": 146552,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\intro_saw.mdl",
+        "numbodyparts": 2,
+        "numbones": 24,
+        "numseq": 8,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 7
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/intro_saw.mdl",
+      "sha256": "59a377b9bbbfe5ef21be4b51dfffb3026732a1370c8105edb8e9fc187cc648bf",
+      "size": 211196,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\intro_torch.mdl",
+        "numbodyparts": 1,
+        "numbones": 24,
+        "numseq": 7,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 7
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/intro_torch.mdl",
+      "sha256": "05ca249a51bc39b9d9bbbee0fb8b14b5fca0af38ce1f37e82cc2a71b84aecf67",
+      "size": 172196,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/gearbox/models/islave.mdl",
+        "numbodyparts": 2,
+        "numbones": 62,
+        "numseq": 33,
+        "numseqgroups": 3,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/islave.mdl",
+      "sha256": "9fbd7f38bf20e04509fe25538d9c8b3d90e6c3e7523744420358c59427924a93",
+      "size": 217844,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\islave01.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/islave01.mdl",
+      "sha256": "016fcc0e87cb037d826159c03ba66d7fdc82233824fde377fb60ab96c0a20684",
+      "size": 63652,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\islave02.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/islave02.mdl",
+      "sha256": "3ec4bcf66ffedf724cc0599f7c98eef3ed6524c9a7fc58807b319202ec33b8a3",
+      "size": 26416,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "Massn.mdl",
+        "numbodyparts": 3,
+        "numbones": 25,
+        "numseq": 53,
+        "numseqgroups": 3,
+        "numskinfamilies": 1,
+        "numtextures": 8
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/massn.mdl",
+      "sha256": "774354ebd1e92cbddd83c6723f533bf54f6b22caead637f2ab1d66ce9761a972",
+      "size": 379808,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\Massn01.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/massn01.mdl",
+      "sha256": "0b53a8b9b840d7ed324fe7a2b9acf515425becdcce8d274b543cef55ffa7a1a1",
+      "size": 48724,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "sequence-group",
+        "header_name": "models\\Massn02.mdl"
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/massn02.mdl",
+      "sha256": "d7a90e5b466c6f48d5dae739ae56c873448070d6b0288787ae80dee14bc18b12",
+      "size": 20592,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/p_357.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_357.mdl",
+      "sha256": "14987b1bb06353b5dddb477a35f6c5fdf201178a7e7687a8597458c062dcfef4",
+      "size": 28164,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\p_9mmAR.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_9mmar.mdl",
+      "sha256": "0f5abf6b2ca857925f634d00efe81cb5e0a4ad5dc6c0b13b2b129d4896b37d24",
+      "size": 29484,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "p_9mmhandgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_9mmhandgun.mdl",
+      "sha256": "34f218563348c4dff42a4985eb4df127011057c0643c32b8f3ab3cc2a589fc16",
+      "size": 12500,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/p_crossbow.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_crossbow.mdl",
+      "sha256": "07d239422f469120ba574b33d2a94c8cf5274248fe0b159f659d0e430a0e6cf7",
+      "size": 38036,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "p_crowbar.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_crowbar.mdl",
+      "sha256": "9cae123239728d9407d33811090473e2226cbf88f090bfacc3709b1f2ee7f7e0",
+      "size": 26908,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/p_egon.mdl",
+        "numbodyparts": 1,
+        "numbones": 10,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_egon.mdl",
+      "sha256": "b6b3ad41926bcb45359c981e3dbe3082d71e13e860f296aefdfcf9b7868ecc97",
+      "size": 29080,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/p_gauss.mdl",
+        "numbodyparts": 1,
+        "numbones": 13,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_gauss.mdl",
+      "sha256": "38e0809d533b76fe02c4f7dd81f491b194643f37c8d4b108092db9f77e08e749",
+      "size": 86008,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "p_grenade.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_grenade.mdl",
+      "sha256": "63f41d50e3c2dd0ae12870246ca3ba423e0f07090148246d8619f7a7f35f47bd",
+      "size": 29048,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "p_hgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_hgun.mdl",
+      "sha256": "e663a1b8b4b7bbb3f4ae5ebd2a7df959bf9a66489cc83ba4a8f7b8580edba040",
+      "size": 29388,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\P_rpg.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_rpg.mdl",
+      "sha256": "433073f9b0557abbc3d98798e76573d840a8e45fb458e7ef445aad752eb9d416",
+      "size": 29840,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "p_satchel.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_satchel.mdl",
+      "sha256": "23a590f9a693a3567d233a41fdd42f1b643ea22122f2a2409d7297261d3ae52b",
+      "size": 23492,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\p_satchel_radio.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_satchel_radio.mdl",
+      "sha256": "0198237621092cc524612936f0198d496e24bf2171c938b26a4f9af56a16e466",
+      "size": 29796,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\p_shotgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_shotgun.mdl",
+      "sha256": "cb8a892eb5f037a288c2f70c03efe520e9f8f5f8213a3b244745e1ada1e55809",
+      "size": 28820,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/p_squeak.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_squeak.mdl",
+      "sha256": "cb9ad118794ac9ebc4aa64563d209b37f61f983337bf92923d7497c5b49436c1",
+      "size": 27892,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\p_tripmine.mdl",
+        "numbodyparts": 1,
+        "numbones": 12,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/p_tripmine.mdl",
+      "sha256": "fe98db785160c0490c794e3fb3b44c57a57be6b6932df7e5b0711211c54dbe3f",
+      "size": 79416,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/rpgrocket.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/rpgrocket.mdl",
+      "sha256": "e98685dd80a5ab6c355a6f405706e5656160694df81d13bdb1449ae5099bba02",
+      "size": 10684,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "scientist.mdl",
+        "numbodyparts": 3,
+        "numbones": 49,
+        "numseq": 92,
+        "numseqgroups": 1,
+        "numskinfamilies": 2,
+        "numtextures": 16
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/scientist.mdl",
+      "sha256": "5377e81ccfc545ba88baf00bf893486b07e007bf491debc83169a5c3045d9f62",
+      "size": 921124,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/shell.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/shell.mdl",
+      "sha256": "47477b378a6ebab1718acb3c3d5103f435e36bcdc33e3e38a10eb8d7b61481a0",
+      "size": 6568,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\shotgunshell.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/shotgunshell.mdl",
+      "sha256": "ecae29fafb03f7bcc7769a31afb30919b56cfe7f31cd2ee37125a281b904350c",
+      "size": 6740,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "stretcher.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 2,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/stretcher.mdl",
+      "sha256": "4cbb531721f3fcaeb97443416f035f0019e1cd8b5d5f0e47cf961a79f1550b7a",
+      "size": 47152,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/gearbox/models/v_357.mdl",
+        "numbodyparts": 3,
+        "numbones": 60,
+        "numseq": 8,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_357.mdl",
+      "sha256": "403d8db374916089b95aafc394a6e7f445ad3e2c374d3cc04404162ffd10377c",
+      "size": 228772,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\v_9mmAR.mdl",
+        "numbodyparts": 2,
+        "numbones": 50,
+        "numseq": 8,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_9mmar.mdl",
+      "sha256": "defdca62ed3dea5468e67045239f739bb8ddd17974fc81b0b63dcde32ad212f1",
+      "size": 153584,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "v_9mmhandgun.mdl",
+        "numbodyparts": 3,
+        "numbones": 51,
+        "numseq": 9,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 8
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_9mmhandgun.mdl",
+      "sha256": "c297f9ef589d584496aaa71483da8656bb5ba2a2c53ddb1d08f859cfa7ff7328",
+      "size": 185844,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/gearbox/models/v_crossbow.mdl",
+        "numbodyparts": 2,
+        "numbones": 73,
+        "numseq": 12,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 5
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_crossbow.mdl",
+      "sha256": "df9f1328830d797b97d0cd51487d1a814c2cfc82f03b383dabe2b2cbc9384f73",
+      "size": 257492,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/gearbox/models/v_crowbar.mdl",
+        "numbodyparts": 2,
+        "numbones": 47,
+        "numseq": 11,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_crowbar.mdl",
+      "sha256": "742f536ce3ae4a9c8b317a821be79d8b7fb8d01e7be4e023cc1f1834c063d3a8",
+      "size": 186756,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/gearbox/models/v_egon.mdl",
+        "numbodyparts": 2,
+        "numbones": 49,
+        "numseq": 11,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_egon.mdl",
+      "sha256": "dfd2fd9724ce6cad16994bd0a199f7e8ca5254ec61cc80cc9ed10fe6b3b8d27f",
+      "size": 198868,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/v_gauss.mdl",
+        "numbodyparts": 1,
+        "numbones": 15,
+        "numseq": 9,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_gauss.mdl",
+      "sha256": "6415b0b4159d3126b621775f09b91aa5ea4b4b3a5f848329f66b141a3ec86c16",
+      "size": 112072,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\v_grenade.mdl",
+        "numbodyparts": 2,
+        "numbones": 51,
+        "numseq": 8,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_grenade.mdl",
+      "sha256": "292d046186b707f4aa5275ed54cef1084b749353d1d8f17504ef1ae1dc9354c6",
+      "size": 202144,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "v_HGun.mdl",
+        "numbodyparts": 1,
+        "numbones": 21,
+        "numseq": 6,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_hgun.mdl",
+      "sha256": "3f59b27580b14e25cc696503798f57479c63d67702cfcaf2ecb55152e357dd12",
+      "size": 190452,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\v_rpg.mdl",
+        "numbodyparts": 2,
+        "numbones": 50,
+        "numseq": 9,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 6
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_rpg.mdl",
+      "sha256": "66f54d88839e4916df986047238657ef0e3a0152b6d5efdea8891c7deb7b2fa0",
+      "size": 228080,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "v_satchel.mdl",
+        "numbodyparts": 2,
+        "numbones": 59,
+        "numseq": 4,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 6
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_satchel.mdl",
+      "sha256": "4ed0aedd9f83c99d15d2636d368aef558999c7d0066f6f4da85399204372c508",
+      "size": 173116,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/gearbox/models/v_satchel_radio.mdl",
+        "numbodyparts": 2,
+        "numbones": 50,
+        "numseq": 5,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_satchel_radio.mdl",
+      "sha256": "26f378dbd3c873623246fefab72f510feab3fe0249eafc0274c8be02b81b59c4",
+      "size": 197596,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\v_shotgun.mdl",
+        "numbodyparts": 2,
+        "numbones": 52,
+        "numseq": 10,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_shotgun.mdl",
+      "sha256": "1912478b5c63c11823ea142579c255ed8e462359b46fdb8b13d3c8cb102f79ec",
+      "size": 205856,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\v_squeak.mdl",
+        "numbodyparts": 2,
+        "numbones": 83,
+        "numseq": 6,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_squeak.mdl",
+      "sha256": "accf90afb863f5cf8a941ff4bbaee760e6824abdc0e753ddb7585417f76e5955",
+      "size": 177184,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\gearbox\\models\\v_tripmine.mdl",
+        "numbodyparts": 2,
+        "numbones": 48,
+        "numseq": 9,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 4
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/v_tripmine.mdl",
+      "sha256": "f034de6593124bbf19f9e11abbf132790e641100f169c24a8f95d1a06a4a3e51",
+      "size": 217200,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/w_357.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_357.mdl",
+      "sha256": "43692450a42fd81ed388f7ca6fe658e31a741c2dba0b725ca108de8a0f937e1e",
+      "size": 26768,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/w_357ammo.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_357ammo.mdl",
+      "sha256": "8b5e3c73c8c5e4a846e946fff23a2e2786cd916a7a7bfed8fe280fa070a75c69",
+      "size": 10232,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/w_357ammobox.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_357ammobox.mdl",
+      "sha256": "3a32659de8d3cfb4408aaf1d24f78b6a627a572c66ac79e425ad4f6faf751d86",
+      "size": 10232,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\W_9mmAR.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_9mmar.mdl",
+      "sha256": "e9cacae803b39b46c9ed09e285f5a83d18098c96e612e678946364b8e1546daa",
+      "size": 31312,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve/models/w_9mmARclip.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_9mmarclip.mdl",
+      "sha256": "06f8bab373dd57ea7c7f0b03b2fccad55370a4ad902109ca3de0615dd33cdb33",
+      "size": 7836,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "w_9mmhandgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_9mmhandgun.mdl",
+      "sha256": "b9218da5e3d291bf2686c5104e2cd29e9b5deea7142a7bfb2f035338c529e105",
+      "size": 10952,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\w_ARgrenade.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_argrenade.mdl",
+      "sha256": "338ecf4b0c189af8239efb3fc99aab7c1945af127687d0fb1765fe1402763288",
+      "size": 9432,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/w_crossbow.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 2,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_crossbow.mdl",
+      "sha256": "905a915c9a66e34726b28fdcf18c3adf0b86bf33f23d26e3038c640725080ca7",
+      "size": 34836,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\w_crossbow_clip.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_crossbow_clip.mdl",
+      "sha256": "5269187f9cbe5aed6ad0e51d10912511e11d37c8f8ee77bea6053d6729be627d",
+      "size": 12700,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "w_crowbar.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_crowbar.mdl",
+      "sha256": "275d60bcc2e8037de22c459623369e6cf3dc638c322e0951411d693f133a2abf",
+      "size": 25512,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/w_egon.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_egon.mdl",
+      "sha256": "497166e73c160c87acced08cc9d0bfbd9e1c06c4b68d9c1098a36631ba803be4",
+      "size": 28040,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/w_gauss.mdl",
+        "numbodyparts": 1,
+        "numbones": 2,
+        "numseq": 2,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_gauss.mdl",
+      "sha256": "605aa2c5961718749364d5646cdd052d428ce76af0c79267a82e9decc6f06a60",
+      "size": 84744,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\w_gaussammo.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_gaussammo.mdl",
+      "sha256": "aad81b5df57991e3d3d356786a009b8cff61042729f34cc580a5534a2ec97d54",
+      "size": 22344,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "w_grenade.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 7,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_grenade.mdl",
+      "sha256": "a7983252e9491b0d3fc64c08a4c463cd981bcb054c52e9642e690aa42895047e",
+      "size": 31188,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "w_hgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_hgun.mdl",
+      "sha256": "b4339b8322e0ddc650274407ccfc92ecece77089e91d957790184f47394116e3",
+      "size": 28032,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\w_rpg.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_rpg.mdl",
+      "sha256": "d853c32c06701b148d8cf8949674bd87e16935c325d3ea5d50a5a49d1ac19910",
+      "size": 28412,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/w_rpgammo.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 2,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_rpgammo.mdl",
+      "sha256": "091a7cb470b4338f72231243609602eed787e2998fa5b18317dc7e57c5f6e403",
+      "size": 20012,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "w_satchel.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 2,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 2
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_satchel.mdl",
+      "sha256": "0a33752d5826425327505f57544a793507b1661d5ee7cfcdf8544bcca4d84490",
+      "size": 22276,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\w_shotbox.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 3
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_shotbox.mdl",
+      "sha256": "f5aa2743a296ed1d1583c229981791fdaec5f54314f11ac412e9723933fe4e1e",
+      "size": 24148,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\W_shotgun.mdl",
+        "numbodyparts": 1,
+        "numbones": 1,
+        "numseq": 1,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_shotgun.mdl",
+      "sha256": "26085105a85289e5f6c1b5ec638504f1ed4510eeaabeba53d2375ce47c24b383",
+      "size": 28040,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:/sierra/half-life/valve/models/w_SQKNEST.mdl",
+        "numbodyparts": 1,
+        "numbones": 15,
+        "numseq": 2,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_sqknest.mdl",
+      "sha256": "5fe1df12c588272e3bd5daac2b19d71160ebeff7f89731e75e25be577be5aa9e",
+      "size": 32188,
+      "version": 10
+    },
+    {
+      "detail": {
+        "header_kind": "model",
+        "header_name": "c:\\sierra\\half-life\\valve\\models\\w_squeak.mdl",
+        "numbodyparts": 1,
+        "numbones": 15,
+        "numseq": 4,
+        "numseqgroups": 1,
+        "numskinfamilies": 1,
+        "numtextures": 1
+      },
+      "extension": ".mdl",
+      "format": "mdl",
+      "path": "models/w_squeak.mdl",
+      "sha256": "9027dcc817f0eb32b71e326fef11c535f0d20331254900e943fd497539aa6fca",
+      "size": 33160,
+      "version": 10
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.205
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/hgrunt/gr_mgun1.wav",
+      "sha256": "284a30296bf9025652d6f9461a2f8c714db407ece9c8538bc7a6d97752c7f579",
+      "size": 26698,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.17
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/hgrunt/gr_mgun2.wav",
+      "sha256": "649adf29628080a5e3db566c4874ad440146d6e784ab79deb661d5dcb193c2a5",
+      "size": 25848,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.148
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/dbarrel1.wav",
+      "sha256": "8c613386f0e43496567857703a079885c687f57f030f583f14c23cd0768dd1f7",
+      "size": 25362,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.005
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/hks1.wav",
+      "sha256": "12217d1d9008f9d2c23e8cafe0236383f251e25192b649e55dfc3e2d5ea9eeed",
+      "size": 22210,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.95
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/hks2.wav",
+      "sha256": "5cada3c6fa6b853a219fe8fd81b1a926acfc5ce80a3fc3653fe202ba37fecb64",
+      "size": 20992,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.97
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/hks3.wav",
+      "sha256": "37703546e5e8d76528604e9f1e7734c42f5e7abc746ad34326ebd960545bef52",
+      "size": 21432,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 1.039
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/sbarrel1.wav",
+      "sha256": "330c8c87f26de4f4e33d433f61134f4e699e9798fa5b815fccc549565d5a05f1",
+      "size": 22948,
+      "version": null
+    },
+    {
+      "detail": {
+        "bits": 8,
+        "channels": 1,
+        "codec": "pcm",
+        "sample_rate": 22050,
+        "seconds": 0.601
+      },
+      "extension": ".wav",
+      "format": "wav",
+      "path": "sound/weapons/scock1.wav",
+      "sha256": "df1fe0283e3476039e519a6e038ff7ad9e23d9d2f46531a0371499dde009ff30",
+      "size": 13292,
+      "version": null
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 256,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 256
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/640hud1.spr",
+      "sha256": "d6bed8c4881890d6fecac00de741651486576d57ad5607373d5cdffd1f407ee2",
+      "size": 66366,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 1,
+        "height": 256,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 256
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/640hud4.spr",
+      "sha256": "683f21143a56da13772abd7c88790628b0974bdc8bd8ac89343f16bebd217b2b",
+      "size": 66366,
+      "version": 2
+    },
+    {
+      "detail": {
+        "frames": 2,
+        "height": 64,
+        "synctype": 1,
+        "tex_format": 1,
+        "type": 2,
+        "width": 64
+      },
+      "extension": ".spr",
+      "format": "spr",
+      "path": "sprites/muzzleflash1.spr",
+      "sha256": "2aac7ecf785dfa3b354ef894401455bd15f0f907cc7d3db55aaceb386c3026f5",
+      "size": 9042,
+      "version": 2
+    }
+  ],
+  "findings": {
+    "bsp_lump_layouts": {},
+    "maps_not_checked": [],
+    "maps_without_worldspawn": [],
+    "models_without_sidecar": [],
+    "parse_errors": [],
+    "wad_references": [],
+    "wads_missing": [],
+    "wads_only_in_other_game": [],
+    "zero_byte_files": []
+  },
+  "format_versions": {
+    "mdl": {
+      "10": 89
+    },
+    "spr": {
+      "2": 3
+    }
+  },
+  "game": "gearbox_hd",
+  "schema": 1,
+  "tool": "tools/corpus_scan.py",
+  "tool_version": "1.0.0",
+  "totals": {
+    "by_extension": {
+      ".mdl": {
+        "bytes": 10879524,
+        "files": 89
+      },
+      ".spr": {
+        "bytes": 141774,
+        "files": 3
+      },
+      ".wav": {
+        "bytes": 178782,
+        "files": 8
+      }
+    },
+    "bytes": 11200080,
+    "files": 100
+  },
+  "variant_of": "gearbox"
+}

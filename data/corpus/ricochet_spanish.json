@@ -1,0 +1,67 @@
+{
+  "app_id": 60,
+  "display_name": "Ricochet (Spanish)",
+  "duplicates": {
+    "cross_game_shared_bytes": 0,
+    "cross_game_shared_files": 0,
+    "files_unique_to_game": 2,
+    "partners": {}
+  },
+  "files": [
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 12,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "resource/ricochet_spanish.txt",
+      "sha256": "1f703f8e662727a807a95c4ec536a1873d07eeaa779fa9beffd8ffbdeafe57d6",
+      "size": 518,
+      "version": null
+    },
+    {
+      "detail": {
+        "bom": false,
+        "encoding": "cp1252",
+        "lines": 300,
+        "truncated": false
+      },
+      "extension": ".txt",
+      "format": "txt",
+      "path": "Titles.txt",
+      "sha256": "dc91ea688d990309468ee5d51aab5c966076631de94a5ec7a8c502e0d8c17177",
+      "size": 3249,
+      "version": null
+    }
+  ],
+  "findings": {
+    "bsp_lump_layouts": {},
+    "maps_not_checked": [],
+    "maps_without_worldspawn": [],
+    "models_without_sidecar": [],
+    "parse_errors": [],
+    "wad_references": [],
+    "wads_missing": [],
+    "wads_only_in_other_game": [],
+    "zero_byte_files": []
+  },
+  "format_versions": {},
+  "game": "ricochet_spanish",
+  "schema": 1,
+  "tool": "tools/corpus_scan.py",
+  "tool_version": "1.0.0",
+  "totals": {
+    "by_extension": {
+      ".txt": {
+        "bytes": 3767,
+        "files": 2
+      }
+    },
+    "bytes": 3767,
+    "files": 2
+  },
+  "variant_of": "ricochet"
+}
