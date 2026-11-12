@@ -1,5 +1,7 @@
 extends Node
 
+const SurfaceMaterial := preload("res://addons/quebratsk_editor/surface_material.gd")
+
 ## Do imported models actually get their textures?
 ##
 ## A model that renders flat and grey looks exactly like a model with no textures, and both
@@ -62,8 +64,7 @@ func _check(needle: String, label: String) -> void:
 			var with_image := 0
 			for i in mesh.get_surface_count():
 				surfaces += 1
-				var mat := mesh.surface_get_material(i) as StandardMaterial3D
-				if mat != null and mat.albedo_texture != null:
+				if SurfaceMaterial.texture_of(mesh.surface_get_material(i)) != null:
 					textured += 1
 					with_image += 1
 			if with_image == mesh.get_surface_count() and mesh.get_surface_count() > 0:

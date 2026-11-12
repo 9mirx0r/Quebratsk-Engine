@@ -18,7 +18,14 @@
 #include <godot_cpp/classes/character_body3d.hpp>
 #include <godot_cpp/classes/collision_shape3d.hpp>
 #include <godot_cpp/classes/concave_polygon_shape3d.hpp>
+#include <godot_cpp/classes/convex_polygon_shape3d.hpp>
 #include <godot_cpp/classes/static_body3d.hpp>
+#include <godot_cpp/classes/array_mesh.hpp>
+#include <godot_cpp/classes/geometry_instance3d.hpp>
+#include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/classes/image_texture.hpp>
+#include <godot_cpp/classes/shader.hpp>
+#include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/animation_player.hpp>
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/core/class_db.hpp>
@@ -58,6 +65,62 @@ std::map<std::string, int32_t> to_body_choices(const Dictionary& from) {
         out[to_lower_ascii(String(key).utf8().get_data())] = static_cast<int32_t>(value);
     }
     return out;
+}
+
+/// Which brush models a level's entities ask to be drawn at an opacity of nothing.
+///
+/// An entity with any `rendermode` but the ordinary one is blended by `renderamt`, and at
+/// zero (which is also what a missing `renderamt` means) the engine does not draw it at all
+/// (the public Xash3D ref/gl/gl_rmain.c, R_AddEntity). It still blocks. The answer is
+/// indexed by the number in the entity's `"model" "*N"`.
+struct BrushEntityFacts {
+    std::vector<bool> invisible;
+    std::vector<Vector3> offsets;
+};
+
+/// What a level's entities say about the brush models they point at; see ParsedAssetIR for
+/// the offsets.
+BrushEntityFacts brush_entity_facts(const std::string& entities) {
+    BrushEntityFacts facts;
+    std::vector<bool>& out = facts.invisible;
+    const auto value_of = [](const std::string& block, const char* key) -> std::string {
+        const std::string quoted = std::string("\"") + key + "\"";
+        const size_t at = block.find(quoted);
+        if (at == std::string::npos) return {};
+        const size_t open = block.find('"', at + quoted.size());
+        if (open == std::string::npos) return {};
+        const size_t close = block.find('"', open + 1);
+        if (close == std::string::npos) return {};
+        return block.substr(open + 1, close - open - 1);
+    };
+    size_t pos = 0;
+    while (true) {
+        const size_t open = entities.find('{', pos);
+        if (open == std::string::npos) break;
+        const size_t close = entities.find('}', open);
+        if (close == std::string::npos) break;
+        pos = close + 1;
+
+        const std::string block = entities.substr(open, close - open);
+        const std::string model = value_of(block, "model");
+        if (model.size() < 2 || model[0] != '*') continue;
+        const int index = std::atoi(model.c_str() + 1);
+        if (index <= 0 || index > 65535) continue;
+        if (const std::string origin = value_of(block, "origin"); !origin.empty()) {
+            float x = 0.0f, y = 0.0f, z = 0.0f;
+            if (std::sscanf(origin.c_str(), "%f %f %f", &x, &y, &z) == 3) {
+                if (facts.offsets.size() <= static_cast<size_t>(index)) {
+                    facts.offsets.resize(static_cast<size_t>(index) + 1);
+                }
+                facts.offsets[static_cast<size_t>(index)] = math::source_to_godot(Vector3(x, y, z));
+            }
+        }
+        if (std::atoi(value_of(block, "rendermode").c_str()) == 0) continue;
+        if (std::atof(value_of(block, "renderamt").c_str()) > 0.0) continue;
+        if (out.size() <= static_cast<size_t>(index)) out.resize(static_cast<size_t>(index) + 1);
+        out[static_cast<size_t>(index)] = true;
+    }
+    return facts;
 }
 
 } // namespace
@@ -327,6 +390,28 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
             out.mesh = std::move(bsp_res->mesh_data);
             for (auto& model : bsp_res->brush_models) {
                 out.brush_meshes.push_back(std::move(model.mesh));
+                out.brush_solids.push_back(std::move(model.solids));
+                out.brush_player_solids.push_back(std::move(model.player_solids));
+            }
+            out.lightmap = std::move(bsp_res->lightmap);
+            BrushEntityFacts facts = brush_entity_facts(bsp_res->entity_string);
+            out.brush_invisible = std::move(facts.invisible);
+            out.brush_offsets = std::move(facts.offsets);
+            if (bsp_res->sky_faces > 0) {
+                // The first entity is the world, and `skyname` is one of its keys. A map
+                // that does not say gets the engine's own default, `desert`.
+                out.sky_name = "desert";
+                const std::string& text = bsp_res->entity_string;
+                const size_t world_end = text.find('}');
+                const size_t key = text.find("\"skyname\"");
+                if (key != std::string::npos && key < world_end) {
+                    const size_t open = text.find('"', key + 9);
+                    const size_t close =
+                        open == std::string::npos ? open : text.find('"', open + 1);
+                    if (close != std::string::npos && close > open + 1) {
+                        out.sky_name = to_lower_ascii(text.substr(open + 1, close - open - 1));
+                    }
+                }
             }
             return out;
         }
@@ -368,7 +453,8 @@ Ref<ArrayMesh> UnifiedAssetImporter::load_mesh(const String& vfs_uri) {
     converters::TextureLoader loader(m_vfs);
     loader.set_origin(vfs_uri.utf8().get_data());
     loader.set_search_paths(parsed.mesh.material_search_paths);
-    return converters::MeshConverter::convert(parsed.mesh, &loader);
+    const converters::MapLighting lighting = converters::MapLighting::create(parsed.lightmap);
+    return converters::MeshConverter::convert(parsed.mesh, &loader, &lighting);
 }
 
 PackedStringArray UnifiedAssetImporter::list_poses(const String& vfs_uri) {
@@ -757,6 +843,137 @@ StaticBody3D* UnifiedAssetImporter::trimesh_body(const Ref<Mesh>& mesh) {
     return body;
 }
 
+MeshInstance3D* UnifiedAssetImporter::sky_box(const std::string& name,
+                                              const std::string& origin) const {
+    if (!m_vfs || name.empty()) return nullptr;
+
+    // The engine's own table: which way each picture faces, and which way is up on it.
+    // Face n looks along the axis marked 3 (negative = the other way), its picture runs to
+    // the right along the axis marked 1 and upwards along the one marked 2. Axes are the
+    // map's: 1 = x, 2 = y, 3 = z.
+    struct Side {
+        const char* suffix;
+        int axes[3];
+    };
+    static constexpr Side kSides[6] = {
+        {"rt", {3, -1, 2}}, {"lf", {-3, 1, 2}}, {"bk", {1, 3, 2}},
+        {"ft", {-1, -3, 2}}, {"up", {-2, -1, 3}}, {"dn", {2, -1, -3}},
+    };
+
+    Ref<Shader> shader;
+    shader.instantiate();
+    // The box turns with the level but never moves with it, so the eye is always at its
+    // centre, and it is put at the very back of what the camera can see so that anything at
+    // all is in front of it.
+    shader->set_code(
+        "shader_type spatial;\n"
+        "render_mode unshaded, cull_disabled, depth_draw_never, skip_vertex_transform;\n"
+        "uniform sampler2D albedo_texture : source_color, filter_linear, repeat_disable;\n"
+        "void vertex() {\n"
+        "    VERTEX = mat3(VIEW_MATRIX) * (mat3(MODEL_MATRIX) * VERTEX);\n"
+        "    POSITION = PROJECTION_MATRIX * vec4(VERTEX, 1.0);\n"
+        "    POSITION.z = 0.0;\n"
+        "}\n"
+        "void fragment() {\n"
+        "    ALBEDO = texture(albedo_texture, UV).rgb;\n"
+        "}\n");
+
+    Ref<ArrayMesh> mesh;
+    mesh.instantiate();
+    for (const Side& side : kSides) {
+        const std::string label = name + side.suffix;
+        Ref<Image> image;
+        for (const char* ext : {".tga", ".bmp"}) {
+            const std::string uri = m_vfs->find_by_suffix("/gfx/env/" + label + ext, origin);
+            if (uri.empty()) continue;
+            const std::vector<std::byte> bytes = m_vfs->read_owned(uri);
+            if (bytes.empty()) continue;
+            PackedByteArray buffer;
+            buffer.resize(static_cast<int64_t>(bytes.size()));
+            std::memcpy(buffer.ptrw(), bytes.data(), bytes.size());
+            Ref<Image> candidate;
+            candidate.instantiate();
+            const Error err = ext[1] == 't' ? candidate->load_tga_from_buffer(buffer)
+                                            : candidate->load_bmp_from_buffer(buffer);
+            if (err == Error::OK && !candidate->is_empty()) {
+                image = candidate;
+                break;
+            }
+        }
+        // A sky with a side missing is not a sky; better none than five sixths of one.
+        if (image.is_null()) return nullptr;
+
+        PackedVector3Array vertices;
+        PackedVector2Array uvs;
+        static constexpr float kCorners[4][2] = {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
+        for (const auto& corner : kCorners) {
+            const float b[3] = {corner[0], corner[1], 1.0f};
+            float v[3];
+            for (int j = 0; j < 3; ++j) {
+                const int k = side.axes[j];
+                v[j] = k < 0 ? -b[-k - 1] : b[k - 1];
+            }
+            // The map's axes to Godot's, as everywhere else; size does not matter here.
+            vertices.push_back(Vector3(-v[1], v[2], -v[0]));
+            uvs.push_back(Vector2((corner[0] + 1.0f) * 0.5f, 1.0f - (corner[1] + 1.0f) * 0.5f));
+        }
+        PackedInt32Array indices;
+        for (const int i : {0, 1, 2, 0, 2, 3}) indices.push_back(i);
+
+        Array arrays;
+        arrays.resize(Mesh::ARRAY_MAX);
+        arrays[Mesh::ARRAY_VERTEX] = vertices;
+        arrays[Mesh::ARRAY_TEX_UV] = uvs;
+        arrays[Mesh::ARRAY_INDEX] = indices;
+        mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+
+        Ref<ShaderMaterial> material;
+        material.instantiate();
+        material->set_shader(shader);
+        material->set_shader_parameter("albedo_texture", ImageTexture::create_from_image(image));
+        material->set_name(String(label.c_str()));
+        mesh->surface_set_material(mesh->get_surface_count() - 1, material);
+    }
+
+    MeshInstance3D* sky = memnew(MeshInstance3D);
+    sky->set_mesh(mesh);
+    sky->set_name("Sky");
+    sky->set_cast_shadows_setting(GeometryInstance3D::SHADOW_CASTING_SETTING_OFF);
+    // It is drawn where the camera is, not where the node is, so it must never be judged
+    // out of sight by where the node is.
+    sky->set_extra_cull_margin(16384.0f);
+    return sky;
+}
+
+StaticBody3D* UnifiedAssetImporter::solid_body(const std::vector<ir::IRConvexHull>& solids) {
+    StaticBody3D* body = nullptr;
+    int64_t count = 0;
+    for (const auto& solid : solids) {
+        if (solid.vertices.size() < 4) continue;
+        PackedVector3Array points;
+        points.resize(static_cast<int64_t>(solid.vertices.size()));
+        std::copy(solid.vertices.begin(), solid.vertices.end(), points.ptrw());
+
+        Ref<ConvexPolygonShape3D> shape;
+        shape.instantiate();
+        shape->set_points(points);
+
+        if (body == nullptr) {
+            body = memnew(StaticBody3D);
+            body->set_name("StaticBody3D");
+        }
+        CollisionShape3D* collider = memnew(CollisionShape3D);
+        // The first keeps the plain name every other collider here has, so a caller that
+        // looks for "StaticBody3D/CollisionShape3D" finds one whatever built it.
+        collider->set_name(count == 0 ? String("CollisionShape3D")
+                                      : String("CollisionShape3D_") + String::num_int64(count));
+        collider->set_shape(shape);
+        body->add_child(collider);
+        ++count;
+    }
+    return body;
+}
+
 StaticBody3D* UnifiedAssetImporter::capsule_body(const AABB& bounds) {
     const Vector3 size = bounds.size;
     if (size.y <= 0.0f) return nullptr;
@@ -901,7 +1118,9 @@ Array UnifiedAssetImporter::load_map_entities(const String& vfs_uri) {
             }
         }
 
-        // A brush entity has no origin: it has "model" "*71", and where it is IS that model.
+        // A brush entity mostly has no origin: it has "model" "*71", and where it is IS that
+        // model. The ones that do have one (a hinged door) are stored around their pivot,
+        // and the origin is where the pivot goes, so the two add up.
         // Half a map is built this way - doors, lifts, triggers, water - and reading only
         // origins leaves every one of them placeless. On de_aztec that is both of the volumes
         // that set off the thunder, the one that holds the rain, and all five bodies of water.
@@ -913,8 +1132,10 @@ Array UnifiedAssetImporter::load_map_entities(const String& vfs_uri) {
                     const auto& box = parsed->brush_models[static_cast<size_t>(index)];
                     // Published under the same key a point entity uses, so a caller does not
                     // have to know which kind it is holding to ask where it is.
-                    entity["position"] = box.centre();
-                    entity["bounds"] = AABB(box.mins, box.size());
+                    const godot::Vector3 pivot =
+                        entity.has("position") ? godot::Vector3(entity["position"]) : godot::Vector3();
+                    entity["position"] = box.centre() + pivot;
+                    entity["bounds"] = AABB(box.mins + pivot, box.size());
                 }
             }
         }
@@ -944,7 +1165,10 @@ Node3D* UnifiedAssetImporter::load_map(const String& vfs_uri) {
     loader.set_origin(uri_lower);
     loader.set_search_paths(parsed.mesh.material_search_paths);
 
-    Ref<ArrayMesh> mesh = converters::MeshConverter::convert(parsed.mesh, &loader);
+    // One light atlas and one pair of shaders for the whole level, brush entities included.
+    const converters::MapLighting lighting = converters::MapLighting::create(parsed.lightmap);
+
+    Ref<ArrayMesh> mesh = converters::MeshConverter::convert(parsed.mesh, &loader, &lighting);
     if (mesh.is_null()) return nullptr;
 
     MeshInstance3D* instance = memnew(MeshInstance3D);
@@ -953,12 +1177,31 @@ Node3D* UnifiedAssetImporter::load_map(const String& vfs_uri) {
     if (node_name.is_empty()) node_name = "Map";
     instance->set_name(node_name);
 
-    if (StaticBody3D* body = trimesh_body(mesh); body != nullptr) {
-        instance->add_child(body);
+    // The map's own solid blocks where it has them; its visible triangles only for a file
+    // that carries no tree to read them from.
+    const bool has_solids = !parsed.brush_solids.empty();
+    StaticBody3D* world_body =
+        has_solids ? solid_body(parsed.brush_solids[0]) : trimesh_body(mesh);
+    if (world_body != nullptr) {
+        instance->add_child(world_body);
     } else {
         UtilityFunctions::printerr("[QuebratskImporter] Map has no collidable geometry: ",
                                    vfs_uri);
     }
+
+    // The level as the game's own player meets it, clip brushes and all. It is fattened by
+    // half a player, so it sits on a layer of its own that nothing looks at unless asked:
+    // the only thing that may be tested against it is the point at a player's middle.
+    const auto player_clip = [&](size_t index) -> StaticBody3D* {
+        if (index >= parsed.brush_player_solids.size()) return nullptr;
+        StaticBody3D* body = solid_body(parsed.brush_player_solids[index]);
+        if (body == nullptr) return nullptr;
+        body->set_name("PlayerClip");
+        body->set_collision_layer(kPlayerClipLayer);
+        body->set_collision_mask(0);
+        return body;
+    };
+    if (StaticBody3D* clip = player_clip(0); clip != nullptr) instance->add_child(clip);
 
     // Every brush entity as a node of its own, named for the model an entity points at, so a
     // caller holding `"model" "*71"` can find the thing and move it. A door that is welded
@@ -968,27 +1211,52 @@ Node3D* UnifiedAssetImporter::load_map(const String& vfs_uri) {
     // — a func_illusionary is walked straight through, and cs_siege has seventy-three of them
     // — so that decision belongs to whoever reads the classnames, not here.
     int64_t built = 0;
+    int64_t hidden = 0;
     for (size_t i = 1; i < parsed.brush_meshes.size(); ++i) {
         if (parsed.brush_meshes[i].surfaces.empty()) continue;
 
-        Ref<ArrayMesh> brush = converters::MeshConverter::convert(parsed.brush_meshes[i], &loader);
+        Ref<ArrayMesh> brush =
+            converters::MeshConverter::convert(parsed.brush_meshes[i], &loader, &lighting);
         if (brush.is_null()) continue;
 
         MeshInstance3D* node = memnew(MeshInstance3D);
         node->set_mesh(brush);
         node->set_name(String("brush_") + String::num_int64(static_cast<int64_t>(i)));
-        if (StaticBody3D* body = trimesh_body(brush); body != nullptr) {
-            node->add_child(body);
+        // An unseen wall: there to be bumped into, so it keeps its collider below and is
+        // only hidden, which also leaves it one click away for whoever wants to see it.
+        // Stored around its pivot; the entity says where the pivot goes. The colliders are
+        // children, so they go with it.
+        if (i < parsed.brush_offsets.size()) node->set_position(parsed.brush_offsets[i]);
+        if (i < parsed.brush_invisible.size() && parsed.brush_invisible[i]) {
+            node->set_visible(false);
+            ++hidden;
         }
+        // A brush with nothing solid in it (water, mostly) gets no collider at all: its
+        // triangles used to make a pool something to stand on.
+        StaticBody3D* body = (has_solids && i < parsed.brush_solids.size())
+                                 ? solid_body(parsed.brush_solids[i])
+                                 : (has_solids ? nullptr : trimesh_body(brush));
+        if (body != nullptr) node->add_child(body);
+        if (StaticBody3D* clip = player_clip(i); clip != nullptr) node->add_child(clip);
         instance->add_child(node);
         ++built;
     }
     if (built > 0) {
         UtilityFunctions::print("[QuebratskImporter] ", built,
-                                " brush entity/entities built as their own nodes");
+                                " brush entity/entities built as their own nodes, ", hidden,
+                                " of them hidden as the level asks");
     }
 
-
+    // What is seen through the level's sky faces. Its own node, so a game that brings its
+    // own sky can simply delete it.
+    if (!parsed.sky_name.empty()) {
+        if (MeshInstance3D* sky = sky_box(parsed.sky_name, uri_lower); sky != nullptr) {
+            instance->add_child(sky);
+        } else {
+            UtilityFunctions::print("[QuebratskImporter] Sky '", String(parsed.sky_name.c_str()),
+                                    "' is not installed; the level has no sky");
+        }
+    }
 
     m_last_error_code = ERR_OK;
     return instance;

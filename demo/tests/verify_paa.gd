@@ -1,13 +1,15 @@
 extends Node
 
+const GamePaths := preload("res://tests/game_paths.gd")
+
 ## Does the PAA reader work on files nobody in this project wrote?
 ##
 ## Its unit test builds PAAs from the same reading of the format the parser was written
 ## from, so the two agreeing proves only that they agree. This runs it against a retail
 ## DayZ install, which is the check that decides whether .paa can be called supported.
 
-const DAYZ := "C:/Program Files (x86)/Steam/steamapps/common/DayZ"
-const WORKSHOP := "C:/Program Files (x86)/Steam/steamapps/workshop/content/221100"
+var DAYZ := GamePaths.common("DayZ")
+var WORKSHOP := GamePaths.steamapps("workshop/content/221100")
 
 ## Enough to be representative without turning a verification run into a coffee break.
 const SAMPLE := 1500

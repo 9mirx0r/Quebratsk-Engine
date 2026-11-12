@@ -1,5 +1,7 @@
 extends Node
 
+const GamePaths := preload("res://tests/game_paths.gd")
+
 ## What sequences do Counter-Strike 1.6's own models actually carry?
 ##
 ## Every animation role in the sandbox is matched against a list of names somebody guessed at,
@@ -30,7 +32,7 @@ func _ready() -> void:
 	# Counter-Strike 1.6 only. Steam keeps Half-Life, Counter-Strike, Condition Zero and its
 	# Deleted Scenes under one folder called Half-Life, so mounting "the game" mounts four of
 	# them and the answer would be about whichever happened to sort first.
-	var root := "C:/Program Files (x86)/Steam/steamapps/common/Half-Life/cstrike"
+	var root := GamePaths.common("Half-Life/cstrike")
 	if not DirAccess.dir_exists_absolute(root):
 		_say("cstrike is not installed at %s" % root)
 		get_tree().quit()

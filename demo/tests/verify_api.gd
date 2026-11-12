@@ -1,10 +1,12 @@
 extends Node
 
+const GamePaths := preload("res://tests/game_paths.gd")
+
 ## Verification harness for the six APIs added in a0d7402.
 ## Each check states what §6 of docs/API.md asked for, then what actually happens.
 
-const GMOD := "C:/Program Files (x86)/Steam/steamapps/common/GarrysMod/garrysmod"
-const WORKSHOP := "C:/Program Files (x86)/Steam/steamapps/workshop/content/4000/3582369292"
+var GMOD := GamePaths.common("GarrysMod/garrysmod")
+var WORKSHOP := GamePaths.steamapps("workshop/content/4000/3582369292")
 const MODEL := "models/player/lowpoly/usarmy_2000.mdl"
 
 var vfs: VFSManager
@@ -91,6 +93,9 @@ func _check_list_poses() -> void:
 	print("\n=== 4. UnifiedAssetImporter.list_poses() (asked: CHEAP header-only scan) ===")
 	if model_uri == "":
 		print("  SKIP: model not mounted")
+		# Ending the run is this branch's job too: returning without it left Godot open
+		# forever, which a harness can only see as a hang.
+		_finish()
 		return
 	var t0 := Time.get_ticks_msec()
 	var poses: PackedStringArray = importer.list_poses(model_uri)
@@ -135,6 +140,9 @@ func _check_load_model_async() -> void:
 	print("\n=== 6. load_model_async() (asked: no main-thread stall) ===")
 	if model_uri == "":
 		print("  SKIP: model not mounted")
+		# Ending the run is this branch's job too: returning without it left Godot open
+		# forever, which a harness can only see as a hang.
+		_finish()
 		return
 	async_importer.load_model_async(importer, model_uri, "idle_smg1",
 		Callable(self, "_on_model_ready"))

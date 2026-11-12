@@ -1,5 +1,7 @@
 extends Node3D
 
+const GamePaths := preload("res://tests/game_paths.gd")
+
 ## Can you stand on what this imports?
 ##
 ## A CollisionShape3D that exists proves nothing: it can be empty, it can be the wrong
@@ -7,11 +9,11 @@ extends Node3D
 ## onto the thing and watching it stop. So this runs real physics and reports where each
 ## body came to rest, or that it did not.
 
-const HL2 := "C:/Program Files (x86)/Steam/steamapps/common/half-life 2/hl2"
-const GMOD := "C:/Program Files (x86)/Steam/steamapps/common/GarrysMod/garrysmod"
+var HL2 := GamePaths.common("half-life 2/hl2")
+var GMOD := GamePaths.common("GarrysMod/garrysmod")
 ## GoldSrc, whose maps are a different format entirely from the Source ones above.
-const HL1 := "C:/Program Files (x86)/Steam/steamapps/common/Half-Life/valve"
-const CS16 := "C:/Program Files (x86)/Steam/steamapps/common/Half-Life/cstrike"
+var HL1 := GamePaths.common("Half-Life/valve")
+var CS16 := GamePaths.common("Half-Life/cstrike")
 
 ## Physics ticks to run per drop. At 60 Hz this is two seconds, long enough for a fall
 ## from 20 m and for anything that is going to keep sliding to have kept sliding.
@@ -125,14 +127,23 @@ func _check_map() -> void:
 		if map == null:
 			print("   %-12s %-28s -> nothing decoded" % [key, uri.get_file()])
 			continue
+		# A Source map collides with its triangles; a GoldSrc one with the solid blocks its
+		# own tree describes, one convex shape each.
 		var body: StaticBody3D = map.get_node_or_null("StaticBody3D")
-		var col: CollisionShape3D = null
+		var faces := 0
+		var blocks := 0
 		if body != null:
-			col = body.get_node_or_null("CollisionShape3D")
-		var shape: ConcavePolygonShape3D = col.shape if col != null else null
-		var faces: int = 0 if shape == null else int(shape.get_faces().size() / 3.0)
-		print("   %-12s %-28s -> %d collision triangles" % [key, uri.get_file(), faces])
-		if faces > 0 and walkable.is_empty():
+			for child in body.get_children():
+				var col := child as CollisionShape3D
+				if col == null:
+					continue
+				if col.shape is ConcavePolygonShape3D:
+					faces += int((col.shape as ConcavePolygonShape3D).get_faces().size() / 3.0)
+				elif col.shape is ConvexPolygonShape3D:
+					blocks += 1
+		print("   %-12s %-28s -> %d collision triangles, %d solid blocks"
+			% [key, uri.get_file(), faces, blocks])
+		if faces + blocks > 0 and walkable.is_empty():
 			walkable = uri
 		map.queue_free()
 
@@ -334,7 +345,51 @@ func _check_character_walks() -> void:
 		print("      on wall=%s, on floor=%s, %d contact(s)"
 			% [body.is_on_wall(), body.is_on_floor(), body.get_slide_collision_count()])
 	body.queue_free()
+	await _check_nothing_escapes(map, box, landing)
 	map.queue_free()
+
+
+## Nothing thrown hard from inside a level may end up outside it.
+##
+## The level is sealed by its solid blocks, including the ones nobody draws: the box of sky
+## over an outdoor map, the rock behind a wall. The balls use continuous collision, as any
+## fast projectile must: measured here, a body moving metres per tick without it sails
+## through a block of any thickness, exactly as it does through a sheet of triangles.
+func _check_nothing_escapes(map: Node3D, box: AABB, from: Vector3) -> void:
+	print("
+5. Nothing thrown from inside a level gets out of it")
+	var escaped := 0
+	var thrown := 0
+	var bodies: Array[RigidBody3D] = []
+	for dir in [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vector3.BACK, Vector3.DOWN,
+			Vector3(1, 0, 1).normalized(), Vector3(-1, -1, 1).normalized()]:
+		var ball := RigidBody3D.new()
+		var shape := CollisionShape3D.new()
+		var sphere := SphereShape3D.new()
+		sphere.radius = 0.1
+		shape.shape = sphere
+		ball.add_child(shape)
+		ball.position = from + Vector3(0, 1.0, 0)
+		# 200 m/s: more than three metres between two ticks, further than most walls are thick.
+		ball.linear_velocity = dir * 200.0
+		ball.continuous_cd = true
+		ball.collision_layer = 2   # the balls do not hit each other
+		add_child(ball)
+		bodies.append(ball)
+		thrown += 1
+	for i in 120:
+		await get_tree().physics_frame
+	# `box` is what is drawn, which is a little smaller than the level: faces that are never
+	# drawn bound it too. Three metres past it is well inside the solid shell around the
+	# level (over six metres thick), so anything there has gone through solid.
+	var limit := box.grow(3.0)
+	for ball in bodies:
+		if not limit.has_point(ball.position):
+			escaped += 1
+			print("   one ended up at %s  ** OUT OF THE LEVEL **" % str(ball.position.round()))
+		ball.queue_free()
+	print("   %d thrown at 200 m/s, %d got out%s"
+		% [thrown, escaped, "" if escaped == 0 else "  ** FAILED **"])
 
 
 ## A point just above a floor somewhere inside the level.
@@ -361,6 +416,13 @@ func _floor_inside(box: AABB) -> Vector3:
 			var up := PhysicsRayQueryParameters3D.create(
 				ground + Vector3(0, 0.2, 0), ground + Vector3(0, 2.2, 0))
 			if not space.intersect_ray(up).is_empty():
+				continue
+			# Everything outside a GoldSrc level is solid, and a ray that starts inside a
+			# solid passes out of it unnoticed, so the "ground" may be the top of a block
+			# buried in rock. A place to stand is one that is not inside anything.
+			var probe := PhysicsPointQueryParameters3D.new()
+			probe.position = ground + Vector3(0, 1.0, 0)
+			if not space.intersect_point(probe, 1).is_empty():
 				continue
 			return ground + Vector3(0, 0.1, 0)
 	return Vector3.INF

@@ -1,5 +1,7 @@
 extends Node
 
+const GamePaths := preload("res://tests/game_paths.gd")
+
 ## Write a preset for every character and weapon in Counter-Strike 1.6.
 ##
 ## A preset is what a model needs in order to act rather than merely to be drawn: which of its
@@ -16,7 +18,7 @@ const ModelPreset := preload("res://addons/quebratsk_editor/model_preset.gd")
 const REPORT := "user://presets_built.txt"
 
 const GAME := "Counter-Strike 1.6"
-const ROOT := "C:/Program Files (x86)/Steam/steamapps/common/Half-Life/cstrike"
+var ROOT := GamePaths.common("Half-Life/cstrike")
 
 var _vfs: VFSManager
 var _importer: UnifiedAssetImporter

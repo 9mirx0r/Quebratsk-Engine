@@ -1,5 +1,7 @@
 extends Node
 
+const GamePaths := preload("res://tests/game_paths.gd")
+
 ## Do the sounds the game's code names actually exist in the installed game?
 ##
 ## `tools/build_sound_catalogue.py` reads 313 sound names out of ReGameDLL_CS. Every one of
@@ -13,7 +15,7 @@ extends Node
 
 const SoundCatalogue := preload("res://addons/quebratsk_editor/sound_catalogue.gd")
 const REPORT := "user://sounds_resolve.txt"
-const ROOT := "C:/Program Files (x86)/Steam/steamapps/common/Half-Life/cstrike"
+var ROOT := GamePaths.common("Half-Life/cstrike")
 
 var _vfs: VFSManager
 var _report := PackedStringArray()

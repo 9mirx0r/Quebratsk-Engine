@@ -1,5 +1,7 @@
 extends Node
 
+const GamePaths := preload("res://tests/game_paths.gd")
+
 ## Drives the editor dock's logic without the editor GUI.
 ##
 ## The dock is where a non-Godot user spends all their time, so "it compiles" is not
@@ -8,13 +10,13 @@ extends Node
 ## wording the user would see.
 
 const DockScript := preload("res://addons/quebratsk_editor/quebratsk_dock.gd")
-const GMOD := "C:/Program Files (x86)/Steam/steamapps/common/GarrysMod/garrysmod"
-const HL2 := "C:/Program Files (x86)/Steam/steamapps/common/half-life 2/hl2"
+var GMOD := GamePaths.common("GarrysMod/garrysmod")
+var HL2 := GamePaths.common("half-life 2/hl2")
 
 ## Four games in one folder: Half-Life, Counter-Strike, Condition Zero and its Deleted
 ## Scenes. This is how Steam lays GoldSrc out, and it is the case the dock used to get
 ## wrong, offering all four at once under a single name.
-const GOLDSRC := "C:/Program Files (x86)/Steam/steamapps/common/Half-Life"
+var GOLDSRC := GamePaths.common("Half-Life")
 
 var _dock: VBoxContainer
 

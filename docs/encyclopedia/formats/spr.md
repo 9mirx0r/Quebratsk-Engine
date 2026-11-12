@@ -61,8 +61,10 @@ frames       for each of num_frames:
              16  4 x int32 origin x, origin y, width, height
             w*h  uint8   palette indices
 
-             a group is: 4-byte member count, then that many frames stored
-             exactly like a single one
+             a group is: 4-byte member count, one float32 per member
+             (cumulative seconds), then that many frames stored exactly like a
+             single one. NOT MEASURED: no shipped sprite has a group. This
+             comes from the public SDK writer (utils/sprgen/sprgen.c).
 ```
 
 Structs and offsets are pinned in
@@ -78,8 +80,7 @@ Structs and offsets are pinned in
 - **Every frame is preceded by its 4-byte type.** The first frame starts at
   810 (40 + 2 + 768), and skipping the type int32 misplaces origin and
   dimensions by four bytes. The corpus only uses type 0 (single); type 1
-  (group: a member count, then that many frames) never occurs, but a reader
-  must handle it.
+  (group) never occurs, so its layout is `sdk` evidence, not `observed`.
 - **There is no RLE in GoldSrc sprites.** Every frame stores `width*height`
   raw palette indices; the walk consumes the file exactly. All 1,361 files
   need no decompression step.
@@ -87,8 +88,13 @@ Structs and offsets are pinned in
   / 2`, matching 1,361/1,361; the header dimensions always equal the largest
   frame's dimensions.
 - **`palette[255]` is not a colour key.** Its RGB is arbitrary — black in 634
-  sprites, white in 417, blue in 65, magenta in 26. Transparency is the
-  palette index 255 itself, not the colour stored there.
+  sprites, white in 417, blue in 65, magenta in 26. What index 255 means
+  depends on the render mode, which the file cannot show: in alphatest it is
+  the transparent index (223 of 241 such sprites use it); in indexalpha the
+  index is the opacity and `palette[255]` is the sprite's single colour; in
+  additive and normal it is an ordinary colour (457 of 945 additive sprites
+  use it). These rules are `reference` evidence (open engine
+  reimplementations), not measured here.
 - **Orientation and render modes are skewed.** Type 2 (parallel) covers 1,319
   sprites; type 4 (parallel oriented) 29, type 0 (parallel upright) 10, type 3
   (oriented) 3. Type 1 (facing upright) never appears. Render modes: additive
@@ -114,8 +120,9 @@ validator.
   implements it, but no shipped sprite uses it.
 - What does `sync_type` 1 (random) change for the 1,147 sprites that use it?
   Animation timing is engine behaviour, not file structure — Stage 2.
-- Are grouped frames (type 1) legal input the shipped `spritegen` never
-  produced? No file in the corpus uses them.
-- Why is `origin_x` negative in every frame (range -512..-4)? It looks like
-  the anchor is stored relative to a top-left pivot, but the exact convention
-  is unmeasured.
+- Grouped frames (type 1): the SDK's `sprgen` can write them, but no file in
+  the corpus uses them, so the reader's group path is untested on real data.
+- `origin_x` is negative in every frame and equals `-(width // 2)` in all
+  7,634; `origin_y` is positive in 7,419 and negative in 215. So the origin is
+  the offset of the top-left corner from the pivot, y up. Why 215 frames have
+  a negative `origin_y` is open.

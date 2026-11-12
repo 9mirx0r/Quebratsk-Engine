@@ -1,5 +1,7 @@
 extends Node
 
+const SurfaceMaterial := preload("res://addons/quebratsk_editor/surface_material.gd")
+
 ## Do imported maps get their textures?
 ##
 ## A GoldSrc map stores its textures one of two ways: embedded in the .bsp itself, or named
@@ -71,8 +73,7 @@ func _check(uri: String) -> bool:
 
 	var textured := 0
 	for i in mesh.get_surface_count():
-		var mat := mesh.surface_get_material(i) as StandardMaterial3D
-		if mat != null and mat.albedo_texture != null:
+		if SurfaceMaterial.texture_of(mesh.surface_get_material(i)) != null:
 			textured += 1
 
 	# What worldspawn asked for. A map lists the .wad files it expects beside it, and if

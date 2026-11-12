@@ -1,5 +1,7 @@
 extends Node3D
 
+const SurfaceMaterial := preload("res://addons/quebratsk_editor/surface_material.gd")
+
 ## Cross-engine import demo: a GoldSrc map populated with Source-engine character
 ## models taken straight from Garry's Mod Workshop archives.
 ##
@@ -156,8 +158,7 @@ func _load_map() -> float:
 
 	var textured := 0
 	for i in mesh.get_surface_count():
-		var mat := mesh.surface_get_material(i)
-		if mat is StandardMaterial3D and mat.albedo_texture != null:
+		if SurfaceMaterial.texture_of(mesh.surface_get_material(i)) != null:
 			textured += 1
 
 	var ab := mesh.get_aabb()
@@ -204,8 +205,7 @@ func _spawn_soldiers(mounted: Array, ground_y: float) -> void:
 		if mi != null and mi.mesh != null:
 			surfaces = mi.mesh.get_surface_count()
 			for i in surfaces:
-				var mat := mi.mesh.surface_get_material(i)
-				if mat is StandardMaterial3D and mat.albedo_texture != null:
+				if SurfaceMaterial.texture_of(mi.mesh.surface_get_material(i)) != null:
 					textured += 1
 
 		var verts := 0

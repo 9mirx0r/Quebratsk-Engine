@@ -1,5 +1,7 @@
 extends Node
 
+const SurfaceMaterial := preload("res://addons/quebratsk_editor/surface_material.gd")
+
 ## The whole map pipeline against data it has never seen.
 ##
 ## Every defect worth finding this session came from running against something real that had
@@ -103,8 +105,7 @@ func _check(uri: String) -> Dictionary:
 
 	var textured := 0
 	for i in mesh.get_surface_count():
-		var mat := mesh.surface_get_material(i) as StandardMaterial3D
-		if mat != null and mat.albedo_texture != null:
+		if SurfaceMaterial.texture_of(mesh.surface_get_material(i)) != null:
 			textured += 1
 	var pct := 0.0 if mesh.get_surface_count() == 0 \
 		else 100.0 * textured / mesh.get_surface_count()

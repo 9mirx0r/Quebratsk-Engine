@@ -3,6 +3,8 @@
 #include "../converters/sound_resolver.h"
 #include "../core/vfs/vfs_manager.h"
 #include "../core/ir/ir_animation_data.h"
+#include "../core/ir/ir_collision_data.h"
+#include <godot_cpp/classes/mesh_instance3d.hpp>
 #include "../core/ir/ir_skeleton_data.h"
 #include "../converters/mesh_converter.h"
 #include "../converters/skeleton_converter.h"
@@ -41,6 +43,33 @@ struct ParsedAssetIR {
     /// Separate because they have to move. Faces used to be grouped by texture across the
     /// whole map, which welded every door to every wall sharing its texture.
     std::vector<ir::IRMeshData> brush_meshes;
+
+    /// What is solid in a map, as convex blocks: one list per brush model, indexed like
+    /// `brush_meshes`, with the world at 0. Empty for anything that is not a map.
+    std::vector<std::vector<ir::IRConvexHull>> brush_solids;
+
+    /// The same, as the game's standing player meets it (fattened, clip brushes included).
+    std::vector<std::vector<ir::IRConvexHull>> brush_player_solids;
+
+    /// Indexed like brush_meshes: true for a brush entity the game never draws, because
+    /// its entity asks for a see-through render mode at an opacity of nothing. Mappers use
+    /// these as walls that block without being seen. Shorter than brush_meshes when the
+    /// map has none.
+    std::vector<bool> brush_invisible;
+
+    /// Indexed like brush_meshes: where a brush entity's own `origin` puts it, in Godot's
+    /// axes and metres. A thing that turns (a hinged door, a wheel) is stored in the file
+    /// around its pivot, at the centre of the world, and its entity says where the pivot
+    /// goes. Zero for everything else. Shorter than brush_meshes when the map has none.
+    std::vector<godot::Vector3> brush_offsets;
+
+    /// A map's baked light, one atlas for the world and every brush entity. Empty for
+    /// anything that is not a lit map.
+    ir::IRTextureData lightmap;
+
+    /// The name of the sky a map is seen against (`desert`, `2desert`...), or empty when no
+    /// face of it shows the sky.
+    std::string sky_name;
 };
 
 /// An asset's bytes plus any companion files it cannot be decoded without.
@@ -173,9 +202,12 @@ public:
 
     /// Load a map as something you can stand on.
     ///
-    /// Returns a MeshInstance3D carrying a StaticBody3D with a trimesh collider, which is
-    /// the same shape Godot's own "Create Trimesh Static Body" produces, so a user who
-    /// later opens the node finds a structure they recognise.
+    /// Returns the world as a MeshInstance3D with a StaticBody3D under it. For a GoldSrc
+    /// map the body holds one convex collider per solid block the map is made of, and falls
+    /// back to a trimesh of the drawn faces when the map gives none. Each brush entity (a
+    /// door, a lift, a breakable wall) is its own "brush_N" child with its own body, placed
+    /// by its entity's origin and hidden when the level asks never to draw it. The painted
+    /// sky, when installed, is a child named "Sky".
     ///
     /// This exists because load_mesh() hands back geometry and nothing else, and a map with
     /// no collider is a map you fall straight through. Every caller that wanted a usable
@@ -270,6 +302,24 @@ private:
     /// draws it. Trimesh rather than convex because a map is not remotely convex: a hull
     /// around a building fills in its rooms.
     static godot::StaticBody3D* trimesh_body(const godot::Ref<godot::Mesh>& mesh);
+
+    /// A StaticBody3D holding one convex collider per block of `solids`, which is how a
+    /// GoldSrc map says what it is made of. Unlike the trimesh these stop a body from either
+    /// side, and what is solid but not drawn (sky, a face the compiler removed) still stops
+    /// it. A fast body still needs continuous collision to be caught, as with any collider.
+    /// Returns null when there is nothing solid.
+    static godot::StaticBody3D* solid_body(const std::vector<ir::IRConvexHull>& solids);
+
+    /// The six pictures of a GoldSrc sky (`gfx/env/<name>rt.tga` and its five siblings) as a
+    /// box that is always drawn behind everything and never gets nearer, which is what the
+    /// game shows through a face textured "sky". Returns null when the pictures are not
+    /// installed.
+    godot::MeshInstance3D* sky_box(const std::string& name, const std::string& origin) const;
+
+    /// The physics layer (as a bit mask: this is layer 20) that a map's "PlayerClip" bodies
+    /// sit on. Nothing collides with it by default. High up so that it stays clear of the
+    /// layers a game gives its own things.
+    static constexpr uint32_t kPlayerClipLayer = 1u << 19;
 
     /// A StaticBody3D holding a capsule sized to `bounds`, for a character.
     ///

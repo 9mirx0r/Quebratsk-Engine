@@ -1,5 +1,9 @@
 extends Node
 
+const SurfaceMaterial := preload("res://addons/quebratsk_editor/surface_material.gd")
+
+const GamePaths := preload("res://tests/game_paths.gd")
+
 ## Does a saved scene still work after Godot reloads it?
 ##
 ## Saving is the step that decides whether Quebratsk is a browser or something a game can be
@@ -24,9 +28,9 @@ func _ready() -> void:
 	add_child(_dock)
 	await get_tree().process_frame
 
-	_dock._add_game_folder("C:/Program Files (x86)/Steam/steamapps/common/Half-Life",
+	_dock._add_game_folder(GamePaths.common("Half-Life"),
 		"Half-Life")
-	_dock._add_game_folder("C:/Program Files (x86)/Steam/steamapps/common/GarrysMod/garrysmod",
+	_dock._add_game_folder(GamePaths.common("GarrysMod/garrysmod"),
 		"Garry's Mod")
 
 	print("\n=== SAVED SCENE VERIFICATION ===")
@@ -43,11 +47,138 @@ func _ready() -> void:
 		if result["ok"]:
 			survived += 1
 
+	# A level has things a model does not: baked light shared by every surface, many meshes,
+	# and the bodies you collide with.
+	var maps_checked := 0
+	var maps_survived := 0
+	for uri in _map_candidates():
+		maps_checked += 1
+		if _map_round_trip(str(uri)):
+			maps_survived += 1
+
 	print("\n=== SUMMARY ===")
 	print("  %d of %d saved scenes reload with everything they had" % [survived, checked])
-	if checked > 0 and survived < checked:
-		print("  ** a saved scene loses something on the way to disk **")
-	get_tree().quit()
+	print("  %d of %d saved levels reload lit and solid" % [maps_survived, maps_checked])
+	var lost := (checked - survived) + (maps_checked - maps_survived)
+	if lost > 0:
+		print("  a saved scene loses something on the way to disk  ** FAILED **")
+	get_tree().quit(1 if lost > 0 else 0)
+
+
+## Two Half-Life levels, one small and one with plenty of brush entities.
+func _map_candidates() -> PackedStringArray:
+	var out := PackedStringArray()
+	for needle in ["valve/maps/c0a0.bsp", "valve/maps/crossfire.bsp"]:
+		var hit: Dictionary = _dock._vfs.find_files(needle, PackedStringArray(["bsp"]),
+			PackedStringArray(), PackedStringArray(), 4)
+		for entry in hit["files"]:
+			out.append(str(entry))
+			break
+	return out
+
+
+func _map_round_trip(uri: String) -> bool:
+	# Built the way the dock's Save button builds it.
+	var live: Node3D = _dock._build_for_scene(uri, true)
+	if live == null:
+		print("\n%s   would not load  ** FAILED **" % uri.get_file())
+		return false
+	add_child(live)
+	var before: Dictionary = _describe_map(live)
+
+	var base := uri.get_file().get_basename()
+	DirAccess.make_dir_recursive_absolute(SAVE_DIR)
+	_dock._externalise(live, base)
+	_dock._claim_ownership(live, live)
+
+	var packed := PackedScene.new()
+	var path := "%s/%s.tscn" % [SAVE_DIR, base.validate_filename()]
+	var saved := packed.pack(live) == OK and ResourceSaver.save(packed, path) == OK
+	remove_child(live)
+	live.free()
+	if not saved:
+		print("\n%s   could not be written  ** FAILED **" % uri.get_file())
+		return false
+
+	var file := FileAccess.open(path, FileAccess.READ)
+	var bytes := 0 if file == null else file.get_length()
+	if file != null:
+		file.close()
+
+	var scene: PackedScene = ResourceLoader.load(path, "PackedScene",
+		ResourceLoader.CACHE_MODE_IGNORE_DEEP)
+	var reborn: Node3D = null if scene == null else scene.instantiate() as Node3D
+	if reborn == null:
+		print("\n%s   would not load back  ** FAILED **" % uri.get_file())
+		return false
+	add_child(reborn)
+	var after: Dictionary = _describe_map(reborn)
+
+	print("\n%s   %.1f KiB of scene on disk" % [uri.get_file(), bytes / 1024.0])
+	var ok := true
+	for key in ["meshes", "surfaces", "textured", "lit", "bodies", "shapes", "player_bodies"]:
+		var same: bool = after[key] == before[key]
+		print("   %-14s %6d -> %6d%s" % [key, before[key], after[key],
+			"" if same else "  ** FAILED **"])
+		ok = ok and same
+	# Lit at all, and solid at all: equal counts of nothing would pass the lines above.
+	for key in ["lit", "shapes", "player_bodies"]:
+		if before[key] == 0:
+			print("   nothing to lose under %s  ** FAILED **" % key)
+			ok = false
+	# The light is one picture, in one file, however many surfaces use it.
+	var lightmaps: Dictionary = after["lightmap_paths"]
+	if lightmaps.size() != 1 or not str(lightmaps.keys()[0]).begins_with(SAVE_DIR):
+		print("   baked light should be one file beside the scene, found %s  ** FAILED **"
+			% str(lightmaps.keys()))
+		ok = false
+	if after["loose_textures"] > 0 or after["loose_meshes"] > 0:
+		print("   %d texture(s) and %d mesh(es) were written into the scene file  ** FAILED **"
+			% [after["loose_textures"], after["loose_meshes"]])
+		ok = false
+
+	remove_child(reborn)
+	reborn.free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	return ok
+
+
+## What an imported level is made of, counted the same way before and after.
+func _describe_map(node: Node3D) -> Dictionary:
+	var out := {
+		"meshes": 0, "surfaces": 0, "textured": 0, "lit": 0, "bodies": 0, "shapes": 0,
+		"player_bodies": 0, "lightmap_paths": {}, "loose_textures": 0, "loose_meshes": 0,
+	}
+	for child in _every_node(node):
+		if child is MeshInstance3D:
+			var mesh: ArrayMesh = (child as MeshInstance3D).mesh as ArrayMesh
+			if mesh == null:
+				continue
+			out["meshes"] += 1
+			if mesh.resource_path.is_empty():
+				out["loose_meshes"] += 1
+			for i in mesh.get_surface_count():
+				out["surfaces"] += 1
+				var mat := mesh.surface_get_material(i)
+				var texture := SurfaceMaterial.texture_of(mat)
+				if texture != null:
+					out["textured"] += 1
+					if texture.resource_path.is_empty():
+						out["loose_textures"] += 1
+				var light := SurfaceMaterial.lightmap_of(mat)
+				if light != null:
+					out["lit"] += 1
+					out["lightmap_paths"][light.resource_path] = true
+		elif child is StaticBody3D:
+			out["bodies"] += 1
+			# The layer is what keeps the player's invisible walls away from everything else.
+			if child.name == "PlayerClip" and (child as StaticBody3D).collision_layer == 1 << 19 \
+					and (child as StaticBody3D).collision_mask == 0:
+				out["player_bodies"] += 1
+		elif child is CollisionShape3D:
+			if (child as CollisionShape3D).shape != null:
+				out["shapes"] += 1
+	return out
 
 
 ## Models worth the test: textured, skinned and animated, so there is something to lose.
@@ -141,7 +272,7 @@ func _round_trip(uri: String) -> Dictionary:
 	print("   animations %d -> %d, richest track %d keys -> %d"
 		% [before["animations"], after["animations"], before["keys"], after["keys"]])
 	if not ok:
-		print("   ** something did not survive **")
+		print("   something did not survive  ** FAILED **")
 
 	reborn.queue_free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
@@ -164,8 +295,7 @@ func _describe(node: Node3D) -> Dictionary:
 			if mesh != null:
 				surfaces += mesh.get_surface_count()
 				for i in mesh.get_surface_count():
-					var mat := mesh.surface_get_material(i) as StandardMaterial3D
-					if mat != null and mat.albedo_texture != null:
+					if SurfaceMaterial.texture_of(mesh.surface_get_material(i)) != null:
 						textured += 1
 		elif child is AnimationPlayer:
 			var player := child as AnimationPlayer

@@ -1,5 +1,7 @@
 extends Node
 
+const GamePaths := preload("res://tests/game_paths.gd")
+
 ## Does an imported animation actually move a bone?
 ##
 ## An AnimationPlayer that exists, holds an Animation of the right length and plays without
@@ -7,7 +9,7 @@ extends Node
 ## perfectly and the model stands still. So this seeks to several times and compares the
 ## bone poses it finds there.
 
-const GMOD := "C:/Program Files (x86)/Steam/steamapps/common/GarrysMod/garrysmod"
+var GMOD := GamePaths.common("GarrysMod/garrysmod")
 
 var _vfs: VFSManager
 var _importer: UnifiedAssetImporter

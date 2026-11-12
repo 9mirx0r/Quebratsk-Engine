@@ -15,28 +15,31 @@ extends RefCounted
 
 ## The order Godot's Cubemap expects its layers in, and the GoldSrc face that goes in each.
 ##
-## Derived rather than chosen. GoldSrc names its faces by where you are standing and looking,
-## in Valve's Z-up frame: ft is +X, bk is -X, lf is +Y, rt is -Y, up is +Z, dn is -Z. Godot
-## indexes a cubemap by axis in the order +X, -X, +Y, -Y, +Z, -Z. Running each Valve axis
-## through the same remap the geometry uses, source_to_godot(v) = (-v.y, v.z, -v.x):
+## Taken from the engine rather than from the names. The public Quake 2 and Xash3D sources
+## draw the six pictures with one table, which in Valve's Z-up frame puts rt at +X, lf at -X,
+## bk at +Y, ft at -Y, up at +Z and dn at -Z. Godot indexes a cubemap by axis in the order
+## +X, -X, +Y, -Y, +Z, -Z. Running each Valve axis through the same remap the geometry uses,
+## source_to_godot(v) = (-v.y, v.z, -v.x):
 ##
-##     Valve +X (ft) -> Godot (0, 0, -1)   = -Z
-##     Valve -X (bk) -> Godot (0, 0,  1)   = +Z
-##     Valve +Y (lf) -> Godot (-1, 0, 0)   = -X
-##     Valve -Y (rt) -> Godot ( 1, 0, 0)   = +X
+##     Valve +X (rt) -> Godot (0, 0, -1)   = -Z
+##     Valve -X (lf) -> Godot (0, 0,  1)   = +Z
+##     Valve +Y (bk) -> Godot (-1, 0, 0)   = -X
+##     Valve -Y (ft) -> Godot ( 1, 0, 0)   = +X
 ##     Valve +Z (up) -> Godot ( 0, 1, 0)   = +Y
 ##     Valve -Z (dn) -> Godot ( 0,-1, 0)   = -Y
 ##
-## Front and back were the wrong way round here, which put a hard diagonal seam across the
-## sky of every level: two faces meeting that were never meant to touch. It reads as a
-## texture problem and is a bookkeeping one.
+## Every picture is also mirrored on the way in (see load_sky). This table used to have the
+## sides in other places and no mirroring, which gave a sky with no seams that was the real
+## one seen in a mirror: the sun on the wrong side of every level. It is now checked against
+## the box the importer builds (tests/shot_map.gd, `loader,high` against `box,high`), and
+## the two come out the same to the pixel.
 const FACES := [
-	{"suffix": "rt", "rotate": 0},    # +X
-	{"suffix": "lf", "rotate": 0},    # -X
-	{"suffix": "up", "rotate": 90},   # +Y
-	{"suffix": "dn", "rotate": -90},  # -Y
-	{"suffix": "bk", "rotate": 0},    # +Z
-	{"suffix": "ft", "rotate": 0},    # -Z
+	{"suffix": "ft", "rotate": 0},    # +X
+	{"suffix": "bk", "rotate": 0},    # -X
+	{"suffix": "up", "rotate": 180},  # +Y
+	{"suffix": "dn", "rotate": 180},  # -Y
+	{"suffix": "lf", "rotate": 0},    # +Z
+	{"suffix": "rt", "rotate": 0},    # -Z
 ]
 
 ## Where a replacement skybox lives, by map name: res://assets/skyboxes/<map>/<map>_up.png
@@ -61,13 +64,14 @@ void sky() {
 """
 
 
-## The name a map gives its sky, or an empty string.
+## The name a map gives its sky, or `desert`, which is what the game uses when it gives none.
 static func sky_name(entities: Array) -> String:
 	for e in entities:
 		var entity: Dictionary = e
 		if str(entity.get("classname", "")) == "worldspawn":
-			return str(entity.get("skyname", ""))
-	return ""
+			# A level that does not say gets the engine's own default.
+			return str(entity.get("skyname", "desert"))
+	return "desert"
 
 
 ## Build the sky a map asks for, or null when its images are not on this machine.
@@ -106,8 +110,13 @@ static func load_sky(vfs: VFSManager, entities: Array, report: Array = [],
 		if image == null:
 			report.append("gfx/env/%s%s" % [name, face["suffix"]])
 			return null
-		if int(face["rotate"]) != 0:
-			image.rotate_90(CLOCKWISE if int(face["rotate"]) > 0 else COUNTERCLOCKWISE)
+		# A cubemap is looked up as if seen from outside; these pictures were painted to
+		# be seen from inside, which is the same thing in a mirror.
+		image.flip_x()
+		match int(face["rotate"]):
+			90: image.rotate_90(CLOCKWISE)
+			-90: image.rotate_90(COUNTERCLOCKWISE)
+			180: image.rotate_180()
 		images.append(image)
 
 	# Every face of a cubemap has to be the same size, and a hand-made skybox is not always

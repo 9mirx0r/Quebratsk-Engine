@@ -1,4 +1,5 @@
 #include "bsp30_parser.h"
+#include "bsp30_solids.h"
 
 #include <algorithm>
 #include "../../core/io/byte_reader.h"
@@ -6,7 +7,10 @@
 #include "structs/wad3_structs.h" // MiptexHeader, shared with the WAD3 reader
 #include "wad3_parser.h"
 
+#include <array>
 #include <cctype>
+#include <cmath>
+#include <limits>
 
 #include <godot_cpp/variant/utility_functions.hpp>          // reuse the miptex decoder for embedded textures
 
@@ -30,6 +34,45 @@ namespace {
 /// on it, and a map with a few trigger volumes in it comes out with solid magenta slabs
 /// standing in the middle of the level, walling off rooms that are open in the game.
 ///
+/// Which light styles are dark when the level starts.
+///
+/// A light a mapper gave a name to can be switched, so the compiler bakes it into a grid of
+/// its own under a style numbered 32 or more and writes that number back into the light's
+/// entity. The game then starts that style lit, unless the light is flagged "initially
+/// dark" (spawnflags bit 1), in which case it starts at nothing (the public SDK's
+/// lights.cpp). Adding such a grid in shows a room lit by lamps nobody has switched on.
+///
+/// Styles below 32 are the game's fixed flickers and pulses and are never off.
+std::array<bool, 256> styles_starting_dark(const std::string& entities) {
+    std::array<bool, 256> dark{};
+    const auto value_of = [](const std::string& block, const char* key) -> std::string {
+        const std::string quoted = std::string("\"") + key + "\"";
+        const size_t at = block.find(quoted);
+        if (at == std::string::npos) return {};
+        const size_t open = block.find('"', at + quoted.size());
+        if (open == std::string::npos) return {};
+        const size_t close = block.find('"', open + 1);
+        if (close == std::string::npos) return {};
+        return block.substr(open + 1, close - open - 1);
+    };
+    size_t pos = 0;
+    while (true) {
+        const size_t open = entities.find('{', pos);
+        if (open == std::string::npos) break;
+        const size_t close = entities.find('}', open);
+        if (close == std::string::npos) break;
+        pos = close + 1;
+
+        const std::string block = entities.substr(open, close - open);
+        if (!value_of(block, "classname").starts_with("light")) continue;
+        if (value_of(block, "targetname").empty()) continue;
+        const int style = std::atoi(value_of(block, "style").c_str());
+        const int flags = std::atoi(value_of(block, "spawnflags").c_str());
+        if (style >= 32 && style < 255 && (flags & 1) != 0) dark[static_cast<size_t>(style)] = true;
+    }
+    return dark;
+}
+
 /// Names are compared in lower case because a mapper writes them however they please.
 bool is_non_visible_texture(const std::string& name) {
     std::string lower;
@@ -58,6 +101,55 @@ bool is_non_visible_texture(const std::string& name) {
     }
     return false;
 }
+
+/// One light sample covers this many map units along each texture axis.
+constexpr float kLuxelUnits = 16.0f;
+/// The white patch every unlit face points at, and the point inside it that is sampled.
+constexpr uint32_t kWhitePatch = 4;
+constexpr float kWhitePoint = 2.0f;
+/// Retail faces measure at most 17 samples a side. Anything far past that is a corrupt
+/// face rather than a large one, and is left unlit instead of being given an atlas row.
+constexpr int kMaxLuxelsPerSide = 256;
+
+/// Lays rectangles out in rows, left to right, starting a new row when one is full.
+///
+/// Light grids are tiny (17 samples a side at most) and there are thousands of them, so
+/// rows waste little and placing one costs nothing. The atlas has a fixed width and grows
+/// downwards for as long as there is something to place.
+class LightAtlas {
+public:
+    explicit LightAtlas(uint32_t width) : m_width(width) {}
+
+    /// Top-left corner of a free w x h rectangle. `w` must not exceed the width.
+    std::pair<uint32_t, uint32_t> place(uint32_t w, uint32_t h) {
+        if (m_cursor_x + w > m_width) {
+            m_row_y += m_row_height;
+            m_row_height = 0;
+            m_cursor_x = 0;
+        }
+        const std::pair<uint32_t, uint32_t> at(m_cursor_x, m_row_y);
+        m_cursor_x += w;
+        m_row_height = std::max(m_row_height, h);
+        const size_t needed = static_cast<size_t>(m_row_y + m_row_height) * m_width * 4;
+        if (m_pixels.size() < needed) m_pixels.resize(needed, 255);
+        return at;
+    }
+
+    uint8_t* pixel(uint32_t x, uint32_t y) {
+        return m_pixels.data() + (static_cast<size_t>(y) * m_width + x) * 4;
+    }
+
+    [[nodiscard]] uint32_t width() const { return m_width; }
+    [[nodiscard]] uint32_t height() const { return m_row_y + m_row_height; }
+    std::vector<uint8_t> take_pixels() { return std::move(m_pixels); }
+
+private:
+    uint32_t m_width;
+    uint32_t m_cursor_x = 0;
+    uint32_t m_row_y = 0;
+    uint32_t m_row_height = 0;
+    std::vector<uint8_t> m_pixels;   // RGBA8, opaque white until written
+};
 
 } // namespace
 
@@ -91,11 +183,33 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
 
     ParsedBSP30Map map_data;
 
-    // Lump 0: Entities
-    auto ent_lump = get_lump(0);
+    // Blue Shift stores planes in lump 0 and entities in lump 1; every other retail game
+    // stores them the other way round, and nothing else differs. The version number is the
+    // same, so the only way to tell is by content: the entities lump is text that opens
+    // with '{'. Measured on the retail corpus: all 37 bshift maps are swapped, the other
+    // 360 are not (tools/verify/validate_bsp30.py, detect_layout).
+    auto starts_with_brace = [](std::span<const std::byte> lump) {
+        for (const std::byte b : lump) {
+            const auto c = static_cast<unsigned char>(b);
+            if (c == 0x20 || c == 0x09 || c == 0x0D || c == 0x0A) continue;
+            return c == '{';
+        }
+        return false;
+    };
+    size_t entities_lump = 0;
+    size_t planes_lump = 1;
+    if (!starts_with_brace(get_lump(0)) && starts_with_brace(get_lump(1))) {
+        entities_lump = 1;
+        planes_lump = 0;
+    }
+    map_data.blue_shift_layout = entities_lump == 1;
+
+    // Entities
+    auto ent_lump = get_lump(entities_lump);
     if (!ent_lump.empty()) {
         map_data.entity_string = std::string(reinterpret_cast<const char*>(ent_lump.data()), ent_lump.size());
     }
+    const std::array<bool, 256> style_starts_dark = styles_starting_dark(map_data.entity_string);
 
     // Which faces each brush model owns, filled from lump 14 and used far below to build one
     // mesh per model instead of one for the whole map.
@@ -153,7 +267,7 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     size_t num_faces = face_lump.size() / sizeof(BSPFace);
 
     // Lump 1: Planes — needed here for per-face normals, and again below for collision.
-    auto plane_lump = get_lump(1);
+    auto plane_lump = get_lump(planes_lump);
     auto* bsp_planes = reinterpret_cast<const BSPPlane*>(plane_lump.data());
     size_t num_planes = plane_lump.size() / sizeof(BSPPlane);
 
@@ -221,6 +335,18 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         }
     }
 
+    // Lump 8: lighting, three bytes (R, G, B) per sample. A map compiled without light has
+    // none, and then nothing below touches uv1 and the level stays evenly bright.
+    const auto light_lump = get_lump(8);
+    const bool lit_map = light_lump.size() >= 3;
+    uint32_t atlas_width = 256;
+    while (atlas_width < 4096 &&
+           static_cast<size_t>(atlas_width) * atlas_width < light_lump.size() / 3 * 5 / 4) {
+        atlas_width *= 2;
+    }
+    LightAtlas atlas(atlas_width);
+    if (lit_map) atlas.place(kWhitePatch, kWhitePatch);   // lands at 0,0, already white
+
     // Group surfaces by texture index, per brush model.
     //
     // Per model, not per map, and that is the point. Lump 14 says which faces belong to which
@@ -264,6 +390,13 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
             // player of the game has ever seen, and walls the map in besides.
             if (is_non_visible_texture(miptex->name)) {
                 ++diag_sky_faces;
+                const std::string& n = miptex->name;
+                if (n.size() >= 3 && std::tolower(static_cast<unsigned char>(n[0])) == 's' &&
+                    std::tolower(static_cast<unsigned char>(n[1])) == 'k' &&
+                    std::tolower(static_cast<unsigned char>(n[2])) == 'y' &&
+                    (n.size() == 3 || n[3] == '_')) {
+                    ++map_data.sky_faces;
+                }
                 continue;
             }
         }
@@ -299,6 +432,7 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
         // Extract polygon vertices from surfedges
         std::vector<godot::Vector3> poly_positions;
         std::vector<godot::Vector2> poly_uvs;
+        std::vector<godot::Vector2> poly_st;   // texture-space position in texels, for light
 
         for (int16_t e = 0; e < face.num_edges; ++e) {
             size_t surfedge_idx = static_cast<size_t>(face.first_edge_index + e);
@@ -333,8 +467,87 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
                                      pos_raw.z * tex_info->vector_t[2] +
                                      tex_info->vector_t[3]) / tex_h;
                     poly_uvs.emplace_back(u, t);
+
+                    // The same projection again for the light grid, and here the arithmetic
+                    // is part of the format: the sum is taken in double precision and then
+                    // rounded to a float, as the original engine's did. Skip the rounding
+                    // and 4 faces in 100 come out one row or column too big, which shifts
+                    // every grid stored after them. Measured on the 397 retail maps: with
+                    // the rounding, 2,595,233 lit faces tile lump 8 with no gap or overlap.
+                    const auto project = [&](const float axis[4]) {
+                        const double sum = static_cast<double>(pos_raw.x) * axis[0] +
+                                           static_cast<double>(pos_raw.y) * axis[1] +
+                                           static_cast<double>(pos_raw.z) * axis[2] + axis[3];
+                        return static_cast<float>(sum);
+                    };
+                    poly_st.emplace_back(project(tex_info->vector_s), project(tex_info->vector_t));
                 } else {
                     poly_uvs.emplace_back(0.0f, 0.0f);
+                    poly_st.emplace_back(0.0f, 0.0f);
+                }
+            }
+        }
+
+        // Where each vertex falls in the light atlas, in atlas pixels for now: the atlas is
+        // still growing, so the division by its size waits until every face is placed.
+        std::vector<godot::Vector2> poly_light(poly_positions.size(),
+                                               godot::Vector2(kWhitePoint, kWhitePoint));
+        if (lit_map && tex_info && face.lightmap_offset >= 0 && poly_positions.size() >= 3) {
+            float min_s = std::numeric_limits<float>::max();
+            float min_t = min_s;
+            float max_s = std::numeric_limits<float>::lowest();
+            float max_t = max_s;
+            for (const auto& st : poly_st) {
+                min_s = std::min(min_s, st.x);
+                max_s = std::max(max_s, st.x);
+                min_t = std::min(min_t, st.y);
+                max_t = std::max(max_t, st.y);
+            }
+            // The grid runs from the sample at or before the face's first texel to the one
+            // at or after its last, so a face 32 units wide has three samples across.
+            const double first_s = std::floor(min_s / kLuxelUnits);
+            const double first_t = std::floor(min_t / kLuxelUnits);
+            const double across = std::ceil(max_s / kLuxelUnits) - first_s + 1.0;
+            const double down = std::ceil(max_t / kLuxelUnits) - first_t + 1.0;
+
+            // One grid per style in use; the list is filled from the front and 255 ends it.
+            size_t style_count = 0;
+            while (style_count < 4 && face.styles[style_count] != 255) ++style_count;
+
+            if (style_count > 0 && across >= 1.0 && down >= 1.0 &&
+                across <= kMaxLuxelsPerSide && down <= kMaxLuxelsPerSide) {
+                const auto w = static_cast<uint32_t>(across);
+                const auto h = static_cast<uint32_t>(down);
+                const size_t grid_bytes = static_cast<size_t>(w) * h * 3;
+                const auto offset = static_cast<size_t>(face.lightmap_offset);
+
+                if (offset <= light_lump.size() &&
+                    grid_bytes * style_count <= light_lump.size() - offset) {
+                    const auto [rect_x, rect_y] = atlas.place(w, h);
+                    const auto* samples =
+                        reinterpret_cast<const uint8_t*>(light_lump.data()) + offset;
+                    for (uint32_t y = 0; y < h; ++y) {
+                        for (uint32_t x = 0; x < w; ++x) {
+                            uint8_t* out = atlas.pixel(rect_x + x, rect_y + y);
+                            for (int channel = 0; channel < 3; ++channel) {
+                                unsigned sum = 0;
+                                for (size_t style = 0; style < style_count; ++style) {
+                                    // Its grid is there, but the lamp is off.
+                                    if (style_starts_dark[face.styles[style]]) continue;
+                                    sum += samples[style * grid_bytes +
+                                                   (static_cast<size_t>(y) * w + x) * 3 + channel];
+                                }
+                                out[channel] = static_cast<uint8_t>(std::min(sum, 255u));
+                            }
+                        }
+                    }
+                    // Samples sit at the centre of their pixel, hence the half. That also
+                    // keeps a smoothed lookup inside this face's own rectangle.
+                    for (size_t i = 0; i < poly_st.size(); ++i) {
+                        poly_light[i] = godot::Vector2(
+                            static_cast<float>(rect_x + (poly_st[i].x / kLuxelUnits - first_s) + 0.5),
+                            static_cast<float>(rect_y + (poly_st[i].y / kLuxelUnits - first_t) + 0.5));
+                    }
                 }
             }
         }
@@ -345,6 +558,7 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
                 surf.positions.push_back(poly_positions[i]);
                 surf.normals.push_back(face_normal);
                 surf.uv0.push_back(poly_uvs[i]);
+                if (lit_map) surf.uv1.push_back(poly_light[i]);
             }
 
             for (size_t i = 1; i + 1 < poly_positions.size(); ++i) {
@@ -379,41 +593,76 @@ std::expected<ParsedBSP30Map, BSP30ParseError> BSP30Parser::parse(
     }
     }   // per brush model
 
-    // Lump 9: ClipNodes, GoldSrc's real collision. Planes (lump 1) were already loaded above
-    // for per-face normals and are reused here.
-    //
-    // WHAT THIS DOES AND DOES NOT DO. A clipnode is a node in a BSP tree: a splitting plane
-    // and two children, where a negative child is a content type rather than another node.
-    // Three of those trees exist per map, one per player size, and together they are what a
-    // GoldSrc player actually collides against. That is why a player fits through a 33 unit
-    // gap that a capsule of the same radius does not: the hull is an axis-aligned box tested
-    // against planes, not a swept cylinder.
-    //
-    // What is collected below is the flat list of splitting planes, with the tree thrown
-    // away. A plane list cannot answer "is this point solid", so nothing consumes
-    // collision_data and map collision is still built from the visible surfaces by
-    // trimesh_body(). Rebuilding the tree needs the model lump's headnode indices, which
-    // say where each of the three hulls begins, and those are not read yet.
-    //
-    // Left as it is rather than half-changed: the visible-surface collider works, and
-    // replacing it is a piece of work that should land whole.
-    auto clipnode_lump = get_lump(9);
-    auto* bsp_clipnodes = reinterpret_cast<const BSPClipNode*>(clipnode_lump.data());
-    size_t num_clipnodes = clipnode_lump.size() / sizeof(BSPClipNode);
+    // Every face is placed, so the atlas has its final size and the pixel positions written
+    // into uv1 can become the 0..1 coordinates a renderer wants.
+    if (lit_map) {
+        const float inv_w = 1.0f / static_cast<float>(atlas.width());
+        const float inv_h = 1.0f / static_cast<float>(atlas.height());
+        const auto normalise = [&](ir::IRMeshData& mesh) {
+            for (auto& surf : mesh.surfaces) {
+                for (auto& uv : surf.uv1) uv = godot::Vector2(uv.x * inv_w, uv.y * inv_h);
+            }
+        };
+        normalise(map_data.mesh_data);
+        for (auto& model : map_data.brush_models) normalise(model.mesh);
 
+        map_data.lightmap.name = "lightmap";
+        map_data.lightmap.width = atlas.width();
+        map_data.lightmap.height = atlas.height();
+        map_data.lightmap.rgba8_pixels = atlas.take_pixels();
+    }
+
+    // Collision: the solid parts of every model, cut out of the map's own tree (lump 5 nodes,
+    // lump 10 leaves). See bsp30_solids.h for the method and for what it leaves out.
+    //
+    // Lump 9, the clipnodes, holds three more trees with the level fattened by the size of a
+    // standing, large and crouching character, which is what the game's own movement code
+    // walks a point through. That is the only place clip brushes exist. The standing one is
+    // read too, into `player_solids`, kept apart because it is not the level at its real
+    // size and an ordinary body must never meet it.
     map_data.collision_data.source_engine = ir::SourceEngine::GoldSrc;
+    map_data.collision_data.name = "world";
+    {
+        const auto node_lump = get_lump(5);
+        const auto leaf_lump = get_lump(10);
+        const auto model_lump = get_lump(14);
+        const std::span<const BSPNode> nodes(
+            reinterpret_cast<const BSPNode*>(node_lump.data()), node_lump.size() / sizeof(BSPNode));
+        const std::span<const BSPLeaf> leaves(
+            reinterpret_cast<const BSPLeaf*>(leaf_lump.data()), leaf_lump.size() / sizeof(BSPLeaf));
+        const std::span<const BSPPlane> planes(bsp_planes, num_planes);
+        const auto* models = reinterpret_cast<const BSPModel*>(model_lump.data());
+        const size_t model_count =
+            std::min(model_lump.size() / sizeof(BSPModel), map_data.brush_models.size());
+        const auto clip_lump = get_lump(9);
+        const std::span<const BSPClipNode> clipnodes(
+            reinterpret_cast<const BSPClipNode*>(clip_lump.data()),
+            clip_lump.size() / sizeof(BSPClipNode));
 
-    // Lump 14 and the clipnode tree are read no further for now. See the note above the
-    // clipnode collection: an attempt to rebuild the hulls from this tree is recorded in the
-    // commit history and was reverted, because it cost 18 to 38 seconds per map against the
-    // 200 milliseconds the visible-surface collider takes, and produced no regions at all.
-    //
-    // The two faults are known. Descending the front child pushed the plane unnegated, which
-    // describes the region behind it rather than in front, so no leaf ever closed. And
-    // computing a region's corners by intersecting every triple of its bounding planes is
-    // cubic in a plane count that grows with tree depth: thirty levels deep across thousands
-    // of leaves is millions of triples per map. The way out is to clip a large box by each
-    // plane in turn, which is linear in the planes and in the faces they cut.
+        // The world's box ends at its outermost visible faces, and the solid behind those
+        // lies outside it. Widened by this much (6.4 m), that solid survives as a thick shell
+        // around the level rather than a skin. A brush entity is closed on every side by its own
+        // planes and needs no more than the slack its box already has.
+        constexpr float kWorldMargin = 256.0f;
+        constexpr float kBrushMargin = 1.0f;
+        // The player tree's solid reaches 16 units sideways and 36 up and down past the
+        // model's own.
+        constexpr float kPlayerReach = 40.0f;
+
+        for (size_t i = 0; i < model_count && !nodes.empty() && !leaves.empty(); ++i) {
+            map_data.brush_models[i].solids = build_model_solids(
+                nodes, leaves, planes, models[i].head_nodes[0], models[i].mins, models[i].maxs,
+                i == 0 ? kWorldMargin : kBrushMargin);
+        }
+        for (size_t i = 0; i < model_count && !clipnodes.empty(); ++i) {
+            map_data.brush_models[i].player_solids = build_clip_solids(
+                clipnodes, planes, models[i].head_nodes[1], models[i].mins, models[i].maxs,
+                (i == 0 ? kWorldMargin : kBrushMargin) + kPlayerReach);
+        }
+        if (model_count > 0) {
+            map_data.collision_data.convex_hulls = map_data.brush_models[0].solids;
+        }
+    }
 
     return map_data;
 }

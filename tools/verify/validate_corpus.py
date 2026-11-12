@@ -64,12 +64,15 @@ def main(argv: list[str] | None = None) -> int:
     results: dict[str, dict] = {}
     total_hard = 0
     total_warnings = 0
+    empty: list[str] = []
     for name in wanted:
         module = importlib.import_module(VALIDATORS[name])
         result = module.validate(root, games)
         results[name] = result
         total_hard += result["summary"]["hard_errors"]
         total_warnings += result["summary"]["warnings"]
+        if result["summary"]["validated"] == 0:
+            empty.append(name)
 
     width = max(len(name) for name in results)
     print(f"Corpus root: {root}")
@@ -86,11 +89,23 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{name:<{width}}  {'-':>7}  {'-':>6}  {'not implemented':>9}")
 
     print("")
-    if total_hard:
-        print(f"GATE FAILED: {total_hard:,} hard error(s).")
+    # Exit codes: 0 the gate passes, 1 it fails, 2 nothing failed but coverage is
+    # incomplete. A validator that found no files proves nothing, so it fails.
+    if total_hard or empty:
+        exit_code = 1
+        reasons = []
+        if total_hard:
+            reasons.append(f"{total_hard:,} hard error(s)")
+        if empty:
+            reasons.append(f"no files found for: {', '.join(empty)}")
+        print(f"GATE FAILED: {'; '.join(reasons)}.")
+    elif PLANNED or set(wanted) != set(VALIDATORS):
+        exit_code = 2
+        print(f"GATE PARTIAL: 0 hard errors in the formats checked; {len(PLANNED)} "
+              "format group(s) still have no validator. Exit code 2.")
     else:
-        print(f"GATE PARTIAL: 0 hard errors in the formats implemented so far; {len(PLANNED)} "
-              "format group(s) still have no validator.")
+        exit_code = 0
+        print("GATE PASSED: 0 hard errors.")
 
     if args.json:
         write_json(
@@ -105,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
             },
         )
 
-    return 1 if total_hard else 0
+    return exit_code
 
 
 if __name__ == "__main__":

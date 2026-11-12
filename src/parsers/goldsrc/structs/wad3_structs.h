@@ -41,7 +41,8 @@ struct MiptexHeader {
     uint32_t width;          // Must be multiple of 16
     uint32_t height;         // Must be multiple of 16
     uint32_t offsets[4];     // Offsets to mipmap levels 0 (1:1), 1 (1:2), 2 (1:4), 3 (1:8)
-};#pragma pack(pop)
+};
+#pragma pack(pop)
 
 static_assert(sizeof(WAD3Header) == 12, "WAD3Header size mismatch");
 static_assert(sizeof(WAD3Lump) == 32, "WAD3Lump size mismatch");

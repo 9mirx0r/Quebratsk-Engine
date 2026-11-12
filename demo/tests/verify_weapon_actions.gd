@@ -1,5 +1,7 @@
 extends Node
 
+const GamePaths := preload("res://tests/game_paths.gd")
+
 ## Can every weapon in Counter-Strike 1.6 be fired and reloaded?
 ##
 ## Three separate things were wrong and each hid the next. The sandbox asked for one sequence
@@ -29,7 +31,7 @@ func _ready() -> void:
 	_importer = UnifiedAssetImporter.new()
 	add_child(_vfs); add_child(_importer); _importer.set_vfs(_vfs)
 
-	var root := "C:/Program Files (x86)/Steam/steamapps/common/Half-Life/cstrike"
+	var root := GamePaths.common("Half-Life/cstrike")
 	if not DirAccess.dir_exists_absolute(root):
 		_say("cstrike is not installed at %s" % root)
 		get_tree().quit()

@@ -1,6 +1,8 @@
 @tool
 extends VBoxContainer
 
+const SurfaceMaterial := preload("res://addons/quebratsk_editor/surface_material.gd")
+
 ## The Quebratsk dock.
 ##
 ## Written for someone who has never opened Godot: pick a game they own, search for a
@@ -1913,6 +1915,12 @@ func _build_for_scene(uri: String, alone: bool) -> Node3D:
 	if SOUND_EXTENSIONS.has(ext):
 		return _build_sound_player(uri)
 	if ext == "bsp" or ext == "wrp":
+		# The whole level: what is drawn, the brush entities, and what you collide with. A
+		# bare mesh looked the same in the editor and was a map you fell straight through.
+		var level: Node3D = _importer.load_map(uri)
+		if level != null:
+			level.name = uri.get_file().get_basename()
+			return level
 		var mesh: ArrayMesh = _importer.load_mesh(uri)
 		if mesh == null:
 			return null
@@ -1983,6 +1991,7 @@ func _externalise(node: Node, base_name: String) -> void:
 
 	var written := {}
 	var n := 0
+	var meshes := 0
 
 	for child in _all_descendants(node):
 		if not (child is MeshInstance3D):
@@ -1992,29 +2001,45 @@ func _externalise(node: Node, base_name: String) -> void:
 			continue
 
 		for i in mesh.get_surface_count():
-			var mat := mesh.surface_get_material(i) as StandardMaterial3D
-			if mat == null or mat.albedo_texture == null:
+			var mat := mesh.surface_get_material(i)
+			if mat == null:
 				continue
-			var texture := mat.albedo_texture
-			# A resource that already has a path is already a file somewhere.
-			if not texture.resource_path.is_empty():
-				continue
-			var key := texture.get_instance_id()
-			if written.has(key):
-				continue
-			n += 1
 			# The material's own name is the texture's name in the game, which is what makes
 			# these shareable between models rather than one copy per import.
-			var label := mat.resource_name if not mat.resource_name.is_empty() 				else "%s_%d" % [base_name, n]
-			var path := "%s/%s.res" % [dir, label.validate_filename()]
-			if ResourceSaver.save(texture, path) == OK:
-				texture.take_over_path(path)
-			written[key] = true
+			var label := mat.resource_name
+			if label.is_empty():
+				n += 1
+				label = "%s_%d" % [base_name, n]
+			_externalise_texture(SurfaceMaterial.texture_of(mat), "%s/%s.res" % [dir, label.validate_filename()], written)
+			# A lit map's surfaces all point at one picture of its baked light. Left in memory it
+			# would be written out again inside every mesh file that uses it.
+			_externalise_texture(SurfaceMaterial.lightmap_of(mat), "%s/%s_lightmap.res" % [dir, base_name.validate_filename()], written)
 
 		if mesh.resource_path.is_empty():
-			var mesh_path := "%s/%s_mesh.res" % [dir, base_name.validate_filename()]
+			# A level is many meshes (the world and every door, lift and window in it). Under
+			# one name each would overwrite the one before and all but the last would end up
+			# written into the scene file after all.
+			meshes += 1
+			var mesh_path := "%s/%s_mesh%s.res" % [dir, base_name.validate_filename(),
+				"" if meshes == 1 else "_%d" % meshes]
 			if ResourceSaver.save(mesh, mesh_path) == OK:
 				mesh.take_over_path(mesh_path)
+
+
+## Save one texture as its own file and point it there. `written` remembers what this save
+## has already handled, so a texture shared by many surfaces is written once.
+func _externalise_texture(texture: Texture2D, path: String, written: Dictionary) -> void:
+	if texture == null:
+		return
+	# A resource that already has a path is already a file somewhere.
+	if not texture.resource_path.is_empty():
+		return
+	var key := texture.get_instance_id()
+	if written.has(key):
+		return
+	written[key] = true
+	if ResourceSaver.save(texture, path) == OK:
+		texture.take_over_path(path)
 
 
 func _all_descendants(root: Node) -> Array:

@@ -19,7 +19,9 @@ A sprite is a 40-byte header, a 768-byte palette, and a run of frames:
                 4  int32    frame type: 0 = one frame, 1 = group
                16  int32x4  origin x, origin y, width, height
              w*h  uint8      palette indices
-                (a group is: 4-byte count, then count frames stored the same way)
+                (a group is: 4-byte count, then count float32 intervals, then count
+                frames stored the same way -- from the public SDK's sprgen.c, since no
+                shipped sprite has a group to measure)
 
 The layout was measured, not remembered. Three things settle it:
 
@@ -144,6 +146,11 @@ def validate_sprite(raw: bytes, relative: str) -> tuple[dict, list[str], list[st
                             f"[1, {MAX_GROUP_MEMBERS}]")
                 overrun = True
                 break
+            if pos + 4 * members > len(raw):
+                hard.append(f"frame {frame}: group intervals run past the end of the file")
+                overrun = True
+                break
+            pos += 4 * members
         else:
             hard.append(f"frame {frame}: frame type {frame_type}, expected 0 or 1")
             overrun = True
