@@ -44,6 +44,16 @@ Makefile
 *.o
 *.pdb
 
+# Python caches
+__pycache__/
+*.pyc
+
+# Ninja build tree used for local Debug builds and CTest runs
+build-ninja/
+
+# Local skill-registry cache
+.atl/
+
 # Godot 4 specifics
 .godot/
 *.translation
