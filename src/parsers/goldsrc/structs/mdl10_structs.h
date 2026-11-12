@@ -67,6 +67,31 @@ struct StudioBone {
     float scale[6];
 };
 
+/// mstudiobonecontroller_t (24 bytes). One controllable axis of one bone.
+///
+/// A player's torso pitch, a gun's spin, a gargantua's jaw: the game drives a
+/// controller value in [start, end] and the bone follows. `rest` is the value the
+/// bone holds when nobody is driving, in the same units as `start`.
+struct StudioBoneController {
+    int32_t bone;
+    int32_t type;       // which axis: X, XR, MOUTH...
+    float start;        // lower bound of the driven value
+    float end;          // upper bound
+    float rest;         // value returned to when the controller is idle
+    int32_t index;      // slot in the owning bone's controller list
+};
+
+/// mstudiobox_t (32 bytes). One hit zone of one bone.
+///
+/// Head, chest, stomach: the game checks shots against these boxes in the bone's
+/// own space, so an arm raised or lowered moves its hitbox with it.
+struct StudioHitBox {
+    int32_t bone;
+    int32_t group;      // hit group the damage lands in
+    float bbmin[3];
+    float bbmax[3];
+};
+
 /// BodyPart descriptor (76 bytes)
 struct StudioBodyPart {
     char name[64];
@@ -232,6 +257,15 @@ inline constexpr int32_t kEventScriptSoundVoice = 1008;
 
 static_assert(sizeof(StudioHeader) >= 200, "StudioHeader size mismatch");
 static_assert(sizeof(StudioBone) == 112, "StudioBone size mismatch");
+static_assert(sizeof(StudioBoneController) == 24, "StudioBoneController size mismatch");
+// start/end are floats sitting two ints deep: reading them as ints or one field
+// early reads the controller type's bits as a float, which is how a first pass
+// here reported controller start values like 1e-38.
+static_assert(offsetof(StudioBoneController, start) == 8, "controller start moved");
+static_assert(offsetof(StudioBoneController, rest) == 16, "controller rest moved");
+static_assert(sizeof(StudioHitBox) == 32, "StudioHitBox size mismatch");
+static_assert(offsetof(StudioHitBox, bbmin) == 8, "hitbox bbmin moved");
+static_assert(offsetof(StudioHitBox, bbmax) == 20, "hitbox bbmax moved");
 static_assert(sizeof(StudioBodyPart) == 76, "StudioBodyPart size mismatch");
 static_assert(sizeof(StudioModel) == 112, "StudioModel size mismatch");
 static_assert(sizeof(StudioMesh) == 20, "StudioMesh size mismatch");
