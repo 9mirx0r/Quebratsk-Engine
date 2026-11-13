@@ -4,6 +4,7 @@
 
 #include "../parsers/goldsrc/bsp30_parser.h"
 #include "../parsers/goldsrc/mdl10_parser.h"
+#include "../parsers/goldsrc/spr_parser.h"
 #include "../parsers/source1/mdl_source_parser.h"
 #include "../parsers/source1/vmt_parser.h"
 #include "../parsers/rv_enfusion/p3d_mlod_parser.h"
@@ -131,6 +132,7 @@ void UnifiedAssetImporter::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_material", "vfs_uri"), &UnifiedAssetImporter::load_material);
     ClassDB::bind_method(D_METHOD("load_terrain", "vfs_uri"), &UnifiedAssetImporter::load_terrain);
     ClassDB::bind_method(D_METHOD("load_texture", "texture_ref"), &UnifiedAssetImporter::load_texture);
+    ClassDB::bind_method(D_METHOD("load_sprite", "vfs_uri"), &UnifiedAssetImporter::load_sprite);
     ClassDB::bind_method(D_METHOD("load_model", "vfs_uri", "pose_name", "animations",
                                   "body_choices"),
                          &UnifiedAssetImporter::load_model,
@@ -819,7 +821,18 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
         if (skeleton->get_bone_count() == 0) bounds = mesh->get_aabb();
     }
 
-    if (StaticBody3D* body = capsule_body(bounds); body != nullptr) {
+    // A Source prop is a model like any other and carries one bone to hang its mesh on. One
+    // bone is one point: bounds with no size, and so no collider at all. Nothing with a single
+    // bone bends, so it is a prop in everything but name and its own triangles describe it.
+    StaticBody3D* body = nullptr;
+    if (!shown_bounds.has_value() && skeleton->get_bone_count() <= 1) {
+        body = trimesh_body(mesh);
+    }
+    if (body == nullptr) {
+        if (bounds.size.y <= 0.0f) bounds = mesh->get_aabb();
+        body = capsule_body(bounds);
+    }
+    if (body != nullptr) {
         skeleton->add_child(body);
     }
 
@@ -1329,6 +1342,37 @@ Ref<Texture2D> UnifiedAssetImporter::load_texture(const String& texture_ref) {
 
     converters::TextureLoader loader(m_vfs);
     return loader.load(texture_ref.utf8().get_data());
+}
+
+Dictionary UnifiedAssetImporter::load_sprite(const String& vfs_uri) {
+    Dictionary out;
+    if (!m_vfs) return out;
+
+    const std::vector<std::byte> data = read_asset_bytes(vfs_uri);
+    if (data.empty()) return out;
+
+    auto parsed = parsers::goldsrc::SPRParser::parse(data);
+    if (!parsed.has_value()) return out;
+
+    Array frames;
+    for (const auto& frame : parsed->frames) {
+        if (frame.width <= 0 || frame.height <= 0) continue;
+        PackedByteArray pixels;
+        pixels.resize(static_cast<int64_t>(frame.rgba8_pixels.size()));
+        std::memcpy(pixels.ptrw(), frame.rgba8_pixels.data(), frame.rgba8_pixels.size());
+        Ref<Image> image = Image::create_from_data(frame.width, frame.height, false,
+                                                   Image::FORMAT_RGBA8, pixels);
+        if (image.is_null()) continue;
+        frames.push_back(ImageTexture::create_from_image(image));
+    }
+    if (frames.is_empty()) return out;
+
+    out["frames"] = frames;
+    out["width"] = parsed->max_width;
+    out["height"] = parsed->max_height;
+    out["type"] = parsed->type;
+    out["format"] = parsed->tex_format;
+    return out;
 }
 
 Ref<HeightMapShape3D> UnifiedAssetImporter::load_terrain(const String& vfs_uri) {

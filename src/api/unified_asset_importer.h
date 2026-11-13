@@ -130,6 +130,16 @@ public:
     /// lump name, or a full VFS URI) into a Godot texture.
     godot::Ref<godot::Texture2D> load_texture(const godot::String& texture_ref);
 
+    /// Read a GoldSrc sprite (.spr) out of the VFS.
+    ///
+    /// Returns an empty Dictionary when it cannot be read. Otherwise: `frames`, an Array of
+    /// ImageTexture in the file's order; `width` and `height`, the largest frame; `type`, how
+    /// the game turns it to face the camera (0 parallel upright, 1 facing upright, 2 parallel,
+    /// 3 oriented, 4 parallel oriented); and `format`, how it is drawn (0 normal, 1 additive,
+    /// 2 index alpha, 3 alpha test). The pixels already carry their alpha for formats 2 and
+    /// 3; an additive sprite is opaque and is meant to be added, black adding nothing.
+    godot::Dictionary load_sprite(const godot::String& vfs_uri);
+
     /// Copy an asset's decompressed bytes out of the VFS into an owned buffer.
     /// Must run on the thread that owns the VFSManager (the main thread).
     /// Returns an empty vector if the URI is missing or unreadable.

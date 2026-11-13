@@ -51,7 +51,14 @@ static func move(body: CharacterBody3D, delta: float, grounded: bool) -> float:
 		return 0.0
 	if rise + hit.get_travel().y < 0.01:
 		return 0.0      # nothing higher over there: a wall, not a step
-	if hit.get_normal().y < 0.7 and not _is_tread(body, hit.get_position(), reach.normalized()):
+	var top := hit.get_position().y
+	if hit.get_normal().y < 0.7:
+		top = _tread(body, hit.get_position(), reach.normalized())
+		if is_nan(top):
+			return 0.0
+	# No higher than a step above its soles. A rounded body gets its curve over the corner of
+	# something much taller, and would otherwise be carried up it a little at every tick.
+	if top - _soles(body) > HEIGHT + 0.02:
 		return 0.0
 
 	# It is. Make this tick's move from up there and come down wherever that leaves it, which
@@ -91,12 +98,34 @@ static func _slide(body: CharacterBody3D, from: Transform3D, motion: Vector3) ->
 	return done + rest
 
 
-## Whether what it came down on is flat ground. A rounded body lands on the corner of a stair
-## before it lands on the stair, and the corner alone looks like a slope too steep to stand
-## on; what is just past the corner settles it.
-static func _is_tread(body: CharacterBody3D, at: Vector3, forward: Vector3) -> bool:
+## How high the flat ground it came down on is, or NAN when it is not flat ground. A rounded
+## body lands on the corner of a stair before it lands on the stair, and the corner alone
+## looks like a slope too steep to stand on; what is just past the corner settles it.
+static func _tread(body: CharacterBody3D, at: Vector3, forward: Vector3) -> float:
 	var start := at + forward * 0.02 + Vector3(0, 0.08, 0)
 	var query := PhysicsRayQueryParameters3D.create(start, start + Vector3(0, -0.16, 0),
 			body.collision_mask, [body.get_rid()])
 	var found := body.get_world_3d().direct_space_state.intersect_ray(query)
-	return not found.is_empty() and (found["normal"] as Vector3).y >= 0.7
+	if found.is_empty() or (found["normal"] as Vector3).y < 0.7:
+		return NAN
+	return (found["position"] as Vector3).y
+
+
+## The height of the lowest point of `body`.
+static func _soles(body: CharacterBody3D) -> float:
+	var lowest := body.global_position.y
+	for child in body.get_children():
+		var part := child as CollisionShape3D
+		if part == null or part.shape == null:
+			continue
+		var half := 0.0
+		if part.shape is CapsuleShape3D:
+			half = (part.shape as CapsuleShape3D).height * 0.5
+		elif part.shape is CylinderShape3D:
+			half = (part.shape as CylinderShape3D).height * 0.5
+		elif part.shape is BoxShape3D:
+			half = (part.shape as BoxShape3D).size.y * 0.5
+		elif part.shape is SphereShape3D:
+			half = (part.shape as SphereShape3D).radius
+		lowest = minf(lowest, part.global_position.y - half)
+	return lowest

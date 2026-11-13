@@ -148,6 +148,8 @@ func setup(lab: Node3D, target: CharacterBody3D, preset: Dictionary,
 		lab.track_sound(_step_audio)
 
 	_cast_shadow()
+	if lab.get("floor_light") != null:
+		lab.floor_light.dress(self)
 
 	# Stagger the first shot. Four enemies firing in unison from the instant the level loads
 	# killed the first playtest in under three seconds, before anyone had read the HUD.

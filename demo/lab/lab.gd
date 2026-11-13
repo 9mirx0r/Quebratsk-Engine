@@ -28,6 +28,7 @@ const AcousticsScript := preload("res://lab/acoustics.gd")
 const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd")
 const BrushesScript := preload("res://lab/brushes.gd")
 const MarksScript := preload("res://lab/marks.gd")
+const FloorLightScript := preload("res://lab/floor_light.gd")
 const WeatherScript := preload("res://lab/weather.gd")
 const PlayerScript := preload("res://lab/player.gd")
 const NpcScript := preload("res://lab/npc.gd")
@@ -87,6 +88,8 @@ var _brushes: Node
 
 ## What shots leave behind, reachable by anything that fires one.
 var marks: Node3D
+## Lights people by the floor under them. Null until a map is open.
+var floor_light: Node
 
 ## Where the level says it sounds like somewhere: an origin, a radius and a room type. Sorted
 ## smallest first, so standing inside a cupboard inside a hall gives you the cupboard.
@@ -201,6 +204,12 @@ func _open_map() -> bool:
 		return false
 	add_child(map)
 	_built["map"] = _map_uri.get_file()
+
+	# Before anything in the level has been moved from where the map put it.
+	floor_light = FloorLightScript.new()
+	floor_light.name = "FloorLight"
+	add_child(floor_light)
+	print("[lab] %d floor triangle(s) to light people by" % floor_light.setup(map))
 
 	var entities: Array = importer.load_map_entities(_map_uri)
 	_read_spawns(entities)
@@ -745,8 +754,8 @@ func _place_player() -> void:
 ## The soft light around a lamp: the map's env_glow entities.
 ##
 ## In the game each is a sprite (`sprites/glow03.spr`, a round blur) added over the picture in
-## the entity's `rendercolor` at `renderamt` out of 255. The blur is drawn here rather than read
-## from the file, which the importer does not open yet; colour, strength and place are the map's.
+## the entity's `rendercolor` at `renderamt` out of 255. The sprite is the one the entity names
+## in `model`; the blur drawn here stands in only when that file cannot be read.
 func _place_glows() -> void:
 	# Bright in the very middle and thin for most of its width, which is a light seen through
 	# air. An even fade from full to nothing is a yellow disc.
@@ -763,10 +772,22 @@ func _place_glows() -> void:
 	blur.height = 64
 
 	var placed := 0
+	var from_file := 0
+	var sprites := {}
 	for e in importer.load_map_entities(_map_uri):
 		var entity: Dictionary = e
 		if str(entity.get("classname", "")) != "env_glow":
 			continue
+		# Read once per file: a map hangs the same glow on every lamp it has.
+		var named := str(entity.get("model", "sprites/glow03.spr"))
+		if not sprites.has(named):
+			var uri := ModelPreset.resolve(vfs, named)
+			var read: Dictionary = {} if uri.is_empty() else importer.load_sprite(uri)
+			var frames: Array = read.get("frames", [])
+			sprites[named] = frames[0] if not frames.is_empty() else null
+		var picture: Texture2D = sprites[named] if sprites[named] != null else blur
+		if sprites[named] != null:
+			from_file += 1
 		var tint := Color(1, 1, 1)
 		var parts := str(entity.get("rendercolor", "")).split(" ", false)
 		if parts.size() >= 3:
@@ -775,7 +796,7 @@ func _place_glows() -> void:
 
 		var glow := Sprite3D.new()
 		glow.name = "glow_%d" % placed
-		glow.texture = blur
+		glow.texture = picture
 		glow.modulate = tint
 		glow.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		glow.shaded = false
@@ -790,7 +811,7 @@ func _place_glows() -> void:
 		# Over everything, as the game draws them, and faded by whether the lamp is in sight
 		# (_fade_glows) rather than cut in half by the wall it is set into.
 		look.no_depth_test = true
-		look.albedo_texture = blur
+		look.albedo_texture = picture
 		look.albedo_color = Color(tint.r, tint.g, tint.b, 0.0)
 		glow.material_override = look
 		add_child(glow)
@@ -798,7 +819,7 @@ func _place_glows() -> void:
 		_glows.append({"node": glow, "look": look, "tint": tint, "shown": 0.0})
 		placed += 1
 	if placed > 0:
-		print("[lab] %d lamp glow(s)" % placed)
+		print("[lab] %d lamp glow(s), %d drawn with the game's own sprite" % [placed, from_file])
 
 
 ## Fade each glow in while the eye has a clear line to its lamp, and out when it has not.
@@ -882,6 +903,7 @@ func _place_hostages() -> void:
 			if parts.size() >= 2:
 				yaw = float(parts[1])
 		person.rotation.y = deg_to_rad(yaw + 180.0)
+		floor_light.dress(person)
 
 		for c in person.get_children():
 			if c is Skeleton3D:

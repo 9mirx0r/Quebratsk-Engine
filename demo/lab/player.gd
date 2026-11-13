@@ -290,6 +290,11 @@ func _arm(weapon: Dictionary) -> void:
 	# itself; the materials are left exactly as they are.
 	model.scale = Vector3(-1.0, 1.0, 1.0)
 
+	# Lit by the floor the player is standing on, as the game lights a view model: the hands
+	# go dark in a dark room along with everything else.
+	if _lab.get("floor_light") != null:
+		_lab.floor_light.dress(model)
+
 	_view_anim = model.get_node_or_null("AnimationPlayer")
 	if _view_anim == null:
 		for child in model.get_children():

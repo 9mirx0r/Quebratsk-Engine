@@ -57,7 +57,15 @@ func setup(lab: Node3D) -> void:
 	for named in BULLET_HOLES + BLOOD_MARKS:
 		if _texture_named(str(named)) != null:
 			found += 1
+	# The game's own drop when it can be read, the drawn one when it cannot.
 	_blood_sprite = _soft_dot()
+	var hit: Dictionary = _lab.vfs.find_files("sprites/blood.spr", PackedStringArray(["spr"]),
+		PackedStringArray(), PackedStringArray(), 1)
+	var files: PackedStringArray = hit["files"]
+	if not files.is_empty():
+		var frames: Array = _lab.importer.load_sprite(str(files[0])).get("frames", [])
+		if not frames.is_empty():
+			_blood_sprite = frames[0]
 	print("[marks] %d of %d decal(s) found in the game's wads"
 		% [found, BULLET_HOLES.size() + BLOOD_MARKS.size()])
 
