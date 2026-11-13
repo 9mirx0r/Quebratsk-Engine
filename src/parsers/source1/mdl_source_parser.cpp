@@ -730,6 +730,29 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
     const int32_t body_part_count = header->num_bodyparts < vtx_header->num_body_parts
                                   ? header->num_bodyparts : vtx_header->num_body_parts;
 
+    // How many meshes the nth model of a body part has, or -1 when there is no such model.
+    auto meshes_of = [&](int32_t bp, int32_t model) -> int32_t {
+        const size_t ofs = static_cast<size_t>(header->bodypart_index) +
+                           static_cast<size_t>(bp) * sizeof(SourceBodyPart);
+        const auto part = mdl.array_at<SourceBodyPart>(ofs, 1);
+        if (part.empty() || model >= part[0].num_models) return -1;
+        const auto* found = at_relative<SourceModel>(
+            mdl, ofs, part[0].model_index + static_cast<int32_t>(model * sizeof(SourceModel)));
+        return found ? found->num_meshes : -1;
+    };
+
+    // A weapon made for a base that dresses it from a script keeps an empty model first in
+    // every body part, and the script picks the real one. Taken at its word such a model is
+    // nothing at all, so when every part opens on an empty model, each gives its first model
+    // that has something in it instead.
+    bool all_blank = true;
+    for (int32_t bp = 0; bp < body_part_count; ++bp) {
+        if (meshes_of(bp, 0) > 0) {
+            all_blank = false;
+            break;
+        }
+    }
+
     for (int32_t bp = 0; bp < body_part_count; ++bp) {
         const size_t mdl_bp_ofs = static_cast<size_t>(header->bodypart_index) +
                                   static_cast<size_t>(bp) * sizeof(SourceBodyPart);
@@ -748,19 +771,32 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
         // alternates (weapon variants and similar) and stacking them would overlap.
         if (mdl_bp->num_models <= 0 || vtx_bp->num_models <= 0) continue;
 
-        const auto* mdl_model = at_relative<SourceModel>(mdl, mdl_bp_ofs, mdl_bp->model_index);
-        const auto* vtx_model = at_relative<VTXModel>(vtx, vtx_bp_ofs, vtx_bp->model_offset);
+        int32_t chosen = 0;
+        if (all_blank) {
+            while (chosen < mdl_bp->num_models && chosen < vtx_bp->num_models &&
+                   meshes_of(bp, chosen) <= 0) {
+                ++chosen;
+            }
+            if (chosen >= mdl_bp->num_models || chosen >= vtx_bp->num_models) continue;
+        }
+        const int32_t mdl_model_rel =
+            mdl_bp->model_index + static_cast<int32_t>(chosen * sizeof(SourceModel));
+        const int32_t vtx_model_rel =
+            vtx_bp->model_offset + static_cast<int32_t>(chosen * sizeof(VTXModel));
+
+        const auto* mdl_model = at_relative<SourceModel>(mdl, mdl_bp_ofs, mdl_model_rel);
+        const auto* vtx_model = at_relative<VTXModel>(vtx, vtx_bp_ofs, vtx_model_rel);
         if (!mdl_model || !vtx_model) continue;
 
         // LOD 0 is the highest detail level.
         if (vtx_model->num_lods <= 0) continue;
-        const size_t vtx_model_ofs = vtx_bp_ofs + static_cast<size_t>(vtx_bp->model_offset);
+        const size_t vtx_model_ofs = vtx_bp_ofs + static_cast<size_t>(vtx_model_rel);
         const auto* vtx_lod = at_relative<VTXModelLOD>(vtx, vtx_model_ofs, vtx_model->lod_offset);
         if (!vtx_lod) continue;
 
         if (mdl_model->num_meshes <= 0 || vtx_lod->num_meshes <= 0) continue;
 
-        const size_t mdl_model_ofs = mdl_bp_ofs + static_cast<size_t>(mdl_bp->model_index);
+        const size_t mdl_model_ofs = mdl_bp_ofs + static_cast<size_t>(mdl_model_rel);
         const size_t vtx_lod_ofs = vtx_model_ofs + static_cast<size_t>(vtx_model->lod_offset);
 
         // A model's vertices start at a BYTE offset into the .vvd array.

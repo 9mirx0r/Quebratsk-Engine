@@ -52,7 +52,7 @@ namespace {
 String lit_shader_code(bool masked) {
     String code =
         "shader_type spatial;\n"
-        "render_mode unshaded;\n"
+        "render_mode ambient_light_disabled, specular_disabled;\n"
         "uniform sampler2D albedo_texture : filter_nearest_mipmap, repeat_enable, hint_default_white;\n"
         "uniform sampler2D lightmap_texture : filter_linear, repeat_disable, hint_default_white;\n"
         "uniform float brightness : hint_range(0.0, 1.0) = 1.0;\n"
@@ -68,12 +68,25 @@ String lit_shader_code(bool masked) {
         "void fragment() {\n"
         "    vec4 tex = texture(albedo_texture, UV);\n"
         "    vec3 light = game_light(texture(lightmap_texture, UV2).rgb);\n"
-        "    ALBEDO = to_linear(clamp(pow(tex.rgb, vec3(0.8)) * light, 0.0, 1.0));\n";
+        "    vec3 base = pow(tex.rgb, vec3(0.8));\n"
+        // The baked light is given off rather than reflected, so it is exactly what it was
+        // when nothing else is lit. What a lamp in the scene adds lands on the texture.
+        "    EMISSION = to_linear(clamp(base * light, 0.0, 1.0));\n"
+        "    ALBEDO = to_linear(base);\n"
+        "    ROUGHNESS = 1.0;\n"
+        "    SPECULAR = 0.0;\n";
     if (masked) {
         code += "    ALPHA = tex.a;\n"
                 "    ALPHA_SCISSOR_THRESHOLD = 0.5;\n";
     }
-    code += "}\n";
+    code += "}\n"
+            // Lamps and flashes only. The sun is already in the baked light, and letting it
+            // in again would light the inside of every room.
+            "void light() {\n"
+            "    if (!LIGHT_IS_DIRECTIONAL) {\n"
+            "        DIFFUSE_LIGHT += clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION * LIGHT_COLOR / PI;\n"
+            "    }\n"
+            "}\n";
     return code;
 }
 

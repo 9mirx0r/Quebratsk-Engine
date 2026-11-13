@@ -25,9 +25,23 @@ const EASE := 6.0
 ## shaded by which way each part of it faces: lit from above, never quite dark underneath.
 const SHADER := """
 shader_type spatial;
-render_mode unshaded%s;
+render_mode ambient_light_disabled, specular_disabled%s;
 uniform sampler2D albedo_texture : filter_nearest_mipmap, repeat_enable, hint_default_white;
 instance uniform vec3 floor_light = vec3(0.6);
+// For the player's own figure: what hangs from the bones numbered from x to y is not drawn.
+// Given the chest, head and arms, that leaves the legs and feet and takes away what the eye
+// would otherwise be inside.
+instance uniform vec2 hide_bones = vec2(-1.0);
+// How much of a shadow this throws in the sun, from none to all of it. Only the sun's own
+// picture of the level is drawn straight on rather than in perspective, which is how that
+// picture is told from the one the eye sees; in it this much of the body is left out, in a
+// fine scatter that the shadow's own blur turns into a fainter shadow.
+instance uniform float sun_fade = 1.0;
+varying float hidden;
+void vertex() {
+	float bone = float(BONE_INDICES.x);
+	hidden = (hide_bones.x >= 0.0 && bone >= hide_bones.x && bone <= hide_bones.y) ? 1.0 : 0.0;
+}
 vec3 to_linear(vec3 c) {
 	return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));
 }
@@ -38,12 +52,32 @@ vec3 game_light(vec3 stored) {
 	return pow(f, vec3(0.4));
 }
 void fragment() {
+	if (hidden > 0.01) {
+		discard;
+	}
+	if (sun_fade < 0.995 && PROJECTION_MATRIX[3][3] > 0.5) {
+		float scatter = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))));
+		if (scatter >= sun_fade) {
+			discard;
+		}
+	}
 	vec4 tex = texture(albedo_texture, UV);
 	vec3 up = (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz;
 	float facing = dot(normalize(NORMAL), up) * 0.5 + 0.5;
 	vec3 light = game_light(floor_light) * mix(0.6, 1.0, facing);
-	ALBEDO = to_linear(clamp(pow(tex.rgb, vec3(0.8)) * light, 0.0, 1.0));
+	vec3 base = pow(tex.rgb, vec3(0.8));
+	// Given off, so it is what it was with nothing else lit; a lamp or a gunshot adds to it.
+	EMISSION = to_linear(clamp(base * light, 0.0, 1.0));
+	ALBEDO = to_linear(base);
+	ROUGHNESS = 1.0;
+	SPECULAR = 0.0;
 %s}
+void light() {
+	if (!LIGHT_IS_DIRECTIONAL) {
+		// Held down, so a weapon with the flash right on top of it is lit and not burnt white.
+		DIFFUSE_LIGHT += min(clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION * LIGHT_COLOR / PI, vec3(0.6));
+	}
+}
 """
 
 var _picture: Image

@@ -19,6 +19,7 @@ const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 const ModelPreset := preload("res://addons/quebratsk_editor/model_preset.gd")
 const Stairs := preload("res://lab/stairs.gd")
 const WeaponManifest := preload("res://addons/quebratsk_editor/weapon_manifest.gd")
+const Figure := preload("res://lab/figure.gd")
 
 const UNIT := 0.0254
 
@@ -81,6 +82,10 @@ const STEP_VOLUME_RUN := -20.0
 ## MAX_CLIMB_SPEED, and the shove a jump gives you off a ladder.
 const CLIMB_SPEED := 200.0 * UNIT
 const LADDER_JUMP := 270.0 * UNIT
+## How near a ladder's volume the hull has to come to be on it, in metres, and how often a
+## rung is heard under a hand: the engine's 350 milliseconds.
+const LADDER_REACH := 0.12
+const LADDER_STEP := 0.35
 
 ## In water everything is slower and the drag is its own. wishspeed *= 0.8 in PM_WaterMove.
 const WATER_SPEED := 0.8
@@ -110,7 +115,37 @@ var _eye_rest := Vector3(0, EYE, 0)
 ## Every eye height is measured up from there.
 var _soles := 0.0
 var _bob_time := 0.0
+
+## What the weapon hangs from, so it can be moved without touching the model's own mirror.
+var _view_pivot: Node3D
+## How far the hands still are behind where the eyes have turned to, in radians.
+var _sway := Vector2.ZERO
+## How far the view is still pressed down by the last landing, in metres.
+var _dip := 0.0
+var _fall_speed := 0.0
+var _was_falling := false
+var _flash: OmniLight3D
+
+## The player's own figure, and whether it is being drawn. The game never draws it from its
+## own eyes; with the look improved it is, so looking down there are legs and feet there.
+var _body: Skeleton3D
+var _body_shown := false
+## The copies of the figure's meshes that are drawn. The figure itself goes on casting the
+## whole shadow; these are cut off below the chest and cast none.
+var _legs: Array[MeshInstance3D] = []
+## The first and last of the bones that carry what is not drawn: in these models everything
+## from the chest up, arms included, is numbered in one run between the pelvis and the legs.
+const HIDE_FROM := "Bip01 Spine1"
+const HIDE_TO := "-- Neck smooth"
 var _airborne := 0.0
+## What the figure's arms do over its legs: holding the weapon up, and firing it. Nobody sees
+## them but the shadow, which without them walks about with its arms straight out.
+var _aim_move := ""
+var _shoot_move := ""
+var _shoot_until := 0.0
+var _legs_now := ""
+## The flash at the end of the barrel, as the eye sees it.
+var _muzzle: Sprite3D
 
 ## Whether damage is being ignored, so the HUD can say so.
 func is_immortal() -> bool:
@@ -144,6 +179,8 @@ var _ducked := false
 var _view_anim: AnimationPlayer
 var _attacks := PackedStringArray()
 var _reload_chain := PackedStringArray()
+## The sequence the weapon rests in, or "" when its model names none.
+var _view_idle := ""
 
 ## Rounds in the weapon, how many it holds, and how many are carried besides. The size is the
 ## game's own figure for the weapon; a knife has none, and then nothing here counts.
@@ -170,6 +207,8 @@ var _busy_until := 0.0
 var _ladders: Array[AABB] = []
 var _water: Array[AABB] = []
 var _on_ladder := false
+## Which way the ladder being climbed faces: out of the wall it is on, level.
+var _ladder_out := Vector3.ZERO
 var _submerged := 0.0
 
 ## Footstep samples per surface, loaded the first time that surface is walked on. A level
@@ -239,7 +278,33 @@ func setup(lab: Node3D, camera: Camera3D, preset: Dictionary, weapon: Dictionary
 
 	for child in get_children():
 		if child is Skeleton3D:
+			_body = child as Skeleton3D
 			_body_anim = child.get_node_or_null("AnimationPlayer")
+	if _body != null:
+		for part in _body.get_children():
+			if part is MeshInstance3D:
+				var twin := part.duplicate() as MeshInstance3D
+				twin.name = "Legs%d" % _legs.size()
+				twin.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				twin.visible = false
+				# Stood a little behind the eye. Straight under it the eye looks down the
+				# inside of the legs, which are hollow, and sees the floor through them.
+				twin.position.z = 0.3
+				_legs.append(twin)
+		for twin in _legs:
+			_body.add_child(twin)
+		_take_up(weapon)
+		if _lab.get("floor_light") != null:
+			_lab.floor_light.dress(_body, -_soles)
+		var first := _body.find_bone(HIDE_FROM)
+		var last := _body.find_bone(HIDE_TO)
+		if first < 0 or last < first:
+			# A figure built some other way: better no legs than a head in the way.
+			for twin in _legs:
+				twin.queue_free()
+			_legs.clear()
+		for twin in _legs:
+			twin.set_instance_shader_parameter("hide_bones", Vector2(first, last))
 
 	SoundCatalogue.read_materials(_lab.vfs)
 
@@ -258,6 +323,30 @@ func setup(lab: Node3D, camera: Camera3D, preset: Dictionary, weapon: Dictionary
 		_arm(weapon)
 
 
+## The weapon as the shadow has it: in the figure's hand, with the arms that hold it.
+func _take_up(weapon: Dictionary) -> void:
+	var held := ""
+	if not weapon.is_empty():
+		held = str(weapon.get("holder_class", ""))
+		if held.is_empty():
+			held = "mp5"
+	if _body_anim != null and not held.is_empty():
+		if _body_anim.has_animation("ref_aim_" + held):
+			_aim_move = "ref_aim_" + held
+		if _body_anim.has_animation("ref_shoot_" + held):
+			_shoot_move = "ref_shoot_" + held
+	var model := Figure.hold(_lab, _body, weapon, "the player")
+	if model != null:
+		# Never drawn, like the figure that holds it: only its shadow.
+		var parts: Array = model.find_children("*", "MeshInstance3D", true, false)
+		if model is MeshInstance3D:
+			parts.append(model)
+		for part in parts:
+			(part as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	print("[player] the figure aims with '%s', fires with '%s', %s in its hand"
+		% [_aim_move, _shoot_move, "a weapon" if model != null else "nothing"])
+
+
 ## Hold the weapon: its own model in front of the camera, and what the game says it does.
 func _arm(weapon: Dictionary) -> void:
 	_cycle = float(weapon.get("cycle_time", 0.0))
@@ -271,7 +360,17 @@ func _arm(weapon: Dictionary) -> void:
 	var declared := float(weapon.get("max_speed", 0.0))
 	_speed = declared if declared > 0.0 else SPEED
 
-	var model := ModelPreset.spawn(_lab.importer, _lab.vfs, weapon)
+	# Its rest and its coming into the hands are read beside what the preset names.
+	var rest := {}
+	var weapon_uri := ModelPreset.resolve(_lab.vfs, str(weapon.get("model", "")))
+	if not weapon_uri.is_empty():
+		rest = AnimationSets.view_rest(_lab.importer.list_poses(weapon_uri))
+	var also := PackedStringArray()
+	for role in rest:
+		also.append(str(rest[role]))
+	_view_idle = str(rest.get("idle", ""))
+
+	var model := ModelPreset.spawn(_lab.importer, _lab.vfs, weapon, also)
 	if model == null:
 		push_warning("[player] the weapon preset could not be built")
 		return
@@ -282,7 +381,10 @@ func _arm(weapon: Dictionary) -> void:
 			model.remove_child(child)
 			child.queue_free()
 	model.position = Vector3(0.0, -0.06, -0.08)
-	_camera.add_child(model)
+	_view_pivot = Node3D.new()
+	_view_pivot.name = "ViewPivot"
+	_camera.add_child(_view_pivot)
+	_view_pivot.add_child(model)
 
 	# In the right hand. Counter-Strike's view models are built held in the left and the game
 	# draws them mirrored unless told otherwise (cl_righthand, on by default), so the same
@@ -295,6 +397,14 @@ func _arm(weapon: Dictionary) -> void:
 	if _lab.get("floor_light") != null:
 		_lab.floor_light.dress(model)
 
+	# On a layer of its own, so the light of its own shot can be kept off it: see flash.gd.
+	# And throwing no shadow. It hangs at the eye, so its shadow is a rifle and a pair of arms
+	# floating at the height of the head of the figure's own shadow.
+	for part in model.find_children("*", "MeshInstance3D", true, false):
+		(part as MeshInstance3D).layers = 2
+		(part as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_place_muzzle(model, weapon_uri)
+
 	_view_anim = model.get_node_or_null("AnimationPlayer")
 	if _view_anim == null:
 		for child in model.get_children():
@@ -304,6 +414,17 @@ func _arm(weapon: Dictionary) -> void:
 		var has := PackedStringArray(_view_anim.get_animation_list())
 		_attacks = AnimationSets.attacks(has)
 		_reload_chain = AnimationSets.reload_chain(has)
+		# Brought up into the hands, then at rest, which is where it goes back to after
+		# anything else it does.
+		if not _view_anim.has_animation(_view_idle):
+			_view_idle = ""
+		var draw := str(rest.get("draw", ""))
+		if _view_anim.has_animation(draw):
+			_view_anim.play(draw)
+			_busy_until = Time.get_ticks_msec() / 1000.0 + _view_anim.get_animation(draw).length * 0.6
+			_rest_after()
+		elif not _view_idle.is_empty():
+			_view_anim.play(_view_idle)
 
 	for path in weapon.get("fire_sounds", []):
 		var uri := ModelPreset.resolve(_lab.vfs, str(path))
@@ -317,6 +438,38 @@ func _arm(weapon: Dictionary) -> void:
 	print("[player] %s: %d attack(s), reload in %d step(s), gunshot %s"
 		% [weapon.get("name", "?"), _attacks.size(), _reload_chain.size(),
 		   "yes" if _gunshot != null else "MISSING"])
+
+
+## The flash, on the point the weapon's own model marks as the end of its barrel.
+func _place_muzzle(model: Node3D, weapon_uri: String) -> void:
+	if weapon_uri.is_empty():
+		return
+	var skeleton: Skeleton3D = model as Skeleton3D
+	if skeleton == null:
+		for child in model.get_children():
+			if child is Skeleton3D:
+				skeleton = child as Skeleton3D
+	var points: Array = _lab.importer.list_attachments(weapon_uri)
+	if skeleton == null or points.is_empty():
+		print("[player] this weapon marks no muzzle, so it has no flash")
+		return
+	# The first is the muzzle; the others are where the shells come out.
+	var point: Dictionary = points[0]
+	var bone := int(point.get("bone", -1))
+	if bone < 0 or bone >= skeleton.get_bone_count():
+		return
+	_muzzle = Figure.muzzle_flash(_lab, Figure.flash_kind(_lab, weapon_uri))
+	if _muzzle == null:
+		return
+	var socket := BoneAttachment3D.new()
+	socket.name = "Muzzle"
+	socket.bone_idx = bone
+	skeleton.add_child(socket)
+	socket.add_child(_muzzle)
+	_muzzle.position = point.get("position", Vector3.ZERO) as Vector3
+	_muzzle.layers = 2
+	print("[player] muzzle on bone '%s' at %s, flash %s" % [skeleton.get_bone_name(bone),
+		_muzzle.position, Figure.flash_kind(_lab, weapon_uri)])
 
 
 ## What a reload sounds like, from the model's own animation events.
@@ -362,6 +515,7 @@ func _load_reload_sounds(weapon: Dictionary) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * LOOK)
+		_sway = (_sway + event.relative * LOOK).limit_length(0.14)
 		# Just short of straight up and down: at exactly 90 degrees the basis degenerates.
 		_pitch = clampf(_pitch - event.relative.y * LOOK, -1.5, 1.5)
 		_camera.rotation.x = _pitch
@@ -379,6 +533,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			# of it.
 			if _lab != null and _lab.has_method("use_brush"):
 				_lab.use_brush(_camera.global_position, -_camera.global_transform.basis.z)
+		elif event.keycode == KEY_F2:
+			if _lab != null and _lab.has_method("toggle_enhanced"):
+				_lab.toggle_enhanced()
 		elif event.keycode == KEY_G:
 			_god = not _god
 			if _god:
@@ -438,7 +595,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Which of the level's volumes you are standing in decides how you move at all.
-	_on_ladder = _inside(_ladders)
+	_on_ladder = _find_ladder()
 	var was_wet := _submerged
 	_submerged = _depth_in_water()
 	# Breaking the surface, either way, is a splash. pl_wade is what the engine plays for it.
@@ -521,16 +678,56 @@ func _play_reload_sounds() -> void:
 	_reload_queue += 1
 
 
+## Is the hull against one of the level's ladders, and which way does that ladder face?
+##
+## The hull and not the middle of it. A ladder's volume is the thickness of the rungs, a few
+## inches deep on the face of a wall, and the middle of a body sixteen units wide never gets
+## inside it: which is why no ladder in the level could be climbed.
+func _find_ladder() -> bool:
+	if _ladders.is_empty() or _hull == null:
+		return false
+	var capsule := _hull.shape as CapsuleShape3D
+	if capsule == null:
+		return false
+	var middle := global_position + Vector3(0, _hull.position.y, 0)
+	var half := Vector3(capsule.radius + LADDER_REACH, capsule.height * 0.5,
+		capsule.radius + LADDER_REACH)
+	var me := AABB(middle - half, half * 2.0)
+	for box in _ladders:
+		if not box.intersects(me):
+			continue
+		# Out of the wall: from the nearest point of the volume toward the body, level. Inside
+		# it, along whichever way the volume is thinner, on the side the body is nearer.
+		var near := Vector3(clampf(middle.x, box.position.x, box.end.x), middle.y,
+			clampf(middle.z, box.position.z, box.end.z))
+		var out := Vector3(middle.x - near.x, 0.0, middle.z - near.z)
+		if out.length() < 0.001:
+			var from_centre := middle - box.get_center()
+			if box.size.x < box.size.z:
+				out = Vector3(signf(from_centre.x), 0, 0)
+			else:
+				out = Vector3(0, 0, signf(from_centre.z))
+		elif absf(out.x) > absf(out.z):
+			out = Vector3(signf(out.x), 0, 0)
+		else:
+			out = Vector3(0, 0, signf(out.z))
+		_ladder_out = out
+		return true
+	return false
+
+
 ## Climbing, which is not walking with a different name.
 ##
-## PM_LadderMove turns off gravity, flies the body along where you are looking, and caps you at
-## MAX_CLIMB_SPEED. Jumping leaves the ladder with a shove away from it, which is how anyone
-## who has played these games gets off one.
+## Gravity is off, and the body goes along where it is looking and where it is strafing, at
+## no more than MAX_CLIMB_SPEED. Whatever part of that is into or out of the ladder is turned
+## up or down it instead: walking into a ladder climbs it, looking up at it and walking
+## climbs it, and looking down from the top and walking forward comes down it. Jumping leaves
+## it with a shove away, which is how anyone who has played these games gets off one.
 func _climb(forward: float, strafe: float, delta: float) -> void:
 	if Input.is_key_pressed(KEY_SPACE):
 		# Off, and away from the wall you were on.
 		_on_ladder = false
-		velocity = -_camera.global_transform.basis.z * LADDER_JUMP * 0.5 + Vector3.UP * JUMP
+		velocity = _ladder_out * LADDER_JUMP
 		move_and_slide()
 		return
 
@@ -538,11 +735,30 @@ func _climb(forward: float, strafe: float, delta: float) -> void:
 	if _ducked:
 		speed *= CROUCH_FACTOR
 
-	# Along the view rather than along the floor: looking up and pressing forward climbs, which
-	# is the whole of how a GoldSrc ladder is used.
 	var eye := _camera.global_transform.basis
-	velocity = ((-eye.z * forward) + (eye.x * strafe)) * speed
+	var wish := ((-eye.z * forward) + (eye.x * strafe)) * speed
+	if wish.length() < 0.001:
+		# Hanging on.
+		velocity = Vector3.ZERO
+	else:
+		var into := wish.dot(_ladder_out)
+		var along := wish - _ladder_out * into
+		velocity = along + Vector3.UP * -into
+		# Standing at the foot of it and walking away is walking away, not climbing down
+		# into the floor.
+		if is_on_floor() and into > 0.0:
+			velocity += _ladder_out * CLIMB_SPEED
 	move_and_slide()
+
+	if velocity.length() > 0.5:
+		var now := Time.get_ticks_msec() / 1000.0
+		if now >= _next_step:
+			_next_step = now + LADDER_STEP
+			_play_step("ladder", STEP_VOLUME_RUN)
+
+	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) \
+			and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		_shoot()
 	_drive_animation()
 	_bob_view(delta)
 
@@ -555,12 +771,23 @@ func _drive_animation() -> void:
 	var wanted := AnimationSets.best(_stances, _stance())
 	if wanted.is_empty() or not _body_anim.has_animation(wanted):
 		return
+	# The arms on top of the legs: aiming, or firing for a moment. The legs carry on from
+	# where they were when only the arms change.
+	var legs := wanted
+	var keep := -1.0
+	var firing := Time.get_ticks_msec() / 1000.0 < _shoot_until and not _shoot_move.is_empty()
+	wanted = Figure.layered(_body_anim, _body, legs, _shoot_move if firing else _aim_move)
+	if legs == _legs_now and _body_anim.current_animation != wanted and _body_anim.is_playing():
+		keep = _body_anim.current_animation_position
+	_legs_now = legs
 	# `is_playing()` as well as the name. A stance that does not loop — jump is two seconds
 	# and ends, die ends by design — leaves current_animation empty when it finishes, the
 	# mixer stops writing to the skeleton, and the model snaps back to its bind pose. That is
 	# the T-pose that appeared after a movement: not a missing animation, an ended one.
 	if _body_anim.current_animation != wanted or not _body_anim.is_playing():
 		_body_anim.play(wanted)
+		if keep >= 0.0:
+			_body_anim.seek(keep, true)
 
 
 ## Which stance matches what the body is doing.
@@ -656,7 +883,13 @@ func _step_sound() -> void:
 
 	# What is underfoot decides what it sounds like. Wading takes precedence over the floor,
 	# because standing in a puddle on concrete is not a concrete noise.
-	var surface := "wade" if _submerged >= 1.0 else _surface_underfoot()
+	_play_step("wade" if _submerged >= 1.0 else _surface_underfoot(), _step_audio.volume_db)
+
+
+## One of a surface's samples, at this loudness.
+func _play_step(surface: String, loud: float) -> void:
+	if _step_audio == null:
+		return
 	var samples: Array = _steps_by_surface.get(surface, [])
 	if samples.is_empty():
 		samples = _load_steps(surface)
@@ -668,6 +901,7 @@ func _step_sound() -> void:
 	if samples.size() > 1 and pick == _last_step:
 		pick = (pick + 1) % samples.size()
 	_last_step = pick
+	_step_audio.volume_db = loud
 	_step_audio.stream = samples[pick]
 	_step_audio.play()
 
@@ -797,6 +1031,20 @@ func _shoot() -> void:
 	if _gunshot != null:
 		_audio.stream = _gunshot
 		_audio.play()
+	_shoot_until = now + 0.2
+	Figure.flare(_muzzle)
+
+	if _lab != null and _lab.get("enhanced") == true:
+		if _flash == null:
+			_flash = _lab.FlashScript.new()
+			_camera.add_child(_flash)
+			# Just ahead of the eye and no further, so it is never the other side of a wall
+			# the player has their nose against.
+			_flash.position = Vector3(0.1, -0.05, -0.75)
+			_flash.light_the_hands()
+		_flash.fire()
+		# The kick of it: the hands jump back and up, and come to rest again by themselves.
+		_sway.y += 0.035
 
 	# One of the three at random, which is what the game does and most of why a rifle fired
 	# ten times does not look like a loop.
@@ -805,6 +1053,7 @@ func _shoot() -> void:
 		if _view_anim.has_animation(pick):
 			_view_anim.stop()
 			_view_anim.play(pick)
+			_rest_after()
 
 	var from := _camera.global_position
 	var query := PhysicsRayQueryParameters3D.create(
@@ -841,6 +1090,12 @@ func _shoot() -> void:
 			_lab.marks.bullet_hole(where, facing)
 
 
+## Back to rest once whatever is playing has played out.
+func _rest_after() -> void:
+	if _view_anim != null and not _view_idle.is_empty():
+		_view_anim.queue(_view_idle)
+
+
 ## Play the weapon's own reload, and refuse to fire until it has finished.
 ##
 ## Queued rather than played: a pump shotgun's reload is start_reload, four inserts and
@@ -868,6 +1123,7 @@ func _reload() -> void:
 		var clip := _view_anim.get_animation(sequence)
 		if clip != null:
 			total += clip.length
+	_rest_after()
 	_busy_until = now + total
 	if _clip_size > 0:
 		_refill_at = _busy_until
@@ -909,8 +1165,59 @@ func _bob_view(delta: float) -> void:
 	var roll: float = ROLL_ANGLE * clampf(side / ROLL_SPEED, -1.0, 1.0)
 
 	_stair_lag = move_toward(_stair_lag, 0.0, maxf(150.0 * UNIT, _stair_lag * 12.0) * delta)
-	_camera.position = _eye_rest + Vector3(0, bob - _stair_lag, 0)
+	_camera.position = _eye_rest + Vector3(0, bob - _stair_lag - _dip, 0)
 	_camera.rotation.z = lerp_angle(_camera.rotation.z, deg_to_rad(-roll), 0.2)
+
+
+## Draw the player's own figure, or go back to only its shadow.
+func _show_body(on: bool) -> void:
+	_body_shown = on
+	for twin in _legs:
+		twin.visible = on
+
+
+## A weapon with some weight to it. None of this is in the game, which holds the view model
+## rigidly in front of the eye and only bobs it; it is what the switch on F2 turns off.
+##
+## The hands follow the eyes a moment late, lean into a strafe, swing a little from side to
+## side with each pair of steps, and come down with the body when it lands.
+func _process(delta: float) -> void:
+	if _view_pivot == null:
+		return
+	var grounded := is_on_floor()
+	var on: bool = _lab != null and _lab.get("enhanced") == true
+	if on != _body_shown:
+		_show_body(on)
+
+	if not grounded:
+		_fall_speed = maxf(-velocity.y, 0.0)
+	elif _was_falling and on:
+		# Only a real drop: coming down a stair is not a landing.
+		_dip = clampf((_fall_speed - 2.0) * 0.012, 0.0, 0.09)
+	_was_falling = not grounded
+	_dip = move_toward(_dip, 0.0, maxf(0.05, _dip * 7.0) * delta)
+	_sway = _sway.lerp(Vector2.ZERO, clampf(delta * 9.0, 0.0, 1.0))
+
+	if not on:
+		_view_pivot.position = Vector3.ZERO
+		_view_pivot.rotation = Vector3.ZERO
+		return
+
+	var pace := clampf(Vector2(velocity.x, velocity.z).length() / SPEED, 0.0, 1.2)
+	if not grounded:
+		pace = 0.0
+	var side := clampf(velocity.dot(transform.basis.x) / SPEED, -1.0, 1.0)
+	# Half the pace of the bob: one way on the left foot, the other on the right.
+	var swing := sin(_bob_time / BOB_CYCLE * PI)
+	var lift := clampf(velocity.y * 0.004, -0.02, 0.02)
+
+	var want := Vector3(swing * 0.007 * pace - _sway.x * 0.05,
+		-absf(swing) * 0.004 * pace - _dip * 0.6 - lift + _sway.y * 0.05,
+		pace * 0.012)
+	var turn := Vector3(_sway.y * 0.45, _sway.x * 0.45, -side * 0.045 + _sway.x * 0.3)
+	var ease := clampf(delta * 14.0, 0.0, 1.0)
+	_view_pivot.position = _view_pivot.position.lerp(want, ease)
+	_view_pivot.rotation = _view_pivot.rotation.lerp(turn, ease)
 
 
 ## Add speed in the direction asked for, but only what is missing in that direction.

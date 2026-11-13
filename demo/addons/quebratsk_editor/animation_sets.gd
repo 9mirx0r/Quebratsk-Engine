@@ -140,6 +140,32 @@ const ATTACK_HEADS := ["shoot", "fire", "attack", "slash", "midslash", "stab"]
 const NOT_ORDINARY := ["_unsil", "_empty", "last", "_miss"]
 
 
+## What else a view model's sequences are called, besides being used.
+const VIEW_WORDS := ["reload", "start_reload", "insert", "after_reload", "idle", "draw"]
+
+
+## A sequence's name with a modeller's own prefix taken off the front of it.
+##
+## The game plays a view model's sequences by number and never reads what they are called, so
+## a replacement model is free to call them anything, and the ones people make usually put
+## the weapon first: ak47_fire1, ak47_reload. Matched as written, such a model had no way of
+## firing and none of reloading. Only a prefix in front of a word a view model uses is taken
+## off, so shoot_empty and start_reload stay what they are.
+static func plain(sequence: String) -> String:
+	var lowered := sequence.to_lower()
+	var words: Array = ATTACK_HEADS + VIEW_WORDS
+	for word in words:
+		if lowered.begins_with(str(word)):
+			return lowered
+	var cut := lowered.find("_")
+	if cut > 0:
+		var rest := lowered.substr(cut + 1)
+		for word in words:
+			if rest.begins_with(str(word)):
+				return rest
+	return lowered
+
+
 ## Which of a weapon's sequences are it being used on somebody.
 ##
 ## "shoot" is not the only word for it. A knife has slash1, midslash1, stab and stab_miss and
@@ -147,7 +173,7 @@ const NOT_ORDINARY := ["_unsil", "_empty", "last", "_miss"]
 static func attacks(has: PackedStringArray) -> PackedStringArray:
 	var out := PackedStringArray()
 	for sequence in has:
-		var lowered := str(sequence).to_lower()
+		var lowered := plain(str(sequence))
 		var ordinary := true
 		for ending in NOT_ORDINARY:
 			if lowered.ends_with(str(ending)):
@@ -173,7 +199,8 @@ static func attacks(has: PackedStringArray) -> PackedStringArray:
 static func reload_chain(has: PackedStringArray, shells := 4) -> PackedStringArray:
 	var by_name := {}
 	for sequence in has:
-		by_name[str(sequence).to_lower()] = str(sequence)
+		if not by_name.has(plain(str(sequence))):
+			by_name[plain(str(sequence))] = str(sequence)
 
 	for plain in ["reload", "reload1"]:
 		if by_name.has(plain):
@@ -186,4 +213,47 @@ static func reload_chain(has: PackedStringArray, shells := 4) -> PackedStringArr
 		if by_name.has("after_reload"):
 			chain.append(str(by_name["after_reload"]))
 		return chain
+
+	# A replacement model that has only the reload of an emptied weapon, or one for each way
+	# of doing it. Any of them is a reload; the one for the other version of a silenced weapon
+	# is the last to be taken.
+	var spare := ""
+	for known in by_name:
+		if not str(known).begins_with("reload"):
+			continue
+		if not str(known).ends_with("_unsil"):
+			return PackedStringArray([str(by_name[known])])
+		if spare.is_empty():
+			spare = str(by_name[known])
+	if not spare.is_empty():
+		return PackedStringArray([spare])
 	return PackedStringArray()
+
+
+## The words a view model uses for being brought up into the hands.
+const DRAW_HEADS := ["draw", "ready", "deploy", "pullout"]
+
+
+## What a weapon does when nothing is being done with it, and how it comes into the hands, as
+## { "idle": name, "draw": name } with whichever it has.
+##
+## The game never reads these names: it plays a view model's rest as sequence 0, by number.
+## So a model whose first sequence is called after the person who made it still rests in it,
+## and that is what is fallen back on when nothing is called idle.
+static func view_rest(has: PackedStringArray) -> Dictionary:
+	var out := {}
+	for sequence in has:
+		var lowered := plain(str(sequence))
+		if not out.has("idle") and lowered.begins_with("idle") and not lowered.ends_with("_unsil"):
+			out["idle"] = str(sequence)
+		if not out.has("draw") and not lowered.ends_with("_unsil"):
+			for head in DRAW_HEADS:
+				if lowered.begins_with(str(head)):
+					out["draw"] = str(sequence)
+					break
+	if not out.has("idle") and not has.is_empty():
+		var first := str(has[0])
+		if attacks(PackedStringArray([first])).is_empty() and not plain(first).begins_with("reload") \
+				and first != str(out.get("draw", "")):
+			out["idle"] = first
+	return out

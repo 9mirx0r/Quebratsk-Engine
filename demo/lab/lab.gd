@@ -29,6 +29,8 @@ const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd"
 const BrushesScript := preload("res://lab/brushes.gd")
 const MarksScript := preload("res://lab/marks.gd")
 const FloorLightScript := preload("res://lab/floor_light.gd")
+const FlashScript := preload("res://lab/flash.gd")
+const EnhancedScript := preload("res://lab/enhanced.gd")
 const WeatherScript := preload("res://lab/weather.gd")
 const PlayerScript := preload("res://lab/player.gd")
 const NpcScript := preload("res://lab/npc.gd")
@@ -45,6 +47,8 @@ const GAME := "cstrike"
 ## cstrike because the engine finds them next door. Mounting only cstrike gave thirteen doors
 ## with no sound and a map asking for ambience/drips.wav that is right there in valve.
 const FALLBACK := "valve"
+## Where the folder of a replacement pack is written down, if there is one.
+const ADDON_NOTE := "res://lab/addon.local.txt"
 const PRESETS := "Counter-Strike 1.6"
 
 ## Which map to open.
@@ -88,6 +92,11 @@ var _brushes: Node
 
 ## What shots leave behind, reachable by anything that fires one.
 var marks: Node3D
+## The look with what has been added to it, or the game as it was. F2 changes it, so the two
+## can be compared standing in the same spot.
+var enhanced := true
+var _enhanced_look: Node
+
 ## Lights people by the floor under them. Null until a map is open.
 var floor_light: Node
 
@@ -155,6 +164,20 @@ func _ready() -> void:
 
 func _mount() -> int:
 	var mounted := 0
+	# A replacement pack laid over the game, the way the game's own cstrike_addon folder is:
+	# mounted first, so its models, textures and sounds win over the ones they replace. The
+	# folder is named in a file that is not part of the project, one line, and is optional.
+	var note := FileAccess.open(ADDON_NOTE, FileAccess.READ)
+	if note != null:
+		var addon := note.get_line().strip_edges()
+		if DirAccess.dir_exists_absolute(addon):
+			var a := 0
+			for archive in vfs.scan_game_directory(addon).get("archives", []):
+				if vfs.mount_container("addon%d" % a, str(archive)):
+					a += 1
+			vfs.mount_directory("addon", addon)
+			mounted += a + 1
+			print("[lab] addon pack over the game: %s (%d archive(s))" % [addon, a])
 	for title in SteamLibraryDetector.detect_installed_games():
 		var root: String = str(SteamLibraryDetector.detect_installed_games()[title]).path_join(GAME)
 		if not DirAccess.dir_exists_absolute(root):
@@ -230,6 +253,15 @@ func _open_map() -> bool:
 	marks.name = "Marks"
 	add_child(marks)
 	marks.setup(self)
+
+	# The look as it could be now, over the look as it was. F2 takes it off again.
+	_enhanced_look = EnhancedScript.new()
+	_enhanced_look.name = "Enhanced"
+	add_child(_enhanced_look)
+	var world := get_node_or_null("WorldEnvironment") as WorldEnvironment
+	_enhanced_look.setup(self, map, _weather.get("_sun") as DirectionalLight3D,
+		world.environment if world != null else null, _weather.get("_rain") != null)
+	_enhanced_look.set_on(enhanced)
 	return true
 
 
@@ -698,7 +730,14 @@ func _stand_on_floor(body: CharacterBody3D, at: Vector3) -> void:
 func _place_player() -> void:
 	var preset := ModelPreset.find("urban", PRESETS)
 	var weapon := ModelPreset.find("v_ak47", PRESETS)
-	var body := ModelPreset.spawn(importer, vfs, preset)
+	# What the arms do while the legs walk, as for the enemies: nobody sees the player's own
+	# figure, but its shadow walks about with its arms straight out without them.
+	var extra := PackedStringArray()
+	var held := NpcScript.holder_of(weapon)
+	if not held.is_empty():
+		extra.append("ref_aim_" + held)
+		extra.append("ref_shoot_" + held)
+	var body := ModelPreset.spawn(importer, vfs, preset, extra)
 	if body == null or not (body is CharacterBody3D):
 		_say("The player preset could not be built.")
 		return
@@ -1016,6 +1055,15 @@ func _say(text: String) -> void:
 	print("[lab] %s" % text)
 
 
+## Between the look as it has been improved and the game as it was.
+func toggle_enhanced() -> void:
+	enhanced = not enhanced
+	print("[lab] look: %s" % ("enhanced" if enhanced else "classic"))
+	if _enhanced_look != null:
+		_enhanced_look.set_on(enhanced)
+	_refresh_hud()
+
+
 func _refresh_hud() -> void:
 	var lines := PackedStringArray()
 	for key in _built:
@@ -1027,4 +1075,5 @@ func _refresh_hud() -> void:
 	lines.append("Space jump · Ctrl crouch · Shift walk · Esc cursor")
 	lines.append("V noclip · G god mode (on) · F3 kill the enemies")
 	lines.append("F4 fly to the next thing that moves")
+	lines.append("F2 look: %s" % ("enhanced" if enhanced else "classic"))
 	_hud.text = "\n".join(lines)

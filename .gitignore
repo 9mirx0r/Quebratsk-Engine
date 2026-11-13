@@ -117,3 +117,6 @@ demo/main.tscn
 # Reference pictures for tools/visual_check.py. They show game levels that belong to
 # their publisher, so every machine keeps its own and none is committed.
 tests/reference_shots/
+*.local.txt
+# Pictures taken while testing the lab. They show game content too, so they stay here.
+demo/lab_shots/

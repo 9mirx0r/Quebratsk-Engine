@@ -12,6 +12,7 @@ const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 const ModelPreset := preload("res://addons/quebratsk_editor/model_preset.gd")
 const Stairs := preload("res://lab/stairs.gd")
 const SoundCatalogue := preload("res://addons/quebratsk_editor/sound_catalogue.gd")
+const Figure := preload("res://lab/figure.gd")
 
 const SPEED := 3.0
 const GRAVITY := 20.32          # sv_gravity 800, in metres
@@ -42,6 +43,14 @@ const HIT_SOUNDS := ["player/bhit_flesh-1.wav", "player/bhit_flesh-2.wav",
 const HEAD_SOUNDS := ["player/headshot1.wav", "player/headshot2.wav", "player/headshot3.wav"]
 const DEATH_SOUNDS := ["player/die1.wav", "player/die2.wav", "player/die3.wav",
 	"player/death6.wav"]
+## The grunt of somebody hurt, which the game keeps beside those and plays for a fall. Here it
+## goes with a bullet too: a thud alone, forty metres off under gunfire, is not heard at all.
+const PAIN_SOUNDS := ["player/pl_pain2.wav", "player/pl_pain4.wav", "player/pl_pain5.wav",
+	"player/pl_pain6.wav", "player/pl_pain7.wav"]
+## How loud being hit is, and how far it carries. A choice, made by ear against the gunshots:
+## at the level the game's own files sit at they are lost under the rifle that caused them.
+const CRY_LOUD := 3.0
+const CRY_CARRIES := 22.0
 
 ## How far below the top of the body counts as the head, in metres. A choice: the game asks
 ## the model's own hitboxes, and here a body is one capsule.
@@ -64,6 +73,8 @@ var _skeleton: Skeleton3D
 var _aim_move := ""
 var _shoot_move := ""
 var _shoot_until := 0.0
+var _flash: OmniLight3D
+var _muzzle: Sprite3D
 var _legs_now := ""
 var _stepped_until := 0.0
 var _shadow: MeshInstance3D
@@ -78,6 +89,7 @@ var _airborne := 0.0
 var _hit_head := false
 var _top := 1.0
 var _voice: AudioStreamPlayer3D
+var _grunt: AudioStreamPlayer3D
 var _cries := {}
 var _flinch_until := 0.0
 var _slowed_until := 0.0
@@ -124,15 +136,22 @@ func setup(lab: Node3D, target: CharacterBody3D, preset: Dictionary,
 
 	# Its own voice, so being hit does not cut off its gunshot.
 	_voice = AudioStreamPlayer3D.new()
-	_voice.volume_db = -6.0
-	_voice.unit_size = 8.0
+	_voice.volume_db = CRY_LOUD
+	_voice.unit_size = CRY_CARRIES
 	add_child(_voice)
+	# And a second, so the grunt does not cut off the bullet landing.
+	_grunt = AudioStreamPlayer3D.new()
+	_grunt.volume_db = CRY_LOUD
+	_grunt.unit_size = CRY_CARRIES
+	add_child(_grunt)
 	if lab.has_method("track_sound"):
 		lab.track_sound(_voice)
+		lab.track_sound(_grunt)
 	_cries = {
 		"hit": _load_sounds(HIT_SOUNDS),
 		"head": _load_sounds(HEAD_SOUNDS),
 		"die": _load_sounds(DEATH_SOUNDS),
+		"pain": _load_sounds(PAIN_SOUNDS),
 	}
 
 	for child in get_children():
@@ -180,61 +199,16 @@ func _hold(weapon: Dictionary) -> void:
 		if _gunshot != null:
 			break
 
-	var skeleton: Skeleton3D = null
-	for child in get_children():
-		if child is Skeleton3D:
-			skeleton = child as Skeleton3D
-	if skeleton == null:
-		return
-
-	var hand := -1
-	for b in skeleton.get_bone_count():
-		var bone := skeleton.get_bone_name(b).to_lower()
-		if bone.contains("r hand") or bone.contains("r_hand") or bone.contains("righthand"):
-			hand = b
-			break
-	if hand < 0:
-		# No hand to hang it from. Said out loud rather than hung off the root, which is how
-		# rifles ended up floating above people's heads.
-		print("[npc] %s has no right-hand bone, so it carries nothing" % name)
-		return
-
-	# Not the weapon as its owner sees it, which is a pair of arms holding a gun a hand's
-	# breadth from the eye. Every weapon has a second model for how it looks in somebody
-	# else's hands: p_ak47 beside v_ak47.
-	var seen := str(weapon.get("model", "")).replace("v_", "p_")
-	var uri := ModelPreset.resolve(_lab.vfs, seen)
-	if uri.is_empty():
-		print("[npc] %s: no %s, so it carries nothing" % [name, seen])
-		return
-	var model: Node3D = _lab.importer.load_model(uri, "", PackedStringArray(), {})
+	var model := Figure.hold(_lab, _skeleton, weapon, name)
 	if model == null:
 		return
-	for child in model.get_children():
-		if child is StaticBody3D:
-			model.remove_child(child)
-			child.queue_free()
-
-	var socket := BoneAttachment3D.new()
-	socket.bone_idx = hand
-	skeleton.add_child(socket)
-	socket.add_child(model)
-	# That model is built on a copy of the body's own bones, down the right arm to the hand,
-	# and the game draws it with the body's bones in place of its own. Here it hangs from the
-	# body's hand, set back by where its own hand is, which comes to the same thing.
-	if model is Skeleton3D:
-		# Still, as it was built: an animation of its own would move its copy of the arm and
-		# the weapon with it, away from the hand it is hung on.
-		var moves := model.get_node_or_null("AnimationPlayer")
-		if moves != null:
-			model.remove_child(moves)
-			moves.queue_free()
-		(model as Skeleton3D).reset_bone_poses()
-		var own := (model as Skeleton3D).find_bone(skeleton.get_bone_name(hand))
-		print("[npc] %s holds %s by bone %d, model at %s" % [name, seen, own, model.transform])
-		if own >= 0:
-			model.transform = (model as Skeleton3D).get_bone_global_rest(own).affine_inverse()
-
+	# The flash at the end of the barrel, on the weapon so it goes where the weapon points.
+	# Which flash and how big is written in the model its owner sees, not in this one.
+	_muzzle = Figure.muzzle_flash(_lab, Figure.flash_kind(_lab,
+		ModelPreset.resolve(_lab.vfs, str(weapon.get("model", "")))))
+	if _muzzle != null:
+		model.get_parent().add_child(_muzzle)
+		_muzzle.position = Figure.barrel_end(model)
 
 
 ## A soft dark patch on the ground under it.
@@ -298,47 +272,6 @@ func _lay_shadow() -> void:
 	_shadow.global_transform = Transform3D(Basis(side, normal.cross(side), normal), at + normal * 0.012)
 	var drop := (from.y - 0.3) - at.y
 	_shadow.transparency = clampf(drop / 2.0, 0.0, 1.0)
-
-
-## An animation with the legs of one and the arms of another.
-##
-## Counter-Strike keeps them apart: walk, run and idle1 move the legs and leave everything
-## above the waist as the model was built, arms out, and ref_aim_ak47 and its kin are the
-## body holding a weapon. The game plays both at once. An AnimationPlayer plays one, so the
-## two are put together into one the first time they are asked for.
-func _layered(legs: String, arms: String) -> String:
-	if arms.is_empty() or _skeleton == null:
-		return legs
-	var both := legs + "+" + arms
-	if _body_anim.has_animation(both):
-		return both
-	var spine := _skeleton.find_bone("Bip01 Spine")
-	if spine < 0 or not _body_anim.has_animation(arms):
-		return legs
-	var above: Animation = _body_anim.get_animation(arms)
-	var made: Animation = _body_anim.get_animation(legs).duplicate(true)
-	for t in made.get_track_count():
-		var path := made.track_get_path(t)
-		var bone := _skeleton.find_bone(str(path.get_concatenated_subnames()))
-		# The spine and everything that hangs from it.
-		var upper := false
-		while bone >= 0:
-			if bone == spine:
-				upper = true
-				break
-			bone = _skeleton.get_bone_parent(bone)
-		if not upper:
-			continue
-		var from := above.find_track(path, made.track_get_type(t))
-		if from < 0:
-			continue
-		for k in range(made.track_get_key_count(t) - 1, -1, -1):
-			made.track_remove_key(t, k)
-		for k in above.track_get_key_count(from):
-			made.track_insert_key(t, above.track_get_key_time(from, k),
-				above.track_get_key_value(from, k))
-	_body_anim.get_animation_library("").add_animation(both, made)
-	return both
 
 
 func _physics_process(delta: float) -> void:
@@ -459,7 +392,7 @@ func _play(role: String) -> void:
 	if not _dead:
 		var legs := wanted
 		var firing := Time.get_ticks_msec() / 1000.0 < _shoot_until and not _shoot_move.is_empty()
-		wanted = _layered(legs, _shoot_move if firing else _aim_move)
+		wanted = Figure.layered(_body_anim, _skeleton, legs, _shoot_move if firing else _aim_move)
 		# The legs carry on from where they were when only the arms change.
 		if legs == _legs_now and _body_anim.current_animation != wanted and _body_anim.is_playing():
 			keep = _body_anim.current_animation_position
@@ -479,6 +412,15 @@ func _fire() -> void:
 		_audio.stream = _gunshot
 		_audio.play()
 	_shoot_until = Time.get_ticks_msec() / 1000.0 + 0.2
+	Figure.flare(_muzzle)
+
+	if _lab != null and _lab.get("enhanced") == true:
+		if _flash == null:
+			_flash = _lab.FlashScript.new()
+			add_child(_flash)
+			# About where the muzzle is: chest high, an arm's length in front.
+			_flash.position = Vector3(0, 1.25, -0.7)
+		_flash.fire(0.8)
 
 	if _target != null and is_instance_valid(_target) and _target.has_method("take_damage"):
 		_target.take_damage(DAMAGE)
@@ -498,6 +440,7 @@ func take_damage(amount: int) -> void:
 	health = maxi(health - amount, 0)
 	if health > 0:
 		_cry("head" if head else "hit")
+		_cry("pain", _grunt)
 		_flinch("head_flinch" if head else "gut_flinch")
 		_slowed_until = Time.get_ticks_msec() / 1000.0 + SLOWED_FOR
 		return
@@ -511,7 +454,8 @@ func take_damage(amount: int) -> void:
 	# Passing through is taken literally: off every layer, so a bullet finds the wall behind
 	# and the player walks over it, and still on the floor through its mask.
 	collision_layer = 0
-	_cry("head" if head else "die")
+	_cry("head" if head else "hit")
+	_cry("die", _grunt)
 	_death_move = _pick_death(head)
 	_flinch_until = 0.0
 	_play("die")
@@ -538,12 +482,14 @@ func _flinch(named: String) -> void:
 	_flinch_until = Time.get_ticks_msec() / 1000.0 + lasts
 
 
-func _cry(kind: String) -> void:
+func _cry(kind: String, from: AudioStreamPlayer3D = null) -> void:
+	if from == null:
+		from = _voice
 	var choices: Array = _cries.get(kind, [])
-	if choices.is_empty() or _voice == null:
+	if choices.is_empty() or from == null:
 		return
-	_voice.stream = choices[randi() % choices.size()]
-	_voice.play()
+	from.stream = choices[randi() % choices.size()]
+	from.play()
 
 
 func _load_sounds(names: Array) -> Array:

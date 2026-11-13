@@ -246,6 +246,26 @@ static func spawn(importer, vfs, preset: Dictionary,
 			% [preset.get("name", "?"), preset.get("model", "")])
 		return null
 
+	# A preset is a record of one file, and a pack laid over the game puts another file under
+	# the same name with its sequences called something else. When none of the attacks written
+	# down are in the model that was found, they are read again from the model itself.
+	if str(preset.get("kind", "")) == "weapon" and not (preset.get("attacks", []) as Array).is_empty():
+		var poses: PackedStringArray = importer.list_poses(uri)
+		var still := false
+		for name in preset.get("attacks", []):
+			if poses.has(str(name)):
+				still = true
+				break
+		# The same for the reload by itself: a model can keep shoot1 and call its reload
+		# something else.
+		for name in preset.get("reload", []):
+			if not poses.has(str(name)):
+				still = false
+		if not still:
+			preset = preset.duplicate(true)
+			preset["attacks"] = Array(AnimationSets.attacks(poses))
+			preset["reload"] = Array(AnimationSets.reload_chain(poses))
+
 	var stances: Dictionary = preset.get("stances", {})
 	var sequences := PackedStringArray()
 	for role in stances:
