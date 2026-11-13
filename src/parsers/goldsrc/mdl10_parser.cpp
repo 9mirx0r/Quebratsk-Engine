@@ -241,7 +241,13 @@ void read_sequences(const ByteReader& mdl, const StudioHeader& header, const Stu
             track_file = group < readers.size() ? &readers[group] : nullptr;
         }
 
-        const size_t anim_offset = static_cast<size_t>(seq.anim_index);
+        // A sequence can hold several versions of itself to mix between, one block of tracks
+        // after another: an aim is stored from looking one way to looking the other. One of
+        // them gets read, and the middle one is the pose looking straight ahead; the first is
+        // an extreme, which is how an aiming figure came out with its arms over its head.
+        const size_t blend = seq.num_blends >= 3 ? static_cast<size_t>(seq.num_blends) / 2 : 0;
+        const size_t anim_offset = static_cast<size_t>(seq.anim_index) +
+                                   blend * static_cast<size_t>(header.num_bones) * sizeof(StudioAnim);
         const bool tracks_here =
             track_file != nullptr && seq.anim_index > 0 &&
             !track_file->array_at<StudioAnim>(anim_offset,

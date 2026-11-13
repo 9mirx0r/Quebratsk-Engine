@@ -784,7 +784,7 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
         // sequence whose declaration counts.
         if (pose.has_bounds) shown_bounds = pose.bounds;
         if (converters::SkeletonConverter::apply_pose(skeleton, pose)) {
-            UtilityFunctions::print("[QuebratskImporter] Pose '", String(pose.name.c_str()),
+            UtilityFunctions::print_verbose("[QuebratskImporter] Pose '", String(pose.name.c_str()),
                                     "' applied (", static_cast<int64_t>(parsed.skeleton.poses.size()),
                                     " available)");
         }
@@ -1300,7 +1300,7 @@ void UnifiedAssetImporter::attach_animations(Skeleton3D* skeleton,
     // player.play("walk_all_01"), rather than "library_name/walk_all_01".
     player->add_animation_library("", library);
 
-    UtilityFunctions::print("[QuebratskImporter] ", added, " animation(s) attached");
+    UtilityFunctions::print_verbose("[QuebratskImporter] ", added, " animation(s) attached");
 }
 
 Ref<StandardMaterial3D> UnifiedAssetImporter::load_material(const String& vfs_uri) {

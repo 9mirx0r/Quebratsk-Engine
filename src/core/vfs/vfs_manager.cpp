@@ -135,19 +135,19 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
     switch (kind) {
         case Kind::WAD3:
             index_wad3(container_idx);
-            UtilityFunctions::print("[QuebratskVFS] Mounted GoldSrc WAD3: vfs://", String(prefix_std.c_str()), "/");
+            UtilityFunctions::print_verbose("[QuebratskVFS] Mounted GoldSrc WAD3: vfs://", String(prefix_std.c_str()), "/");
             break;
         case Kind::GMA:
             index_gma(container_idx);
-            UtilityFunctions::print("[QuebratskVFS] Mounted Source 1 GMA: vfs://", String(prefix_std.c_str()), "/");
+            UtilityFunctions::print_verbose("[QuebratskVFS] Mounted Source 1 GMA: vfs://", String(prefix_std.c_str()), "/");
             break;
         case Kind::VPK:
             index_vpk(container_idx, path_std);
-            UtilityFunctions::print("[QuebratskVFS] Mounted Source VPK: vfs://", String(prefix_std.c_str()), "/");
+            UtilityFunctions::print_verbose("[QuebratskVFS] Mounted Source VPK: vfs://", String(prefix_std.c_str()), "/");
             break;
         case Kind::PBO:
             index_pbo(container_idx);
-            UtilityFunctions::print("[QuebratskVFS] Mounted PBO Container: vfs://", String(prefix_std.c_str()), "/");
+            UtilityFunctions::print_verbose("[QuebratskVFS] Mounted PBO Container: vfs://", String(prefix_std.c_str()), "/");
             break;
     }
     return true;
@@ -329,7 +329,7 @@ void VFSManager::index_vpk(size_t container_idx, const std::string& dir_real_pat
         ++indexed;
     }
 
-    UtilityFunctions::print("[QuebratskVFS]   VPK: ", static_cast<int64_t>(indexed),
+    UtilityFunctions::print_verbose("[QuebratskVFS]   VPK: ", static_cast<int64_t>(indexed),
                             " files across ", static_cast<int64_t>(archive_containers.size()),
                             " archives",
                             skipped ? String(" (" + String::num_int64(static_cast<int64_t>(skipped)) + " unavailable)") : String(""));
@@ -424,7 +424,7 @@ int64_t VFSManager::mount_directory(const String& vfs_prefix, const String& real
         return 0;
     }
 
-    UtilityFunctions::print("[QuebratskVFS] Mounted directory (", indexed,
+    UtilityFunctions::print_verbose("[QuebratskVFS] Mounted directory (", indexed,
                             " files): vfs://", String(prefix_std.c_str()), "/");
     return indexed;
 }

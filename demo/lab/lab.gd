@@ -58,6 +58,11 @@ const PRESETS := "Counter-Strike 1.6"
 ## them, and they are the thing being looked at.
 const MAP := "cs_siege"
 
+## The map actually opened: MAP, unless the command line names another after a `--`, as in
+## `godot --path demo res://lab/lab.tscn -- --map=disposal`. Half-Life's own maps open as well,
+## since the game falls back to its folder for everything.
+var map_name := MAP
+
 const ENEMY_COUNT := 3
 
 var vfs: VFSManager
@@ -75,6 +80,9 @@ var _thunder_interval := 0.0
 var _triggered_sounds := {}
 var _water_shader: Shader
 var _cleared := false
+## The lamp glows, each with how much of it is showing: { node, look, tint, shown }.
+var _glows: Array = []
+var _moving_at := -1
 var _brushes: Node
 
 ## What shots leave behind, reachable by anything that fires one.
@@ -102,6 +110,9 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.randomize()
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--map="):
+			map_name = arg.trim_prefix("--map=")
 	vfs = VFSManager.new()
 	importer = UnifiedAssetImporter.new()
 	add_child(vfs)
@@ -120,7 +131,7 @@ func _ready() -> void:
 	SoundCatalogue.read_materials(vfs)
 
 	if not _open_map():
-		_say("No map matching '%s' could be read." % MAP)
+		_say("No map matching '%s' could be read." % map_name)
 		return
 
 	# A map's collider does not exist in the physics world until a physics frame has run, so
@@ -172,13 +183,19 @@ func _mount() -> int:
 # ---------------------------------------------------------------------- level ----
 
 func _open_map() -> bool:
-	var hit: Dictionary = vfs.find_files(MAP, PackedStringArray(["bsp"]),
-		PackedStringArray(), PackedStringArray(), 1)
+	var hit: Dictionary = vfs.find_files(map_name, PackedStringArray(["bsp"]),
+		PackedStringArray(), PackedStringArray(), 64)
 	var files: PackedStringArray = hit["files"]
 	if files.is_empty():
 		return false
 
+	# The one called exactly that, when there is one: asking for c1a1 also finds c1a1a to
+	# c1a1f, and the first of those is not the map that was asked for.
 	_map_uri = str(files[0])
+	for file in files:
+		if str(file).get_file().get_basename().to_lower() == map_name.to_lower():
+			_map_uri = str(file)
+			break
 	var map: Node3D = importer.load_map(_map_uri)
 	if map == null:
 		return false
@@ -731,9 +748,12 @@ func _place_player() -> void:
 ## the entity's `rendercolor` at `renderamt` out of 255. The blur is drawn here rather than read
 ## from the file, which the importer does not open yet; colour, strength and place are the map's.
 func _place_glows() -> void:
+	# Bright in the very middle and thin for most of its width, which is a light seen through
+	# air. An even fade from full to nothing is a yellow disc.
 	var fade := Gradient.new()
-	fade.set_color(0, Color(1, 1, 1, 1))
-	fade.set_color(1, Color(1, 1, 1, 0))
+	fade.offsets = PackedFloat32Array([0.0, 0.12, 0.4, 1.0])
+	fade.colors = PackedColorArray([Color(1, 1, 1, 0.75), Color(1, 1, 1, 0.3),
+		Color(1, 1, 1, 0.07), Color(1, 1, 1, 0)])
 	var blur := GradientTexture2D.new()
 	blur.gradient = fade
 	blur.fill = GradientTexture2D.FILL_RADIAL
@@ -767,14 +787,62 @@ func _place_glows() -> void:
 		look.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 		look.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		look.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		# Over everything, as the game draws them, and faded by whether the lamp is in sight
+		# (_fade_glows) rather than cut in half by the wall it is set into.
+		look.no_depth_test = true
 		look.albedo_texture = blur
-		look.albedo_color = tint
+		look.albedo_color = Color(tint.r, tint.g, tint.b, 0.0)
 		glow.material_override = look
 		add_child(glow)
 		glow.global_position = entity.get("position", Vector3.ZERO) as Vector3
+		_glows.append({"node": glow, "look": look, "tint": tint, "shown": 0.0})
 		placed += 1
 	if placed > 0:
 		print("[lab] %d lamp glow(s)" % placed)
+
+
+## Fade each glow in while the eye has a clear line to its lamp, and out when it has not.
+func _fade_glows(delta: float) -> void:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null or _glows.is_empty():
+		return
+	var space := get_world_3d().direct_space_state
+	var eye := camera.global_position
+	var skip: Array[RID] = []
+	if _player != null and is_instance_valid(_player):
+		skip.append(_player.get_rid())
+	for g in _glows:
+		var glow: Dictionary = g
+		var at: Vector3 = (glow["node"] as Node3D).global_position
+		var to_eye := eye - at
+		var wanted := 0.0
+		if to_eye.length() < 60.0:
+			# Stopping a little short of the lamp, which is usually set into a wall.
+			var query := PhysicsRayQueryParameters3D.create(eye, at + to_eye.normalized() * 0.15)
+			query.collision_mask = SEEN_BY_RAYS
+			query.exclude = skip
+			if space.intersect_ray(query).is_empty():
+				wanted = 1.0
+		var shown := move_toward(float(glow["shown"]), wanted, delta * 6.0)
+		if shown == float(glow["shown"]):
+			continue
+		glow["shown"] = shown
+		var tint: Color = glow["tint"]
+		(glow["look"] as StandardMaterial3D).albedo_color = Color(tint.r, tint.g, tint.b, tint.a * shown)
+		(glow["node"] as Node3D).visible = shown > 0.0
+
+
+## Where the next thing that turns, swings or runs on rails is, going round them in turn.
+## Vector3.INF when the level has none.
+func next_moving_place() -> Vector3:
+	if _brushes == null or not _brushes.has_method("moving_places"):
+		return Vector3.INF
+	var places: Array[Vector3] = _brushes.moving_places()
+	if places.is_empty():
+		return Vector3.INF
+	_moving_at = (_moving_at + 1) % places.size()
+	print("[lab] moving thing %d of %d" % [_moving_at + 1, places.size()])
+	return places[_moving_at]
 
 
 func _place_hostages() -> void:
@@ -836,7 +904,14 @@ func _place_enemies() -> void:
 	for i in ENEMY_COUNT:
 		var preset := ModelPreset.find(people[_rng.randi_range(0, people.size() - 1)], PRESETS)
 		var weapon := ModelPreset.find(guns[_rng.randi_range(0, guns.size() - 1)], PRESETS)
-		var body := ModelPreset.spawn(importer, vfs, preset)
+		# What the arms do while the legs walk: the model keeps a pose for aiming and one for
+		# firing per kind of weapon, and which kind this is comes with the weapon.
+		var extra := PackedStringArray(NpcScript.REACTIONS)
+		var held := NpcScript.holder_of(weapon)
+		if not held.is_empty():
+			extra.append("ref_aim_" + held)
+			extra.append("ref_shoot_" + held)
+		var body := ModelPreset.spawn(importer, vfs, preset, extra)
 		if body == null or not (body is CharacterBody3D):
 			continue
 
@@ -864,6 +939,7 @@ func _process(delta: float) -> void:
 	if _weather == null or _player == null or not is_instance_valid(_player):
 		return
 	_weather.follow(_player)
+	_fade_glows(delta)
 	_update_room()
 	if _ammo != null and _player.has_method("ammo_text"):
 		_ammo.text = _player.ammo_text()
@@ -928,4 +1004,5 @@ func _refresh_hud() -> void:
 	lines.append("WASD move · mouse look · click shoot · E use · R reload")
 	lines.append("Space jump · Ctrl crouch · Shift walk · Esc cursor")
 	lines.append("V noclip · G god mode (on) · F3 kill the enemies")
+	lines.append("F4 fly to the next thing that moves")
 	_hud.text = "\n".join(lines)

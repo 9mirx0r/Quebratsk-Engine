@@ -233,7 +233,11 @@ static func known(game := "") -> Dictionary:
 ##
 ## The behaviour is not included and that is deliberate: what an enemy does when it sees you
 ## is a decision about a game, and a preset is a record of what is in a file.
-static func spawn(importer, vfs, preset: Dictionary) -> Node3D:
+##
+## `extra` names more of the model's sequences to read beside the preset's own, for whatever
+## drives it: an enemy wants its flinches and its several deaths, a preview does not.
+static func spawn(importer, vfs, preset: Dictionary,
+		extra: PackedStringArray = PackedStringArray()) -> Node3D:
 	if preset.is_empty():
 		return null
 	var uri := resolve(vfs, str(preset.get("model", "")))
@@ -251,6 +255,9 @@ static func spawn(importer, vfs, preset: Dictionary) -> Node3D:
 	for name in preset.get("reload", []):
 		if not sequences.has(str(name)):
 			sequences.append(str(name))
+	for name in extra:
+		if not sequences.has(name):
+			sequences.append(name)
 
 	var choices := {}
 	for part in preset.get("parts", {}):

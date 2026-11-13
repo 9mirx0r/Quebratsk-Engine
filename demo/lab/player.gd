@@ -17,6 +17,7 @@ const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd"
 const SoundCatalogue := preload("res://addons/quebratsk_editor/sound_catalogue.gd")
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 const ModelPreset := preload("res://addons/quebratsk_editor/model_preset.gd")
+const Stairs := preload("res://lab/stairs.gd")
 const WeaponManifest := preload("res://addons/quebratsk_editor/weapon_manifest.gd")
 
 const UNIT := 0.0254
@@ -132,6 +133,10 @@ var _god := true
 var _stances := {}
 var _body_anim: AnimationPlayer
 var _hull: CollisionShape3D
+## How far the eye still is below where a step just put it. The body goes up a stair at once
+## and the view follows over a moment, or every stair is a jolt.
+var _stair_lag := 0.0
+var _stepped_until := 0.0
 var _stand_height := 0.0
 var _stand_y := 0.0
 var _ducked := false
@@ -261,7 +266,8 @@ func _arm(weapon: Dictionary) -> void:
 		_clip_size = int(WeaponManifest.lookup(str(weapon.get("name", ""))).get("clip_size", 0))
 	_clip = _clip_size
 	_reserve = _clip_size * 3
-	_dry_click = SoundLoader.load_sound(_lab.vfs, "weapons/dryfire_rifle.wav")
+	var dry := ModelPreset.resolve(_lab.vfs, "sound/weapons/dryfire_rifle.wav")
+	_dry_click = SoundLoader.load_sound(_lab.vfs, dry) if not dry.is_empty() else null
 	var declared := float(weapon.get("max_speed", 0.0))
 	_speed = declared if declared > 0.0 else SPEED
 
@@ -380,6 +386,17 @@ func _unhandled_input(event: InputEvent) -> void:
 					(child as CollisionShape3D).disabled = _noclip
 			velocity = Vector3.ZERO
 			print("[player] noclip %s" % ("on" if _noclip else "off"))
+		elif event.keycode == KEY_F4:
+			# Off to the next thing in the level that moves, flying, to look at it.
+			if _lab != null and _lab.has_method("next_moving_place"):
+				var where: Vector3 = _lab.next_moving_place()
+				if where != Vector3.INF:
+					_noclip = true
+					for child in get_children():
+						if child is CollisionShape3D:
+							(child as CollisionShape3D).disabled = true
+					velocity = Vector3.ZERO
+					global_position = where + Vector3(0, 0.5, 3.0)
 		elif event.keycode == KEY_ESCAPE:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
@@ -474,7 +491,14 @@ func _physics_process(delta: float) -> void:
 			and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_shoot()
 
-	move_and_slide()
+	# Up a stair rather than into it. Also for a moment after the last one, because between
+	# two stairs the body is not always counted as standing.
+	var stair_clock := Time.get_ticks_msec() / 1000.0
+	var gain := Stairs.move(self, delta, is_on_floor() or stair_clock < _stepped_until)
+	if gain > 0.0:
+		_stair_lag = minf(_stair_lag + gain, Stairs.HEIGHT)
+		_stepped_until = stair_clock + 0.15
+
 	_drive_animation()
 	_step_sound()
 	_bob_view(delta)
@@ -790,7 +814,10 @@ func _shoot() -> void:
 	var facing: Vector3 = hit["normal"]
 	var alive: bool = struck != null and struck.has_method("take_damage")
 
+	var along := -_camera.global_transform.basis.z
 	if alive:
+		if struck.has_method("struck_at"):
+			struck.struck_at(where, along)
 		struck.take_damage(DAMAGE)
 	elif _lab != null and _lab.has_method("hurt_brush"):
 		# Not everything that can be shot is a character. A crate arrives as a static body
@@ -802,7 +829,9 @@ func _shoot() -> void:
 	# geometry.
 	if _lab != null and _lab.marks != null:
 		if alive:
-			_lab.marks.blood(where, -facing, DAMAGE)
+			# Along the shot, not against the face that was hit. A body is a rounded capsule
+			# here, and the face's own direction off a glancing hit points sideways.
+			_lab.marks.blood(where, along, DAMAGE, [struck.get_rid()])
 		else:
 			_lab.marks.bullet_hole(where, facing)
 
@@ -874,7 +903,8 @@ func _bob_view(delta: float) -> void:
 	var side: float = velocity.dot(transform.basis.x)
 	var roll: float = ROLL_ANGLE * clampf(side / ROLL_SPEED, -1.0, 1.0)
 
-	_camera.position = _eye_rest + Vector3(0, bob, 0)
+	_stair_lag = move_toward(_stair_lag, 0.0, maxf(150.0 * UNIT, _stair_lag * 12.0) * delta)
+	_camera.position = _eye_rest + Vector3(0, bob - _stair_lag, 0)
 	_camera.rotation.z = lerp_angle(_camera.rotation.z, deg_to_rad(-roll), 0.2)
 
 

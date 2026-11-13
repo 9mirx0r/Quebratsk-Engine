@@ -68,7 +68,11 @@ func bullet_hole(at: Vector3, normal: Vector3) -> void:
 
 
 ## A bullet hit somebody. The spray, and the mark it leaves on whatever is behind them.
-func blood(at: Vector3, direction: Vector3, amount: int) -> void:
+##
+## `through` is what was hit, so that carrying on past it does not find it again. Without it
+## the search started on the body's own skin, hit the body, and the mark was left hanging in
+## the air where the person had been standing.
+func blood(at: Vector3, direction: Vector3, amount: int, through: Array = []) -> void:
 	_spray(at, direction, amount)
 
 	# The mark goes on the wall behind, found by carrying on through the body. A shot that
@@ -76,6 +80,10 @@ func blood(at: Vector3, direction: Vector3, amount: int) -> void:
 	var space := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(at, at + direction.normalized() * 6.0)
 	query.collision_mask = SEEN_BY_RAYS
+	var skip: Array[RID] = []
+	for rid in through:
+		skip.append(rid)
+	query.exclude = skip
 	var hit := space.intersect_ray(query)
 	if hit.is_empty():
 		return

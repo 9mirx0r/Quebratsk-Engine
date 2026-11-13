@@ -93,6 +93,39 @@ const SF_BUTTON_TOUCH_ONLY := 256
 const SF_WALL_START_OFF := 1
 const SF_RELAY_FIRE_ONCE := 1
 
+## What a lift or a train sounds like, by the number the map gives in movesnd and stopsnd.
+## The two lists are not the same length and do not pair up: number 3 moving is an elevator
+## and number 3 stopping is a freight lift. From CBasePlatTrain::Precache in plats.cpp.
+const PLAT_MOVE_SOUNDS := ["", "plats/bigmove1.wav", "plats/bigmove2.wav",
+	"plats/elevmove1.wav", "plats/elevmove2.wav", "plats/elevmove3.wav",
+	"plats/freightmove1.wav", "plats/freightmove2.wav", "plats/heavymove1.wav",
+	"plats/rackmove1.wav", "plats/railmove1.wav", "plats/squeekmove1.wav",
+	"plats/talkmove1.wav", "plats/talkmove2.wav"]
+const PLAT_STOP_SOUNDS := ["", "plats/bigstop1.wav", "plats/bigstop2.wav",
+	"plats/freightstop1.wav", "plats/heavystop2.wav", "plats/rackstop1.wav",
+	"plats/railstop1.wav", "plats/squeekstop1.wav", "plats/talkstop1.wav"]
+
+## func_rotating's flags, from util.h.
+const SF_SPIN_INSTANT := 1
+const SF_SPIN_BACKWARDS := 2
+const SF_SPIN_Z_AXIS := 4
+const SF_SPIN_X_AXIS := 8
+const SF_SPIN_ACCDCC := 16
+const SF_SPIN_NOT_SOLID := 64
+const SF_SPIN_SMALL_RADIUS := 128
+const SF_SPIN_MEDIUM_RADIUS := 256
+
+## func_pendulum's, from util.h and doors.h. Its axis flags are a rotating door's.
+const SF_PENDULUM_INSTANT := 1
+const SF_PENDULUM_PASSABLE := 8
+const SF_PENDULUM_AUTO_RETURN := 16
+
+## func_train's and path_corner's, from plats.cpp and trains.h.
+const SF_TRAIN_PASSABLE := 8
+const SF_CORNER_WAIT_FOR_TRIGGER := 1
+const SF_CORNER_TELEPORT := 2
+const SF_CORNER_FIRE_ONCE := 4
+
 ## How long a lift stays at the top once nobody is on it. From plats.cpp.
 const PLAT_HOLD := 3.0
 
@@ -130,6 +163,11 @@ var _doors: Array = []
 var _buttons: Array = []
 var _plats: Array = []
 var _triggers: Array = []
+var _spinners: Array = []
+var _pendulums: Array = []
+var _trains: Array = []
+## path_corner by targetname: where a train goes next and what it does when it gets there.
+var _corners := {}
 ## targetname -> every record that answers to it.
 var _named := {}
 ## Things fired with a delay: {"at": seconds, "target": name}.
@@ -170,6 +208,16 @@ func setup(host: Node, map: Node3D, entities: Array) -> void:
 				"delay": float(entity.get("delay", 0.0)), "kill": str(entity.get("killtarget", "")),
 				"once": (int(entity.get("spawnflags", 0)) & SF_RELAY_FIRE_ONCE) != 0, "spent": false})
 			continue
+		if cls == "path_corner":
+			var called := str(entity.get("targetname", ""))
+			if not called.is_empty() and entity.has("position"):
+				_corners[called] = {"at": entity["position"] as Vector3,
+					"target": str(entity.get("target", "")),
+					"wait": float(entity.get("wait", 0.0)),
+					"speed": float(entity.get("speed", 0.0)) * UNIT,
+					"flags": int(entity.get("spawnflags", 0)),
+					"message": str(entity.get("message", ""))}
+			continue
 
 		var model := str(entity.get("model", ""))
 		if not model.begins_with("*"):
@@ -204,6 +252,12 @@ func setup(host: Node, map: Node3D, entities: Array) -> void:
 				_build_button(node, entity)
 			"func_plat":
 				_build_plat(node, entity)
+			"func_rotating":
+				_build_spinner(node, entity)
+			"func_pendulum":
+				_build_pendulum(node, entity)
+			"func_train":
+				_build_train(node, entity)
 			"func_wall_toggle":
 				var wall := {"kind": "wall", "node": node, "on": true}
 				_answer(entity, wall)
@@ -226,8 +280,16 @@ func setup(host: Node, map: Node3D, entities: Array) -> void:
 				_make_passable(node)
 				node.visible = false
 
+	# A train goes to its first corner only once every corner has been read, because the map
+	# lists them in no particular order. From CFuncTrain::Activate.
+	for t in _trains:
+		_train_start(t as Dictionary)
+
 	if passable > 0:
 		print("[brushes] %d brush(es) made passable" % passable)
+	if not _spinners.is_empty() or not _pendulums.is_empty() or not _trains.is_empty():
+		print("[brushes] %d spinning, %d swinging, %d train(s) on %d corner(s)"
+			% [_spinners.size(), _pendulums.size(), _trains.size(), _corners.size()])
 	if not _doors.is_empty():
 		var voiced := 0
 		for d in _doors:
@@ -246,6 +308,18 @@ func setup(host: Node, map: Node3D, entities: Array) -> void:
 		print("[brushes] %d ladder(s), %d water volume(s)" % [ladders.size(), water.size()])
 
 
+## Where the things that turn, swing and run on rails are, for whoever wants to go and look.
+func moving_places() -> Array[Vector3]:
+	var out: Array[Vector3] = []
+	for record in _spinners + _pendulums:
+		if is_instance_valid(record["pivot"]):
+			out.append((record["pivot"] as Node3D).global_position)
+	for train in _trains:
+		if is_instance_valid(train["node"]):
+			out.append((train["node"] as Node3D).global_position + (train["offset"] as Vector3))
+	return out
+
+
 ## How many of each kind of thing the level turned out to have.
 func summary() -> Dictionary:
 	var broken := {}
@@ -253,7 +327,8 @@ func summary() -> Dictionary:
 		broken[(_breakables[key] as Dictionary)["node"]] = true
 	return {"doors": _doors.size(), "buttons": _buttons.size(), "lifts": _plats.size(),
 		"triggers": _triggers.size(), "breakables": broken.size(), "named": _named.size(),
-		"ladders": ladders.size(), "water": water.size()}
+		"ladders": ladders.size(), "water": water.size(), "spinners": _spinners.size(),
+		"pendulums": _pendulums.size(), "trains": _trains.size(), "corners": _corners.size()}
 
 
 ## Names that were fired and that nothing in the level answered to: either a kind of entity
@@ -297,6 +372,11 @@ func kill(target: String) -> void:
 	for r in _named.get(target, []):
 		var record: Dictionary = r
 		record["dead"] = true
+		# Something that turns hangs under a pivot that holds its sound too.
+		var pivot = record.get("pivot")
+		if pivot != null and is_instance_valid(pivot):
+			(pivot as Node).queue_free()
+			continue
 		var node = record.get("node")
 		if node != null and is_instance_valid(node):
 			(node as Node).queue_free()
@@ -376,6 +456,12 @@ func _use(record: Dictionary) -> void:
 			if not record["broken"]:
 				record["broken"] = true
 				_break(record)
+		"spinner":
+			_spin_toggle(record)
+		"pendulum":
+			_pendulum_use(record)
+		"train":
+			_train_use(record)
 
 
 ## Pass on what a button, a trigger or a relay was built to pass on.
@@ -625,14 +711,488 @@ func _build_plat(node: MeshInstance3D, entity: Dictionary) -> void:
 		"at": 1.0 if named else 0.0,
 		"hold": 0.0,
 		"waits": named,
-		"move_sound": _door_sound("plats/bigmove%d.wav", int(entity.get("movesnd", 0))),
-		"stop_sound": _door_sound("plats/bigstop%d.wav", int(entity.get("stopsnd", 0))),
+		"move_sound": _listed_sound(PLAT_MOVE_SOUNDS, int(entity.get("movesnd", 0))),
+		"stop_sound": _listed_sound(PLAT_STOP_SOUNDS, int(entity.get("stopsnd", 0))),
 		"audio": null,
 	}
 	if not named:
 		node.position = plat["shut"]
 	_answer(entity, plat)
 	_plats.append(plat)
+
+
+## Hang a brush under a pivot where it turns, and hand back the pivot.
+##
+## A brush with an origin brush is built around that point and its node already stands
+## there; one without is built where it stands in the level, its node at the level's origin.
+## Either way the pivot goes where the turning happens and the node moves under it by the
+## opposite amount, so that nothing visibly shifts until the pivot turns.
+##
+## GoldSrc turns it about the centre of the origin brush, which reaches here as the entity's
+## `origin`. One without turns about its own middle: right for something roughly symmetrical,
+## wrong for a door hinged hard to one side, and there is nothing better to go by.
+func _hang(node: MeshInstance3D, entity: Dictionary) -> Node3D:
+	var box: AABB = entity.get("bounds", AABB())
+	var centre := box.get_center()
+	if entity.has("origin"):
+		var raw := str(entity["origin"]).split_floats(" ", false)
+		if raw.size() >= 3:
+			# The level's (x, y, z) is Godot's (-y, z, -x).
+			centre = Vector3(-raw[1], raw[2], -raw[0]) * UNIT
+	var pivot := Node3D.new()
+	pivot.name = "%s_pivot" % node.name
+	var parent := node.get_parent()
+	var index := node.get_index()
+	parent.remove_child(node)
+	parent.add_child(pivot)
+	parent.move_child(pivot, index)
+	pivot.position = centre
+	pivot.add_child(node)
+	# Relative to where it already stood. Writing -centre here put every door that has an
+	# origin brush its own distance away from the doorway, since its node was not at zero.
+	node.position = node.position - centre
+	return pivot
+
+
+## Valve's angles, (pitch, yaw, roll) in degrees, as a turn in Godot's axes.
+##
+## A brush is turned by its yaw about the level's up, then its pitch, then its roll, and
+## Valve's up, its Y and its X are Godot's Y, -X and -Z.
+static func _valve_basis(angles: Vector3) -> Basis:
+	return Basis(Vector3.UP, deg_to_rad(angles.y)) \
+		* Basis(Vector3(-1, 0, 0), deg_to_rad(angles.x)) \
+		* Basis(Vector3(0, 0, -1), deg_to_rad(angles.z))
+
+
+## Something that spins: a fan, a gear, a turning light.
+##
+## speed is degrees a second about one axis, up unless a flag says otherwise. One that
+## speeds up and slows down (ACCDCC) gains speed × fanfriction/100 every tenth of a second
+## until it is at full speed; one that does not starts at full speed but still runs down when
+## it is stopped. Its sound is the wav in `message`, or one of five fan noises by `sounds`,
+## and it rises in pitch and loudness with the speed. From CFuncRotating in bmodels.cpp.
+func _build_spinner(node: MeshInstance3D, entity: Dictionary) -> void:
+	var flags := int(entity.get("spawnflags", 0))
+	var pivot := _hang(node, entity)
+	if (flags & SF_SPIN_NOT_SOLID) != 0:
+		# The fake beams of light that hang under a lamp: you walk through them.
+		_make_passable(node)
+
+	# Which of its angles it changes, in Valve's (pitch, yaw, roll) order.
+	var turns := Vector3(0, 1, 0)
+	if (flags & SF_SPIN_Z_AXIS) != 0:
+		turns = Vector3(0, 0, 1)
+	elif (flags & SF_SPIN_X_AXIS) != 0:
+		turns = Vector3(1, 0, 0)
+	if (flags & SF_SPIN_BACKWARDS) != 0:
+		turns = -turns
+
+	var friction := float(entity.get("fanfriction", 0.0)) / 100.0
+	if friction == 0.0:
+		friction = 1.0
+	var volume := clampf(float(entity.get("volume", 0.0)) / 10.0, 0.0, 1.0)
+	if volume == 0.0:
+		volume = 1.0
+	var sound: AudioStream = null
+	var message := str(entity.get("message", ""))
+	if not message.is_empty():
+		sound = _named_sound(message, true)
+	elif int(entity.get("sounds", 0)) in [1, 2, 3, 4, 5]:
+		sound = _named_sound("fans/fan%d.wav" % int(entity.get("sounds", 0)), true)
+	# How far it carries. The three sizes are the game's attenuations, and a sound in GoldSrc
+	# fades out at about a thousand units divided by its attenuation.
+	var attenuation := 0.8
+	if (flags & SF_SPIN_SMALL_RADIUS) != 0:
+		attenuation = 2.0
+	elif (flags & SF_SPIN_MEDIUM_RADIUS) != 0:
+		attenuation = 1.25
+
+	var top := maxf(float(entity.get("speed", 0.0)), 0.0)
+	var start := _angles_of(entity)
+	pivot.transform.basis = _valve_basis(start)
+	var spinner := {
+		"kind": "spinner",
+		"node": node,
+		"pivot": pivot,
+		"turns": turns,
+		"start": start,
+		"angle": 0.0,
+		"top": top,
+		"now": 0.0,
+		# Degrees a second gained or lost each second: the tenth-of-a-second step, ten times.
+		"rate": top * friction * 10.0,
+		"gradual": (flags & SF_SPIN_ACCDCC) != 0,
+		"want": false,
+		"state": "stopped",
+		"volume": volume,
+		"sound": sound,
+		"reach": 1000.0 / attenuation * UNIT,
+		"audio": null,
+		# A magic second and a half, the SDK's own, for the client to start up.
+		"start_at": _now + 1.5 if (flags & SF_SPIN_INSTANT) != 0 else -1.0,
+	}
+	_answer(entity, spinner)
+	_spinners.append(spinner)
+
+
+## Switched on or off. One that is turning at all is told to stop, which is how a fan that
+## is still running down can be switched off again but not straight back on.
+func _spin_toggle(spinner: Dictionary) -> void:
+	if float(spinner["now"]) != 0.0:
+		spinner["want"] = false
+		return
+	spinner["want"] = true
+	spinner["state"] = "spinning"
+	if not spinner["gradual"]:
+		spinner["now"] = spinner["top"]
+	var audio := _spin_audio(spinner)
+	if audio != null and not audio.playing:
+		audio.play()
+
+
+func _spin_audio(spinner: Dictionary) -> AudioStreamPlayer3D:
+	if spinner["sound"] == null:
+		return null
+	if spinner["audio"] == null:
+		var made := AudioStreamPlayer3D.new()
+		made.stream = spinner["sound"]
+		made.unit_size = 6.0
+		made.max_distance = float(spinner["reach"])
+		made.max_db = MACHINE_LOUDEST
+		if AudioServer.get_bus_index(&"Rooms") >= 0:
+			made.bus = &"Rooms"
+		# On the pivot, not the brush, so that it stays where the thing turns.
+		(spinner["pivot"] as Node3D).add_child(made)
+		spinner["audio"] = made
+	return spinner["audio"]
+
+
+func _spin_step(spinner: Dictionary, delta: float) -> void:
+	var pivot = spinner["pivot"]
+	if spinner.get("dead", false) or not is_instance_valid(pivot):
+		return
+	var due := float(spinner["start_at"])
+	if due >= 0.0 and _now >= due:
+		spinner["start_at"] = -1.0
+		_spin_toggle(spinner)
+
+	var now := float(spinner["now"])
+	var target: float = spinner["top"] if spinner["want"] else 0.0
+	var rate := float(spinner["rate"]) * delta
+	now = minf(now + rate, target) if now < target else maxf(now - rate, target)
+	spinner["now"] = now
+
+	var audio = spinner["audio"]
+	if now <= 0.0 and not spinner["want"]:
+		spinner["state"] = "stopped"
+		if audio != null and (audio as AudioStreamPlayer3D).playing:
+			(audio as AudioStreamPlayer3D).stop()
+		return
+
+	spinner["angle"] = fmod(float(spinner["angle"]) + now * delta, 360.0)
+	(pivot as Node3D).transform.basis = _valve_basis(
+		(spinner["start"] as Vector3) + (spinner["turns"] as Vector3) * float(spinner["angle"]))
+
+	# Pitch from 30 to 100 percent and loudness from nothing to full with the speed, which is
+	# the sound of a fan winding up. From RampPitchVol.
+	if audio != null:
+		var share := clampf(now / maxf(float(spinner["top"]), 0.001), 0.0, 1.0)
+		var player := audio as AudioStreamPlayer3D
+		player.pitch_scale = maxf((30.0 + 70.0 * share) / 100.0, 0.05)
+		player.volume_db = MACHINE_VOLUME + linear_to_db(maxf(float(spinner["volume"]) * share, 0.001))
+
+
+## Something that swings back and forth: a hanging chain, a lamp on a cable.
+##
+## It swings through `distance` degrees about one axis, from where it was built to the far
+## side and back, at up to `speed` degrees a second. The acceleration is whatever gets it from
+## rest to full speed over half the arc, which makes it slow at the ends and quick through the
+## middle. `damp` makes each swing a little smaller until it hangs still. From CPendulum in
+## bmodels.cpp.
+func _build_pendulum(node: MeshInstance3D, entity: Dictionary) -> void:
+	var flags := int(entity.get("spawnflags", 0))
+	var pivot := _hang(node, entity)
+	if (flags & SF_PENDULUM_PASSABLE) != 0:
+		_make_passable(node)
+	var start := _angles_of(entity)
+	pivot.transform.basis = _valve_basis(start)
+	var distance := float(entity.get("distance", 0.0))
+	if distance == 0.0:
+		# The SDK gives up on one with no arc: it hangs there and answers to nothing.
+		return
+
+	# The same axis flags as a rotating door. In Valve's (pitch, yaw, roll) order.
+	var turns := Vector3(0, 1, 0)
+	if (flags & SF_ROT_X_AXIS) != 0:
+		turns = Vector3(0, 0, 1)
+	elif (flags & SF_ROT_Y_AXIS) != 0:
+		turns = Vector3(1, 0, 0)
+
+	var top := float(entity.get("speed", 0.0))
+	if top == 0.0:
+		top = 100.0
+	var pendulum := {
+		"kind": "pendulum",
+		"node": node,
+		"pivot": pivot,
+		"turns": turns,
+		"start": start,
+		"angle": 0.0,
+		"middle": distance * 0.5,
+		"top": top,
+		"accel": top * top / (2.0 * absf(distance)),
+		"damp": float(entity.get("damp", 0.0)) * 0.001,
+		"damped": top,
+		"speed": 0.0,
+		"returns": (flags & SF_PENDULUM_AUTO_RETURN) != 0,
+		"state": "still",
+		"start_at": _now + 0.1 if (flags & SF_PENDULUM_INSTANT) != 0 else -1.0,
+	}
+	_answer(entity, pendulum)
+	_pendulums.append(pendulum)
+
+
+## Set swinging, or stopped: dead where it is, or brought back to where it was built when
+## the mapper asked for that.
+func _pendulum_use(pendulum: Dictionary) -> void:
+	if pendulum["state"] == "still":
+		pendulum["state"] = "swinging"
+		pendulum["damped"] = pendulum["top"]
+	elif pendulum["returns"]:
+		pendulum["state"] = "returning"
+	else:
+		pendulum["state"] = "still"
+		pendulum["speed"] = 0.0
+
+
+func _pendulum_step(pendulum: Dictionary, delta: float) -> void:
+	var pivot = pendulum["pivot"]
+	if pendulum.get("dead", false) or not is_instance_valid(pivot):
+		return
+	var due := float(pendulum["start_at"])
+	if due >= 0.0 and _now >= due:
+		pendulum["start_at"] = -1.0
+		_pendulum_use(pendulum)
+
+	var angle := float(pendulum["angle"])
+	match str(pendulum["state"]):
+		"swinging":
+			# Pulled back toward the middle of the arc from either side. From Swing.
+			var top := float(pendulum["top"])
+			var speed := float(pendulum["speed"])
+			var pull := float(pendulum["accel"]) * delta
+			speed += -pull if angle - float(pendulum["middle"]) > 0.0 else pull
+			speed = clampf(speed, -top, top)
+			var damp := float(pendulum["damp"])
+			if damp > 0.0:
+				var damped := float(pendulum["damped"]) - damp * float(pendulum["damped"]) * delta
+				pendulum["damped"] = damped
+				if damped < 30.0:
+					# Too slow to be worth swinging: it comes to rest hanging in the middle.
+					angle = float(pendulum["middle"])
+					speed = 0.0
+					pendulum["state"] = "still"
+				else:
+					speed = clampf(speed, -damped, damped)
+			pendulum["speed"] = speed
+			angle += speed * delta
+		"returning":
+			angle = move_toward(angle, 0.0, float(pendulum["top"]) * delta)
+			if angle == 0.0:
+				pendulum["state"] = "still"
+				pendulum["speed"] = 0.0
+		_:
+			return
+	pendulum["angle"] = angle
+	(pivot as Node3D).transform.basis = _valve_basis(
+		(pendulum["start"] as Vector3) + (pendulum["turns"] as Vector3) * angle)
+
+
+## Something that runs from one path_corner to the next: a piston, a lift on a route, a
+## train.
+##
+## It starts at the first corner its `target` names, placed so that the middle of its box is
+## on the corner, and goes on to whatever each corner names next. A corner can change its
+## speed, make it wait, set something off as it arrives, or send it straight to the next one.
+## One with a name waits to be told; one without sets off at once. From CFuncTrain in
+## plats.cpp.
+func _build_train(node: MeshInstance3D, entity: Dictionary) -> void:
+	var flags := int(entity.get("spawnflags", 0))
+	if (flags & SF_TRAIN_PASSABLE) != 0:
+		_make_passable(node)
+	var box: AABB = entity.get("bounds", AABB())
+	var speed := float(entity.get("speed", 0.0))
+	if speed == 0.0:
+		speed = 100.0
+	var volume := float(entity.get("volume", 0.0)) * 0.1
+	if volume == 0.0:
+		volume = 0.85
+	var train := {
+		"kind": "train",
+		"node": node,
+		"box": box,
+		"base": node.position,
+		# From the node to the middle of its box, which is the point that rides the corners.
+		"offset": box.get_center() - node.position,
+		"speed": speed * UNIT,
+		"first": str(entity.get("target", "")),
+		"target": "",
+		"current": "",
+		"heading": "",
+		"waits": not str(entity.get("targetname", "")).is_empty(),
+		"held": false,
+		"wait": 0.0,
+		"goal": node.position,
+		"until": 0.0,
+		"state": "stopped",
+		"volume": volume,
+		"move_sound": _listed_sound(PLAT_MOVE_SOUNDS, int(entity.get("movesnd", 0)), true),
+		"stop_sound": _listed_sound(PLAT_STOP_SOUNDS, int(entity.get("stopsnd", 0))),
+		"audio": null,
+		"stop_audio": null,
+	}
+	_answer(entity, train)
+	_trains.append(train)
+
+
+func _train_start(train: Dictionary) -> void:
+	var first: Dictionary = _corners.get(train["first"], {})
+	if first.is_empty():
+		push_warning("[brushes] a func_train goes to '%s', which is no path_corner" % train["first"])
+		return
+	train["target"] = first["target"]
+	train["current"] = train["first"]
+	train["heading"] = train["first"]
+	var node: Node3D = train["node"]
+	node.position = (first["at"] as Vector3) - (train["offset"] as Vector3)
+	if train["waits"]:
+		train["held"] = true
+	else:
+		train["state"] = "waiting"
+		train["until"] = _now + 0.1
+
+
+## On to the next corner. From CFuncTrain::Next.
+func _train_next(train: Dictionary) -> void:
+	var called := str(train["target"])
+	var next: Dictionary = _corners.get(called, {})
+	if next.is_empty():
+		# The end of a line that does not loop.
+		_train_halt(train)
+		return
+	# The speed is the corner it is leaving's, when that corner says.
+	var leaving: Dictionary = _corners.get(train["current"], {})
+	if not leaving.is_empty() and float(leaving["speed"]) != 0.0:
+		train["speed"] = leaving["speed"]
+	train["target"] = next["target"]
+	train["wait"] = next["wait"]
+	train["current"] = called
+	train["heading"] = called
+	train["goal"] = (next["at"] as Vector3) - (train["offset"] as Vector3)
+	if (int(next["flags"]) & SF_CORNER_TELEPORT) != 0:
+		(train["node"] as Node3D).position = train["goal"]
+		_train_arrive(train)
+		return
+	train["state"] = "moving"
+	var audio := _train_audio(train)
+	if audio != null and not audio.playing:
+		audio.play()
+
+
+## At a corner. From CFuncTrain::Wait.
+func _train_arrive(train: Dictionary) -> void:
+	var corner: Dictionary = _corners.get(train["current"], {})
+	if not corner.is_empty() and not str(corner["message"]).is_empty():
+		fire(str(corner["message"]))
+		if (int(corner["flags"]) & SF_CORNER_FIRE_ONCE) != 0:
+			corner["message"] = ""
+	var told := not corner.is_empty() and (int(corner["flags"]) & SF_CORNER_WAIT_FOR_TRIGGER) != 0
+	if told or train["held"]:
+		train["held"] = true
+		_train_halt(train)
+		return
+	var wait := float(train["wait"])
+	train["state"] = "waiting"
+	if wait != 0.0:
+		_train_halt(train)
+		train["state"] = "waiting"
+		# -1 is for good.
+		train["until"] = INF if wait < 0.0 else _now + wait
+	else:
+		# Straight on, on the next tick: a loop of corners that all send it onward at once
+		# would otherwise never come back.
+		train["until"] = _now
+
+
+## Switched: a train that is going stops where it is, and one that is stopped goes on.
+## From CFuncTrain::Use.
+func _train_use(train: Dictionary) -> void:
+	if train["held"]:
+		train["held"] = false
+		_train_next(train)
+		return
+	train["held"] = true
+	# Back to the corner it was heading for, so that it carries on there when it is next told.
+	if not str(train["heading"]).is_empty():
+		train["target"] = train["heading"]
+	_train_halt(train)
+
+
+func _train_halt(train: Dictionary) -> void:
+	train["state"] = "stopped"
+	var audio = train["audio"]
+	if audio != null and (audio as AudioStreamPlayer3D).playing:
+		(audio as AudioStreamPlayer3D).stop()
+	if train["stop_sound"] != null and is_instance_valid(train["node"]):
+		var stop = train["stop_audio"]
+		if stop == null:
+			stop = _machine_player(train["node"] as Node3D, float(train["volume"]))
+			train["stop_audio"] = stop
+		(stop as AudioStreamPlayer3D).stream = train["stop_sound"]
+		(stop as AudioStreamPlayer3D).play()
+
+
+func _train_audio(train: Dictionary) -> AudioStreamPlayer3D:
+	if train["move_sound"] == null or not is_instance_valid(train["node"]):
+		return null
+	if train["audio"] == null:
+		var made := _machine_player(train["node"] as Node3D, float(train["volume"]))
+		made.stream = train["move_sound"]
+		train["audio"] = made
+	return train["audio"]
+
+
+## A sound that comes from the middle of a moving brush and goes with it.
+func _machine_player(node: Node3D, volume: float) -> AudioStreamPlayer3D:
+	var made := AudioStreamPlayer3D.new()
+	made.unit_size = 6.0
+	made.volume_db = MACHINE_VOLUME + linear_to_db(maxf(volume, 0.001))
+	made.max_db = MACHINE_LOUDEST
+	if AudioServer.get_bus_index(&"Rooms") >= 0:
+		made.bus = &"Rooms"
+	node.add_child(made)
+	if node is VisualInstance3D:
+		made.position = (node as VisualInstance3D).get_aabb().get_center()
+	return made
+
+
+func _train_step(train: Dictionary, delta: float) -> void:
+	var node = train["node"]
+	if train.get("dead", false) or not is_instance_valid(node):
+		return
+	match str(train["state"]):
+		"moving":
+			var goal: Vector3 = train["goal"]
+			var here: Vector3 = (node as Node3D).position
+			var stride := float(train["speed"]) * delta
+			if here.distance_to(goal) <= stride:
+				(node as Node3D).position = goal
+				_train_arrive(train)
+			else:
+				(node as Node3D).position = here.move_toward(goal, stride)
+		"waiting":
+			if _now >= float(train["until"]):
+				_train_next(train)
 
 
 ## A door: where it goes, how fast, how long it waits, and what it sounds like.
@@ -651,32 +1211,8 @@ func _build_door(node: MeshInstance3D, entity: Dictionary, rotating: bool) -> vo
 	var box: AABB = entity.get("bounds", AABB())
 
 	if rotating:
-		# A brush mesh is built with its vertices already in world space and its node left at
-		# the origin, so turning the node would swing the door around the middle of the map.
-		# It needs something to turn about, so the node is hung under a pivot and shifted
-		# back by the same amount.
-		#
-		# GoldSrc turns it about the centre of an "origin brush" the mapper places inside it,
-		# which reaches here as the entity's `origin`. A door without one turns about its own
-		# middle — right for a door that is roughly symmetrical and wrong for one hinged hard
-		# to one side, but there is nothing better to go by.
-		var centre := box.position + box.size * 0.5
-		if entity.has("origin"):
-			var raw := str(entity["origin"]).split_floats(" ", false)
-			if raw.size() >= 3:
-				# The level's (x, y, z) is Godot's (-y, z, -x).
-				centre = Vector3(-raw[1], raw[2], -raw[0]) * UNIT
-
-		pivot = Node3D.new()
-		pivot.name = "%s_pivot" % node.name
-		var parent := node.get_parent()
-		var index := node.get_index()
-		parent.remove_child(node)
-		parent.add_child(pivot)
-		parent.move_child(pivot, index)
-		pivot.position = centre
-		pivot.add_child(node)
-		node.position = -centre
+		# Turned about a pivot, because a brush's node does not stand where it turns. See _hang.
+		pivot = _hang(node, entity)
 
 		# Valve's Z is Godot's Y, its X is Godot's -Z, its Y is Godot's -X.
 		if (flags & SF_ROT_X_AXIS) != 0:
@@ -743,7 +1279,14 @@ func _door_sound(pattern: String, index: int) -> AudioStream:
 	return _named_sound(pattern % index)
 
 
-func _named_sound(named: String) -> AudioStream:
+## One of a numbered list of sounds, where 0 and anything past the end are silence.
+func _listed_sound(names: Array, index: int, looping := false) -> AudioStream:
+	if index <= 0 or index >= names.size():
+		return null
+	return _named_sound(str(names[index]), looping)
+
+
+func _named_sound(named: String, looping := false) -> AudioStream:
 	if named.is_empty() or _vfs == null:
 		return null
 	var hit: Dictionary = _vfs.find_files("sound/" + named,
@@ -751,7 +1294,7 @@ func _named_sound(named: String) -> AudioStream:
 	var files: PackedStringArray = hit["files"]
 	if files.is_empty():
 		return null
-	return SoundLoader.load_sound(_vfs, str(files[0]))
+	return SoundLoader.load_sound(_vfs, str(files[0]), looping)
 
 
 func _angles_of(entity: Dictionary) -> Vector3:
@@ -919,6 +1462,13 @@ func step(delta: float) -> void:
 		if _travel(plat, delta):
 			_play(plat, plat["stop_sound"], plat["node"])
 			plat["hold"] = PLAT_HOLD
+
+	for s in _spinners:
+		_spin_step(s as Dictionary, delta)
+	for p in _pendulums:
+		_pendulum_step(p as Dictionary, delta)
+	for t in _trains:
+		_train_step(t as Dictionary, delta)
 
 
 func _play(record: Dictionary, stream: AudioStream, node: Node3D) -> void:
