@@ -1,6 +1,7 @@
 extends RefCounted
 
-## A computed sky for an imported level: gradient, sun, and clouds that move with the wind.
+## A computed sky for an imported level: gradient, sun, and clouds with real thickness (lit
+## tops, grey undersides, haze towards the horizon) that drift and change with the wind.
 ##
 ## A GoldSrc level's own sky is six pictures that belong to the game it came from. They are
 ## right for looking at the level as it was, and wrong for a game of your own. This puts a
@@ -59,7 +60,7 @@ static func attach(map: Node3D, entities: Array = []) -> Node3D:
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	noise.fractal_type = FastNoiseLite.FRACTAL_FBM
 	noise.fractal_octaves = 5
-	noise.frequency = 0.006
+	noise.frequency = 0.004
 	var picture := NoiseTexture2D.new()
 	picture.width = 512
 	picture.height = 512
@@ -70,6 +71,8 @@ static func attach(map: Node3D, entities: Array = []) -> Node3D:
 	var material := ShaderMaterial.new()
 	material.shader = SHADER
 	material.set_shader_parameter(&"cloud_noise", picture)
+	material.set_shader_parameter(&"shape_noise", _volume(false))
+	material.set_shader_parameter(&"billow_noise", _volume(true))
 
 	var sky := Sky.new()
 	sky.sky_material = material
@@ -89,6 +92,36 @@ static func attach(map: Node3D, entities: Array = []) -> Node3D:
 
 	map.add_child(root)
 	return root
+
+
+## The two blocks of noise a cloud is carved from, made once and shared by every sky.
+static var _volumes := {}
+
+
+## A block of noise that repeats without a seam in all three directions: soft lumps for the
+## body of a cloud, or round billows for its surface.
+static func _volume(billows: bool) -> ImageTexture3D:
+	if _volumes.has(billows):
+		return _volumes[billows]
+	var noise := FastNoiseLite.new()
+	noise.seed = 7 if billows else 3
+	noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	if billows:
+		noise.noise_type = FastNoiseLite.TYPE_CELLULAR
+		noise.cellular_return_type = FastNoiseLite.RETURN_DISTANCE
+		noise.fractal_octaves = 3
+		noise.frequency = 0.07
+	else:
+		noise.noise_type = FastNoiseLite.TYPE_PERLIN
+		noise.fractal_octaves = 4
+		noise.frequency = 0.035
+	const SIZE := 64
+	# Cells are dark in the middle and bright at the walls; billows are the other way up.
+	var slices := noise.get_seamless_image_3d(SIZE, SIZE, SIZE, billows, 0.2)
+	var volume := ImageTexture3D.new()
+	volume.create(slices[0].get_format(), SIZE, SIZE, SIZE, false, slices)
+	_volumes[billows] = volume
+	return volume
 
 
 ## The sky's material, for changing the wind or the clouds:

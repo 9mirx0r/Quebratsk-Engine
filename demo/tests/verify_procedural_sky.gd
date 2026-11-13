@@ -7,6 +7,7 @@ extends Node3D
 ## entities are written out by hand. What the sky looks like is for tools/visual_check.py
 ## and a pair of eyes; this judges the parts that have a right answer.
 
+const DistantBackdrop := preload("res://addons/quebratsk_editor/distant_backdrop.gd")
 const ProceduralSky := preload("res://addons/quebratsk_editor/procedural_sky.gd")
 
 var _failures := 0
@@ -92,8 +93,59 @@ func _ready() -> void:
 		var names := PackedStringArray()
 		for uniform in material.shader.get_shader_uniform_list():
 			names.append(str(uniform["name"]))
-		for wanted in ["wind_direction", "wind_speed", "cloud_cover"]:
+		_check("the clouds have a body and a surface to be carved from",
+			material.get_shader_parameter(&"shape_noise") is Texture3D
+			and material.get_shader_parameter(&"billow_noise") is Texture3D)
+		for wanted in ["wind_direction", "wind_speed", "cloud_cover", "cloud_density",
+				"cloud_bottom", "cloud_top", "visibility"]:
 			_check("the shader can be told `%s`" % wanted, names.has(wanted))
+
+	# The land beyond the level.
+	var box := DistantBackdrop.bounds_of(map)
+	_check("the level's bounds ignore the sky and are not empty", box.size.length() > 0.0)
+	_check("an unknown kind of land is refused", DistantBackdrop.attach(map, "ocean of jam") == null)
+	for style in DistantBackdrop.STYLES:
+		var land_node := DistantBackdrop.attach(map, style, node)
+		var land := land_node.get_node_or_null("Land") as MeshInstance3D if land_node != null else null
+		_check("`%s` adds land under the level" % style, land != null and land.mesh != null
+			and land_node.get_parent() == map)
+		if land == null:
+			continue
+		var inner: float = land_node.get_meta(&"inner_radius")
+		var highest := -INF
+		var flat_at_edge := true
+		var points: PackedVector3Array = land.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+		for point in points:
+			highest = maxf(highest, point.y)
+			if Vector2(point.x, point.z).length() < inner + 1.0 and absf(point.y) > 1.5:
+				flat_at_edge = false
+		_check("`%s` starts flat at the level's edge, outside it" % style, flat_at_edge
+			and inner >= Vector2(box.size.x, box.size.z).length() * 0.5)
+		_check("`%s` rises with distance but not past its stated height" % style,
+			highest > 5.0 and highest <= float(DistantBackdrop.STYLES[style]["relief"]) + 0.01)
+		var land_material := DistantBackdrop.material_of(land_node)
+		_check("`%s` fades into the sky's own horizon colour, lit by its sun" % style,
+			land_material != null
+			and land_material.get_shader_parameter(&"sun_direction").is_equal_approx(sun.global_transform.basis.z))
+		_check("`%s` has a town only when it is one" % style,
+			(land_node.get_node_or_null("Town") != null) == (style == "city"))
+		var trees := land_node.get_node_or_null("Trees") as MultiMeshInstance3D
+		_check("`%s` has trees standing on it, drawn with the land's material" % style,
+			trees != null and trees.multimesh.instance_count > 0
+			and trees.material_override == land_material)
+		var inner_edge: float = land_node.get_meta(&"inner_radius")
+		var stray := 0
+		# Read from the node's own note of them: without a screen the renderer keeps no trees to ask.
+		var spots: PackedVector3Array = trees.get_meta(&"spots", PackedVector3Array()) if trees != null else PackedVector3Array()
+		_check("`%s` notes where each of its trees stands" % style,
+			trees != null and spots.size() == trees.multimesh.instance_count)
+		for at in spots:
+			var spot := at - (land_node.get_node("Land") as Node3D).position
+			var out := Vector2(spot.x, spot.z).length()
+			if out < inner_edge or out > DistantBackdrop.TREE_REACH:
+				stray += 1
+		_check("`%s` keeps its trees off the level and within reach" % style, stray == 0)
+		land_node.free()
 
 	if _failures > 0:
 		print("** FAILED ** %d checks" % _failures)

@@ -14,12 +14,15 @@ extends Node3D
 ##   `sun`      look straight at the sun instead of where the spawn faces
 ##   `unbaked`  take the level's painted light off and let the sun and lamps light it
 ##   `high`     from far above the level, so that only the sky is in the picture
+##   `backdrop[:style]`  land around the level (hills, mountains, desert, city)
+##   `above`    with a backdrop: from just over the level's highest point
 ## `loader` instead shows the level's own sky as the older sky_loader.gd builds it, to
 ## compare against the box the importer makes.
 ##
 ## The first argument is matched against the map's path, so "ba_tram1" is enough. It must
 ## run with a window (no --headless): the headless renderer draws nothing.
 
+const DistantBackdrop := preload("res://addons/quebratsk_editor/distant_backdrop.gd")
 const ProceduralSky := preload("res://addons/quebratsk_editor/procedural_sky.gd")
 const OwnLighting := preload("res://addons/quebratsk_editor/own_lighting.gd")
 const SkyLoader := preload("res://addons/quebratsk_editor/sky_loader.gd")
@@ -135,6 +138,14 @@ func _ready() -> void:
 		add_child(old_world)
 	elif sky_mode.begins_with("procedural"):
 		var sky_node := ProceduralSky.attach(map, entities)
+		for word in words:
+			if word.begins_with("backdrop"):
+				var style := word.get_slice(":", 1) if word.contains(":") else "hills"
+				DistantBackdrop.attach(map, style, sky_node)
+				camera.far = DistantBackdrop.REACH + 500.0
+				if words.has("above"):
+					# From a rooftop's height over the level, to judge the land around it.
+					camera.position.y = DistantBackdrop.bounds_of(map).end.y + 25.0
 		var facts := ProceduralSky.sun_of(entities)
 		if words.has("sun"):
 			camera.look_at(eye + facts["direction"], Vector3.FORWARD)
