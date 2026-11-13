@@ -546,6 +546,12 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
     for (int32_t bp = 0; bp < header->num_bodyparts; ++bp) {
         const auto& body = bodyparts[bp];
 
+        // A corner is only the same corner inside one body part: vertex and normal numbers
+        // start again in each. A view model's two hands are mirror images sharing textures,
+        // so their corners carry identical numbers, and remembering them across parts built
+        // the left hand out of the right hand's vertices -- skin stretched between the two.
+        dedup.clear();
+
         const std::string part_name(body.name, strnlen(body.name, sizeof(body.name)));
 
         // Which version of this part to build. Unnamed parts and unknown names keep the first,

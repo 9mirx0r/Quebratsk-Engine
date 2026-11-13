@@ -1,5 +1,9 @@
 extends Node
 
+## What a ray may hit: everything but the level fattened by half a player (layer 20), which
+## exists only for the point at a player's middle and stands 0.9 m proud of every floor.
+const SEEN_BY_RAYS := 0xFFFFFFFF & ~(1 << 19)
+
 ## Where a sound is heard from, rather than merely how loud it is.
 ##
 ## Distance alone is not what tells you a thunderclap happened outside while you are indoors.
@@ -100,6 +104,7 @@ func _physics_process(delta: float) -> void:
 			continue
 
 		var query := PhysicsRayQueryParameters3D.create(sound.global_position, ear)
+		query.collision_mask = SEEN_BY_RAYS
 		query.collide_with_areas = false
 		var blocked := not space.intersect_ray(query).is_empty()
 

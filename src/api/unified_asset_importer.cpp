@@ -1215,8 +1215,14 @@ Node3D* UnifiedAssetImporter::load_map(const String& vfs_uri) {
     for (size_t i = 1; i < parsed.brush_meshes.size(); ++i) {
         if (parsed.brush_meshes[i].surfaces.empty()) continue;
 
+        // A texture the level carries inside itself is kept once, with the world, and a
+        // brush entity's surfaces point into that same list. Lent to it for the conversion:
+        // without this every door, crate and lift in a level that ships its own textures
+        // came out blank, which on cs_siege was ninety-eight surfaces.
+        std::swap(parsed.brush_meshes[i].embedded_textures, parsed.mesh.embedded_textures);
         Ref<ArrayMesh> brush =
             converters::MeshConverter::convert(parsed.brush_meshes[i], &loader, &lighting);
+        std::swap(parsed.brush_meshes[i].embedded_textures, parsed.mesh.embedded_textures);
         if (brush.is_null()) continue;
 
         MeshInstance3D* node = memnew(MeshInstance3D);

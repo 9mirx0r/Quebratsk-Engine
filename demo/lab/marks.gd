@@ -1,5 +1,9 @@
 extends Node3D
 
+## What a ray may hit: everything but the level fattened by half a player (layer 20), which
+## exists only for the point at a player's middle and stands 0.9 m proud of every floor.
+const SEEN_BY_RAYS := 0xFFFFFFFF & ~(1 << 19)
+
 ## What a shot leaves behind: a hole in the wall, or blood.
 ##
 ## Both are decals, and a GoldSrc decal is an ordinary texture in a .wad whose name begins with
@@ -53,7 +57,7 @@ func setup(lab: Node3D) -> void:
 	for named in BULLET_HOLES + BLOOD_MARKS:
 		if _texture_named(str(named)) != null:
 			found += 1
-	_blood_sprite = _texture_named("sprites/bloodspray.spr")
+	_blood_sprite = _soft_dot()
 	print("[marks] %d of %d decal(s) found in the game's wads"
 		% [found, BULLET_HOLES.size() + BLOOD_MARKS.size()])
 
@@ -71,6 +75,7 @@ func blood(at: Vector3, direction: Vector3, amount: int) -> void:
 	# passes into open air leaves nothing, which is right.
 	var space := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(at, at + direction.normalized() * 6.0)
+	query.collision_mask = SEEN_BY_RAYS
 	var hit := space.intersect_ray(query)
 	if hit.is_empty():
 		return
@@ -129,7 +134,7 @@ func _place(named: String, at: Vector3, normal: Vector3, size: float) -> void:
 	mesh.size = Vector2(size, size)
 	var material := StandardMaterial3D.new()
 	material.albedo_texture = texture
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	# Off the wall by a millimetre, or it flickers against the surface it is drawn on.
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -158,8 +163,44 @@ func _texture_named(named: String) -> Texture2D:
 		return _textures[named]
 	var texture: Texture2D = null
 	if _lab != null and _lab.importer != null:
-		texture = _lab.importer.load_texture(named)
+		texture = _as_decal(_lab.importer.load_texture(named), named.contains("blood"))
 	_textures[named] = texture
 	if texture == null:
 		push_warning("[marks] no decal called '%s'" % named)
 	return texture
+
+
+## A decal as the game draws it, rather than as the file stores it.
+##
+## A decal in decals.wad is not a picture: it is a grey ramp saying how much of the mark is
+## there, white for none and darker for more, and the game supplies the colour. Drawn as a
+## picture it is a white square with a dark dot in it. So the grey becomes the opacity and
+## the colour is chosen here: near black for a bullet hole, dark red for blood.
+func _as_decal(source: Texture2D, bloody: bool) -> Texture2D:
+	if source == null:
+		return null
+	var image := source.get_image()
+	if image == null:
+		return null
+	if image.is_compressed():
+		image.decompress()
+	image.convert(Image.FORMAT_RGBA8)
+	var tint := Color(0.33, 0.02, 0.02) if bloody else Color(0.06, 0.06, 0.06)
+	for y in image.get_height():
+		for x in image.get_width():
+			var there := 1.0 - image.get_pixel(x, y).get_luminance()
+			image.set_pixel(x, y, Color(tint.r, tint.g, tint.b, there))
+	return ImageTexture.create_from_image(image)
+
+
+## A round drop for the spray, soft at the edge. The game's own is a sprite, which the
+## texture reader does not open; a plain square is what it looked like without one.
+func _soft_dot() -> Texture2D:
+	var size := 32
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var middle := (size - 1) / 2.0
+	for y in size:
+		for x in size:
+			var away := Vector2(x - middle, y - middle).length() / middle
+			image.set_pixel(x, y, Color(1, 1, 1, clampf(1.0 - away * away, 0.0, 1.0)))
+	return ImageTexture.create_from_image(image)

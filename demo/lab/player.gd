@@ -1,5 +1,9 @@
 extends CharacterBody3D
 
+## What a ray may hit: everything but the level fattened by half a player (layer 20), which
+## exists only for the point at a player's middle and stands 0.9 m proud of every floor.
+const SEEN_BY_RAYS := 0xFFFFFFFF & ~(1 << 19)
+
 ## First-person controller, on the engine's own numbers.
 ##
 ## Every constant here is a GoldSrc cvar times 0.0254, because a Hammer unit is an inch. None
@@ -13,6 +17,7 @@ const AnimationSets := preload("res://addons/quebratsk_editor/animation_sets.gd"
 const SoundCatalogue := preload("res://addons/quebratsk_editor/sound_catalogue.gd")
 const SoundLoader := preload("res://addons/quebratsk_editor/sound_loader.gd")
 const ModelPreset := preload("res://addons/quebratsk_editor/model_preset.gd")
+const WeaponManifest := preload("res://addons/quebratsk_editor/weapon_manifest.gd")
 
 const UNIT := 0.0254
 
@@ -67,8 +72,10 @@ const STEP_INTERVAL_WALK := 0.40
 const STEP_INTERVAL_RUN := 0.30
 const VEL_WALK := 120.0 * UNIT
 const VEL_RUN := 210.0 * UNIT
-const STEP_VOLUME_WALK := -14.0    # 0.2 and 0.5 in the engine's linear scale
-const STEP_VOLUME_RUN := -6.0
+# 0.2 and 0.5 in the engine's linear scale, counted down from the rifle rather than from full:
+# a footstep at half of everything was louder than the gun, which plays at -14.
+const STEP_VOLUME_WALK := -28.0
+const STEP_VOLUME_RUN := -20.0
 
 ## MAX_CLIMB_SPEED, and the shove a jump gives you off a ladder.
 const CLIMB_SPEED := 200.0 * UNIT
@@ -132,6 +139,14 @@ var _ducked := false
 var _view_anim: AnimationPlayer
 var _attacks := PackedStringArray()
 var _reload_chain := PackedStringArray()
+
+## Rounds in the weapon, how many it holds, and how many are carried besides. The size is the
+## game's own figure for the weapon; a knife has none, and then nothing here counts.
+var _clip := 0
+var _clip_size := 0
+var _reserve := 0
+var _refill_at := 0.0
+var _dry_click: AudioStream
 
 ## The noises a reload makes, in the order the weapon makes them, and a player to make them
 ## with. Separate from the gunshot so a magazine going in is not cut off by a shot.
@@ -241,6 +256,12 @@ func setup(lab: Node3D, camera: Camera3D, preset: Dictionary, weapon: Dictionary
 ## Hold the weapon: its own model in front of the camera, and what the game says it does.
 func _arm(weapon: Dictionary) -> void:
 	_cycle = float(weapon.get("cycle_time", 0.0))
+	_clip_size = int(WeaponManifest.lookup(str(weapon.get("model", weapon.get("name", "")))).get("clip_size", 0))
+	if _clip_size <= 0:
+		_clip_size = int(WeaponManifest.lookup(str(weapon.get("name", ""))).get("clip_size", 0))
+	_clip = _clip_size
+	_reserve = _clip_size * 3
+	_dry_click = SoundLoader.load_sound(_lab.vfs, "weapons/dryfire_rifle.wav")
 	var declared := float(weapon.get("max_speed", 0.0))
 	_speed = declared if declared > 0.0 else SPEED
 
@@ -256,6 +277,12 @@ func _arm(weapon: Dictionary) -> void:
 			child.queue_free()
 	model.position = Vector3(0.0, -0.06, -0.08)
 	_camera.add_child(model)
+
+	# In the right hand. Counter-Strike's view models are built held in the left and the game
+	# draws them mirrored unless told otherwise (cl_righthand, on by default), so the same
+	# mirror is applied here. Godot notices a mirrored node and turns its triangles round by
+	# itself; the materials are left exactly as they are.
+	model.scale = Vector3(-1.0, 1.0, 1.0)
 
 	_view_anim = model.get_node_or_null("AnimationPlayer")
 	if _view_anim == null:
@@ -336,6 +363,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_R:
 			_reload()
+		elif event.keycode == KEY_E:
+			# The use key: whatever button or door is within reach of the eye and in front
+			# of it.
+			if _lab != null and _lab.has_method("use_brush"):
+				_lab.use_brush(_camera.global_position, -_camera.global_transform.basis.z)
 		elif event.keycode == KEY_G:
 			_god = not _god
 			if _god:
@@ -357,6 +389,13 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_play_reload_sounds()
+
+	# The rounds arrive when the reload ends, not when it starts.
+	if _refill_at > 0.0 and Time.get_ticks_msec() / 1000.0 >= _refill_at:
+		_refill_at = 0.0
+		var taken := mini(_clip_size - _clip, _reserve)
+		_clip += taken
+		_reserve -= taken
 
 	var forward := 0.0
 	var strafe := 0.0
@@ -617,6 +656,7 @@ func _surface_underfoot() -> String:
 	var space := get_world_3d().direct_space_state
 	var from := global_position + Vector3(0, _soles + 0.2, 0)
 	var query := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 1.2)
+	query.collision_mask = SEEN_BY_RAYS
 	query.exclude = [get_rid()]
 	var hit := space.intersect_ray(query)
 	if hit.is_empty() or not hit.has("face_index"):
@@ -711,6 +751,20 @@ func _shoot() -> void:
 		return
 	_next_shot = now + maxf(_cycle, 0.05)
 
+	if _clip_size > 0:
+		if _clip <= 0:
+			# Empty: with rounds left it reloads by itself, as the game does; with none it
+			# clicks.
+			if _reserve > 0:
+				_reload()
+			else:
+				_next_shot = now + 0.25
+				if _dry_click != null:
+					_audio.stream = _dry_click
+					_audio.play()
+			return
+		_clip -= 1
+
 	if _gunshot != null:
 		_audio.stream = _gunshot
 		_audio.play()
@@ -726,6 +780,7 @@ func _shoot() -> void:
 	var from := _camera.global_position
 	var query := PhysicsRayQueryParameters3D.create(
 		from, from - _camera.global_transform.basis.z * RANGE)
+	query.collision_mask = SEEN_BY_RAYS
 	query.exclude = [get_rid()]
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if hit.is_empty():
@@ -762,6 +817,9 @@ func _reload() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if now < _busy_until:
 		return
+	# A full weapon does not reload, and neither does one with nothing to put in it.
+	if _clip_size > 0 and (_clip >= _clip_size or _reserve <= 0):
+		return
 
 	_view_anim.stop()
 	var total := 0.0
@@ -777,12 +835,21 @@ func _reload() -> void:
 		if clip != null:
 			total += clip.length
 	_busy_until = now + total
+	if _clip_size > 0:
+		_refill_at = _busy_until
 
 	# The noises, each at the moment the animator put it. The event carries the frame it
 	# fires on and the sequence carries its frame rate, so this is exact rather than spread.
 	if not _reload_sounds.is_empty():
 		_reload_queue = 0
 		_reload_started = now
+
+
+## What the weapon holds, for the HUD: rounds in it and rounds carried. Empty for a knife.
+func ammo_text() -> String:
+	if _clip_size <= 0:
+		return ""
+	return "%d / %d" % [_clip, _reserve]
 
 
 func take_damage(amount: int) -> void:

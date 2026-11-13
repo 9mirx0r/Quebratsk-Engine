@@ -36,6 +36,11 @@ const MATERIALS := {
 	"generic":  {"damping": 0.40, "wet": 0.30, "hipass": 0.05},
 }
 
+## How much of the table's "wet" actually reaches the ear. The game's rooms colour a sound;
+## they do not drown it, and at full strength a large room here turned a walk across a yard
+## into a walk through a cave.
+const WET_SCALE := 0.3
+
 ## Size, by the word the room type ends with. The numbered variants — "Water 1", "Big 3" —
 ## count as small, medium and large in order, which is what those numbers mean.
 const SIZES := {
@@ -70,7 +75,7 @@ static func reverb_for(roomtype: int, name := "") -> AudioEffectReverb:
 	reverb.predelay_msec = float(size["predelay"])
 	reverb.damping = float(material["damping"])
 	reverb.hipass = float(material["hipass"])
-	reverb.wet = float(material["wet"])
+	reverb.wet = float(material["wet"]) * WET_SCALE
 	reverb.dry = 1.0
 	reverb.spread = 0.9
 	return reverb

@@ -1,5 +1,9 @@
 extends Node3D
 
+## What a ray may hit: everything but the level fattened by half a player (layer 20), which
+## exists only for the point at a player's middle and stands 0.9 m proud of every floor.
+const SEEN_BY_RAYS := 0xFFFFFFFF & ~(1 << 19)
+
 ## A playable level built out of a game you already own, for finding out what is still wrong.
 ##
 ## Press play. It mounts Counter-Strike 1.6, opens a map, and drops you into it with a weapon
@@ -11,7 +15,7 @@ extends Node3D
 ## comes from res://presets — which of a model's hundred and eleven sequences is walking, what
 ## a weapon sounds like, how fast it lets you move — so this file only has to place things.
 ##
-## Controls: WASD move, mouse look, click to shoot, R reload, Space jump, Ctrl crouch,
+## Controls: WASD move, mouse look, click to shoot, E use, R reload, Space jump, Ctrl crouch,
 ## Shift walk quietly, Escape for the cursor.
 
 const ModelPreset := preload("res://addons/quebratsk_editor/model_preset.gd")
@@ -63,6 +67,7 @@ var _player: CharacterBody3D
 var _map_uri := ""
 var _spawns: Array[Vector3] = []
 var _hud: Label
+var _ammo: Label
 var _weather: Node3D
 var _thunder_zones: Array[AABB] = []
 var _thunder_ready := 0.0
@@ -79,6 +84,12 @@ var marks: Node3D
 ## smallest first, so standing inside a cupboard inside a hall gives you the cupboard.
 var _rooms: Array = []
 var _room_now := -1
+## The last room you were in before stepping outside.
+var _room_inside := -1
+## _room_now while under the open sky.
+const OUTSIDE := -2
+## How far up there must be nothing for a place to count as outdoors, in metres.
+const OPEN_SKY := 8.0
 var _acoustics: Node
 
 ## Sounds built before the buses existed, waiting to be put on one. The map's ambience is
@@ -118,6 +129,7 @@ func _ready() -> void:
 
 	_place_player()
 	_place_hostages()
+	_place_glows()
 
 	# The buses exist before anything that makes a noise is built, so every sound can be put
 	# on the right one as it is created rather than moved afterwards.
@@ -184,6 +196,8 @@ func _open_map() -> bool:
 	brushes.name = "Brushes"
 	add_child(brushes)
 	brushes.setup(self, map, entities)
+	# The player has a use key, so a button waits for it instead of for being walked into.
+	brushes.press_by_touch = false
 	_brushes = brushes
 
 	marks = MarksScript.new()
@@ -410,9 +424,29 @@ func _build_weather(entities: Array, map: Node3D) -> void:
 		print("[lab] %s sets off no thunder" % _map_uri.get_file())
 
 
+## The use key was pressed at `from`, looking along `toward`. True when it found something.
+func use_brush(from: Vector3, toward: Vector3) -> bool:
+	return _brushes != null and _brushes.use(from, toward)
+
+
 ## Something was shot that is not a person. Passed to whatever owns the level's brushes.
 func hurt_brush(collider: Object, amount: float) -> bool:
 	return _brushes != null and _brushes.hurt(collider, amount)
+
+
+## Something in the level fired this name. The sounds that wait for one answer here: a
+## looping one is switched on or off, any other is played. From ambient_generic's own use.
+func fire_target(target: String) -> bool:
+	if not _triggered_sounds.has(target):
+		return false
+	var sound: AudioStreamPlayer3D = _triggered_sounds[target]
+	if not is_instance_valid(sound):
+		return false
+	if sound.playing:
+		sound.stop()
+	else:
+		sound.play()
+	return true
 
 
 ## Follow this sound, so a wall between it and the listener is heard as a wall.
@@ -478,6 +512,23 @@ func _update_room() -> void:
 
 	var ear := _player.global_position
 	var space := get_world_3d().direct_space_state
+
+	# Under the open sky there is no room to ring. The map's markers say "Big 3" for its yards
+	# as well, and a room type sticks until the next marker, so walking out of a corridor kept
+	# the corridor's echo. Nothing overhead for OPEN_SKY metres is outside; every roof on
+	# cs_siege is lower than that and every yard higher.
+	var up := PhysicsRayQueryParameters3D.create(ear + Vector3.UP * 0.5, ear + Vector3.UP * OPEN_SKY)
+	up.collision_mask = SEEN_BY_RAYS
+	up.exclude = [_player.get_rid()]
+	if space.intersect_ray(up).is_empty():
+		if _room_now != OUTSIDE:
+			if _room_now >= 0:
+				_room_inside = _room_now
+			_room_now = OUTSIDE
+			_acoustics.set_room(null)
+			print("[lab] room: outside")
+		return
+
 	var best := -1
 	var best_range := INF
 
@@ -488,13 +539,17 @@ func _update_room() -> void:
 		if distance > float(room["radius"]) or distance >= best_range:
 			continue
 		var query := PhysicsRayQueryParameters3D.create(at, ear)
+		query.collision_mask = SEEN_BY_RAYS
 		query.exclude = [_player.get_rid()]
 		if not space.intersect_ray(query).is_empty():
 			continue   # something in the way; the game does not hear this one either
 		best = i
 		best_range = distance
 
-	# Nothing in range and visible leaves the room as it was, which is the sticky part.
+	# Nothing in range and visible leaves the room as it was, which is the sticky part; coming
+	# back in from outside, "as it was" is the room you went out from.
+	if best < 0 and _room_now == OUTSIDE and _room_inside >= 0:
+		best = _room_inside
 	if best < 0 or best == _room_now:
 		return
 	_room_now = best
@@ -589,7 +644,11 @@ func _stand_on_floor(body: CharacterBody3D, at: Vector3) -> void:
 	body.global_position = at
 
 	var space := get_world_3d().direct_space_state
-	var query := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 2.0, at + Vector3.DOWN * 60.0)
+	# From just above the point and no higher. Starting two metres up found the floor of the
+	# room above whenever the ceiling was lower than that, and stood people on the roof with
+	# their legs through it.
+	var query := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 0.3, at + Vector3.DOWN * 60.0)
+	query.collision_mask = SEEN_BY_RAYS
 	query.exclude = [body.get_rid()]
 	var hit := space.intersect_ray(query)
 	if hit.is_empty():
@@ -666,6 +725,58 @@ func _place_player() -> void:
 ## Each declares `skin 1`, which selects a skin family — a second full set of textures the
 ## model carries. The importer builds family 0 and only family 0, so these come out wearing the
 ## wrong clothes. Named rather than quietly accepted: it is a real gap in the reader.
+## The soft light around a lamp: the map's env_glow entities.
+##
+## In the game each is a sprite (`sprites/glow03.spr`, a round blur) added over the picture in
+## the entity's `rendercolor` at `renderamt` out of 255. The blur is drawn here rather than read
+## from the file, which the importer does not open yet; colour, strength and place are the map's.
+func _place_glows() -> void:
+	var fade := Gradient.new()
+	fade.set_color(0, Color(1, 1, 1, 1))
+	fade.set_color(1, Color(1, 1, 1, 0))
+	var blur := GradientTexture2D.new()
+	blur.gradient = fade
+	blur.fill = GradientTexture2D.FILL_RADIAL
+	blur.fill_from = Vector2(0.5, 0.5)
+	blur.fill_to = Vector2(0.5, 0.0)
+	blur.width = 64
+	blur.height = 64
+
+	var placed := 0
+	for e in importer.load_map_entities(_map_uri):
+		var entity: Dictionary = e
+		if str(entity.get("classname", "")) != "env_glow":
+			continue
+		var tint := Color(1, 1, 1)
+		var parts := str(entity.get("rendercolor", "")).split(" ", false)
+		if parts.size() >= 3:
+			tint = Color(float(parts[0]) / 255.0, float(parts[1]) / 255.0, float(parts[2]) / 255.0)
+		tint.a = clampf(float(str(entity.get("renderamt", "255"))) / 255.0, 0.0, 1.0)
+
+		var glow := Sprite3D.new()
+		glow.name = "glow_%d" % placed
+		glow.texture = blur
+		glow.modulate = tint
+		glow.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		glow.shaded = false
+		glow.double_sided = true
+		# 64 texels across, and a GoldSrc unit is an inch.
+		glow.pixel_size = 0.0254 * maxf(float(str(entity.get("scale", "1"))), 0.1)
+		var look := StandardMaterial3D.new()
+		look.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		look.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		look.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		look.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		look.albedo_texture = blur
+		look.albedo_color = tint
+		glow.material_override = look
+		add_child(glow)
+		glow.global_position = entity.get("position", Vector3.ZERO) as Vector3
+		placed += 1
+	if placed > 0:
+		print("[lab] %d lamp glow(s)" % placed)
+
+
 func _place_hostages() -> void:
 	var placed := 0
 	for e in importer.load_map_entities(_map_uri):
@@ -754,6 +865,8 @@ func _process(delta: float) -> void:
 		return
 	_weather.follow(_player)
 	_update_room()
+	if _ammo != null and _player.has_method("ammo_text"):
+		_ammo.text = _player.ammo_text()
 
 	_thunder_ready -= delta
 	if _thunder_ready > 0.0:
@@ -785,6 +898,19 @@ func _build_hud() -> void:
 	_hud.add_theme_constant_override("outline_size", 4)
 	layer.add_child(_hud)
 
+	# Rounds in the weapon and rounds carried, bottom right, where the game puts them.
+	_ammo = Label.new()
+	_ammo.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	_ammo.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_ammo.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_ammo.offset_right = -24
+	_ammo.offset_bottom = -18
+	_ammo.add_theme_font_size_override("font_size", 30)
+	_ammo.add_theme_color_override("font_color", Color(1.0, 0.82, 0.25))
+	_ammo.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	_ammo.add_theme_constant_override("outline_size", 5)
+	layer.add_child(_ammo)
+
 
 func _say(text: String) -> void:
 	if _hud != null:
@@ -799,7 +925,7 @@ func _refresh_hud() -> void:
 	if _player != null and is_instance_valid(_player) and _player.has_method("is_immortal") 			and not _player.is_immortal():
 		lines.append("health     %d" % _player.health)
 	lines.append("")
-	lines.append("WASD move · mouse look · click shoot · R reload")
+	lines.append("WASD move · mouse look · click shoot · E use · R reload")
 	lines.append("Space jump · Ctrl crouch · Shift walk · Esc cursor")
 	lines.append("V noclip · G god mode (on) · F3 kill the enemies")
 	_hud.text = "\n".join(lines)
