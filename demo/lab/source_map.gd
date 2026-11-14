@@ -8,8 +8,8 @@ extends RefCounted
 ## brush entities are shown and stood on, and loading the props a few at a time so the level
 ## can be walked while they arrive.
 ##
-## Not read yet: the light baked into each prop, water as water, overlays and decals,
-## cubemaps, and the files packed inside the level.
+## Not read yet: the light baked into each prop's corners (they are lit by the level's light
+## for moving things instead), water as water, overlays and decals, and cubemaps.
 
 ## Brush entities that are drawn and stood on where the level put them. The others (triggers,
 ## volumes of rain or dust, portals, occluders) are the level's bookkeeping, not its shape.
@@ -23,6 +23,10 @@ const GHOST_CLASSES := ["func_illusionary"]
 var entities: Array = []
 var spawns: Array[Vector3] = []
 var report := {}
+
+## What lights the props by the level's own light for moving things, when there is one:
+## the lab's floor light, given use_ambient().
+var light: Node = null
 
 var _importer
 var _vfs
@@ -175,6 +179,8 @@ func build_props(root: Node3D, tree: SceneTree) -> void:
 				drawn.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				drawn.visibility_range_end = 90.0
 				holder.add_child(drawn)
+				if light != null:
+					light.light_prop(drawn)
 				if stand["solid"][i]:
 					if shape == null:
 						shape = source.mesh.create_trimesh_shape()

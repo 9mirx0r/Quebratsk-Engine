@@ -230,6 +230,22 @@ public:
     /// to the caller, who knows how many it can afford at once. Empty for a GoldSrc map.
     godot::Array load_map_props(const godot::String& vfs_uri);
 
+    /// The light a Source level kept for things that move through it, which the light
+    /// picture on its walls cannot give them.
+    ///
+    /// Returns a Dictionary, in the same axes and metres as load_map():
+    ///   "root": int, the first split of the world;
+    ///   "splits": PackedFloat32Array, four per split: the plane's normal and distance;
+    ///   "children": PackedInt32Array, two per split: in front, behind. Below zero is the
+    ///       leaf -(child + 1);
+    ///   "leaves": PackedInt32Array, two per leaf: its first sample and how many;
+    ///   "spots": PackedVector3Array, where each sample was taken;
+    ///   "colours": PackedColorArray, six per sample: the light on a surface facing +X, -X,
+    ///       +Y, -Y, +Z, -Z, linear, and able to pass 1;
+    ///   "hdr": bool, whether the HDR copy was used.
+    /// Empty for a GoldSrc map, or a Source one that kept no such light.
+    godot::Dictionary load_map_ambient(const godot::String& vfs_uri);
+
     /// Load a map as something you can stand on.
     ///
     /// Returns the world as a MeshInstance3D with a StaticBody3D under it. For a GoldSrc

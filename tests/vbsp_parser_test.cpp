@@ -80,6 +80,7 @@ static std::vector<uint8_t> build_level() {
 
     std::vector<uint8_t> planes;
     put(planes, VbspPlane{{0, 0, 1}, 0, 2});
+    put(planes, VbspPlane{{1, 0, 0}, 50, 0});   // the split between the two open leaves
     add(kLumpPlanes, planes);
 
     // Texture names: "Concrete\Floor01" and "TOOLS/TOOLSSKYBOX".
@@ -246,6 +247,41 @@ static std::vector<uint8_t> build_level() {
     game.insert(game.end(), sprp.begin(), sprp.end());
     add(kLumpGame, game);
 
+    // The light kept for moving things. One split at x = 50: in front of it leaf 1, from
+    // x 50 to 150, with a sample at each end; behind it leaf 2 with one in its middle. Leaf 0
+    // is the solid leaf every level starts with, and keeps none.
+    std::vector<uint8_t> nodes;
+    put(nodes, VbspNode{1, {-2, -3}, {-50, 0, 0}, {150, 100, 100}, 0, 0, 0, 0});
+    add(kLumpNodes, nodes);
+    std::vector<uint8_t> leaves;
+    put(leaves, VbspLeaf{1, -1, 0, {0, 0, 0}, {0, 0, 0}, 0, 0, 0, 0, -1, 0});
+    put(leaves, VbspLeaf{0, 0, 0, {50, 0, 0}, {150, 100, 100}, 0, 0, 0, 0, -1, 0});
+    put(leaves, VbspLeaf{0, 1, 0, {-50, 0, 0}, {50, 100, 100}, 0, 0, 0, 0, -1, 0});
+    add(kLumpLeafs, leaves);
+    header.lumps[kLumpLeafs].version = 1;
+    // Each face of a cube a different colour, so the turn into Godot's order shows: face i of
+    // the level's is red (i + 1) * 10, and the HDR copy twice as bright as the plain one.
+    const auto cube = [](uint8_t green, int8_t exponent) {
+        VbspLightCube c{};
+        for (int i = 0; i < 6; ++i) {
+            c.faces[i] = {static_cast<uint8_t>((i + 1) * 10), green, 0, exponent};
+        }
+        return c;
+    };
+    for (const bool hdr : {false, true}) {
+        const int8_t exponent = hdr ? 1 : 0;
+        std::vector<uint8_t> index;
+        put(index, VbspLeafAmbientIndex{0, 0});
+        put(index, VbspLeafAmbientIndex{2, 0});
+        put(index, VbspLeafAmbientIndex{1, 2});
+        std::vector<uint8_t> samples;
+        put(samples, VbspLeafAmbientSample{cube(0, exponent), 0, 0, 0, 0});
+        put(samples, VbspLeafAmbientSample{cube(200, exponent), 255, 0, 0, 0});
+        put(samples, VbspLeafAmbientSample{cube(100, exponent), 128, 128, 128, 0});
+        add(hdr ? kLumpLeafAmbientIndexHdr : kLumpLeafAmbientIndex, index);
+        add(hdr ? kLumpLeafAmbientLightingHdr : kLumpLeafAmbientLighting, samples);
+    }
+
     std::memcpy(file.data(), &header, sizeof(header));
     return file;
 }
@@ -363,6 +399,38 @@ static void test_hand_built() {
     check("prop stays upright", near(prop.transform.basis.xform(godot::Vector3(0, 1, 0)),
                                      godot::Vector3(0, 1, 0)));
     check("no pakfile", map.pakfile.empty());
+
+    // The light kept for moving things.
+    const VBSPAmbient& ambient = map.ambient;
+    check("ambient read", ambient.is_valid());
+    check("ambient from the HDR copy", ambient.hdr);
+    check("three samples", ambient.spots.size() == 3 && map.stats.light_samples == 3);
+    check("sample at its leaf's corner",
+          ambient.spots.size() == 3 &&
+              near(ambient.spots[0], quebratsk::math::source_to_godot(godot::Vector3(50, 0, 0))));
+    check("sample at its leaf's far end",
+          ambient.spots.size() == 3 &&
+              near(ambient.spots[1], quebratsk::math::source_to_godot(godot::Vector3(150, 0, 0))));
+    const auto in = [](float x, float y, float z) {
+        return quebratsk::math::source_to_godot(godot::Vector3(x, y, z));
+    };
+    check("in front of the split is leaf 1", ambient.leaf_at(in(100, 50, 50)) == 1);
+    check("behind it is leaf 2", ambient.leaf_at(in(0, 50, 50)) == 2);
+    godot::Color six[6];
+    check("light found at a sample", ambient.light_at(in(50, 0, 0), six));
+    // Godot's +X is the level's -Y (its face 3), +Y its +Z (4), +Z its -X (1). Doubled by
+    // the HDR exponent.
+    check("+X is the level's -Y", near(six[0].r, 40 * 2 / 255.0f, 0.002f));
+    check("-X is the level's +Y", near(six[1].r, 30 * 2 / 255.0f, 0.002f));
+    check("+Y is the level's up", near(six[2].r, 50 * 2 / 255.0f, 0.002f));
+    check("-Y is the level's down", near(six[3].r, 60 * 2 / 255.0f, 0.002f));
+    check("+Z is the level's -X", near(six[4].r, 20 * 2 / 255.0f, 0.002f));
+    check("-Z is the level's +X", near(six[5].r, 10 * 2 / 255.0f, 0.002f));
+    check("the nearest sample counts most", near(six[0].g, 0.0f, 0.01f));
+    check("halfway between two samples, half of each",
+          ambient.light_at(in(100, 0, 0), six) && near(six[0].g, 200 * 2 / 255.0f / 2, 0.002f));
+    check("the other leaf has its own light",
+          ambient.light_at(in(0, 10, 90), six) && near(six[0].g, 100 * 2 / 255.0f, 0.002f));
 
     // Not a level, and a level from a version this reader does not know.
     std::vector<uint8_t> broken = file;

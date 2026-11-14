@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include <godot_cpp/variant/color.hpp>
 #include <godot_cpp/variant/transform3d.hpp>
 #include <godot_cpp/variant/vector3.hpp>
 
@@ -34,6 +35,44 @@ struct VBSPLightmap {
         return width > 0 && height > 0 &&
                rgb.size() == static_cast<size_t>(width) * height * 3;
     }
+};
+
+/// The light a level stored for things that move through it (people, the weapon in hand,
+/// props), which the light picture on the walls cannot light.
+///
+/// The level is cut into pieces of open space (leaves) by a tree of planes, and each leaf
+/// keeps the light at a few spots inside it, as six colours: the light falling on a surface
+/// that faces each way along the axes. Everything here is in Godot's axes and metres, and
+/// the six colours are in Godot's order: +X, -X, +Y, -Y, +Z, -Z.
+struct VBSPAmbient {
+    struct Split {
+        godot::Vector3 normal;
+        float dist = 0.0f;
+        int32_t front = 0;   // a child below zero is the leaf -(child + 1)
+        int32_t back = 0;
+    };
+    struct Range {
+        uint32_t first = 0;
+        uint32_t count = 0;
+    };
+
+    int32_t root = 0;                     // the world's first split
+    std::vector<Split> splits;
+    std::vector<Range> leaves;            // which samples are each leaf's
+    std::vector<godot::Vector3> spots;    // where each sample was taken
+    std::vector<godot::Color> colours;    // six per sample, linear, can pass 1
+    bool hdr = false;                     // the HDR copy was used
+
+    [[nodiscard]] bool is_valid() const {
+        return !splits.empty() && !leaves.empty() && colours.size() == spots.size() * 6;
+    }
+
+    /// The leaf `at` falls in, or -1.
+    [[nodiscard]] int32_t leaf_at(const godot::Vector3& at) const;
+
+    /// The six colours at `at`, blended from its leaf's samples by nearness. False when its
+    /// leaf holds none (inside a wall, or outside the level).
+    bool light_at(const godot::Vector3& at, godot::Color out[6]) const;
 };
 
 /// One of the props a level places by the thousand.
@@ -69,6 +108,7 @@ struct VBSPStats {
     size_t lit_faces = 0;
     size_t unlit_faces = 0;          // drawn without baked light
     size_t compressed_lumps = 0;     // LZMA lumps, which this reader does not open
+    size_t light_samples = 0;        // spots where the level kept light for moving things
 };
 
 struct ParsedVBSPMap {
@@ -87,6 +127,8 @@ struct ParsedVBSPMap {
     int32_t prop_lump_version = 0;
     std::vector<std::string> prop_models;
     std::vector<VBSPStaticProp> props;
+
+    VBSPAmbient ambient;
 
     /// The zip packed into the level (lump 40): its own materials, models and cubemaps.
     std::span<const std::byte> pakfile;

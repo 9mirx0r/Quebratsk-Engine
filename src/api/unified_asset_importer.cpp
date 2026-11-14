@@ -31,7 +31,11 @@
 #include <godot_cpp/classes/mesh_instance3d.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/memory.hpp>
+#include <godot_cpp/variant/packed_color_array.hpp>
+#include <godot_cpp/variant/packed_float32_array.hpp>
+#include <godot_cpp/variant/packed_int32_array.hpp>
 #include <godot_cpp/variant/packed_string_array.hpp>
+#include <godot_cpp/variant/packed_vector3_array.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <algorithm>
@@ -152,6 +156,8 @@ void UnifiedAssetImporter::_bind_methods() {
                          &UnifiedAssetImporter::load_map_entities);
     ClassDB::bind_method(D_METHOD("load_map_props", "vfs_uri"),
                          &UnifiedAssetImporter::load_map_props);
+    ClassDB::bind_method(D_METHOD("load_map_ambient", "vfs_uri"),
+                         &UnifiedAssetImporter::load_map_ambient);
     ClassDB::bind_method(D_METHOD("load_character", "vfs_uri", "pose_name", "animations",
                                   "body_choices", "skin"),
                          &UnifiedAssetImporter::load_character,
@@ -1257,6 +1263,68 @@ Array UnifiedAssetImporter::load_map_props(const String& vfs_uri) {
         out.append(entry);
     }
     m_last_error_code = ERR_OK;
+    return out;
+}
+
+Dictionary UnifiedAssetImporter::load_map_ambient(const String& vfs_uri) {
+    Dictionary out;
+    if (!m_vfs) {
+        m_last_error_code = ERR_VFS_NOT_SET;
+        return out;
+    }
+    const std::vector<std::byte> bytes = read_asset_bytes(vfs_uri);
+    if (bytes.empty()) {
+        m_last_error_code = ERR_ASSET_UNREADABLE;
+        return out;
+    }
+    if (!parsers::source1::VBSPParser::is_vbsp(bytes)) {
+        // A GoldSrc level keeps no such light; its floor's light is what lights people.
+        m_last_error_code = ERR_OK;
+        return out;
+    }
+    auto parsed = parsers::source1::VBSPParser::parse(bytes);
+    if (!parsed.has_value()) {
+        m_last_error_code = ERR_PARSE_FAILED;
+        return out;
+    }
+    const auto& ambient = parsed->ambient;
+    m_last_error_code = ERR_OK;
+    if (!ambient.is_valid()) return out;
+
+    PackedFloat32Array splits;
+    PackedInt32Array children;
+    splits.resize(static_cast<int64_t>(ambient.splits.size()) * 4);
+    children.resize(static_cast<int64_t>(ambient.splits.size()) * 2);
+    for (size_t i = 0; i < ambient.splits.size(); ++i) {
+        const auto& split = ambient.splits[i];
+        const auto at = static_cast<int64_t>(i);
+        splits.set(at * 4, split.normal.x);
+        splits.set(at * 4 + 1, split.normal.y);
+        splits.set(at * 4 + 2, split.normal.z);
+        splits.set(at * 4 + 3, split.dist);
+        children.set(at * 2, split.front);
+        children.set(at * 2 + 1, split.back);
+    }
+    PackedInt32Array leaves;
+    leaves.resize(static_cast<int64_t>(ambient.leaves.size()) * 2);
+    for (size_t i = 0; i < ambient.leaves.size(); ++i) {
+        leaves.set(static_cast<int64_t>(i) * 2, static_cast<int32_t>(ambient.leaves[i].first));
+        leaves.set(static_cast<int64_t>(i) * 2 + 1, static_cast<int32_t>(ambient.leaves[i].count));
+    }
+    PackedVector3Array spots;
+    spots.resize(static_cast<int64_t>(ambient.spots.size()));
+    for (size_t i = 0; i < ambient.spots.size(); ++i) spots.set(static_cast<int64_t>(i), ambient.spots[i]);
+    PackedColorArray colours;
+    colours.resize(static_cast<int64_t>(ambient.colours.size()));
+    for (size_t i = 0; i < ambient.colours.size(); ++i) colours.set(static_cast<int64_t>(i), ambient.colours[i]);
+
+    out["root"] = ambient.root;
+    out["splits"] = splits;
+    out["children"] = children;
+    out["leaves"] = leaves;
+    out["spots"] = spots;
+    out["colours"] = colours;
+    out["hdr"] = ambient.hdr;
     return out;
 }
 

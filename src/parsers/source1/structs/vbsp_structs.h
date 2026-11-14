@@ -19,9 +19,11 @@ enum VbspLump : int32_t {
     kLumpPlanes = 1,
     kLumpTexData = 2,
     kLumpVertexes = 3,
+    kLumpNodes = 5,
     kLumpTexInfo = 6,
     kLumpFaces = 7,
     kLumpLighting = 8,
+    kLumpLeafs = 10,
     kLumpEdges = 12,
     kLumpSurfEdges = 13,
     kLumpModels = 14,
@@ -32,7 +34,11 @@ enum VbspLump : int32_t {
     kLumpTexDataStringData = 43,
     kLumpTexDataStringTable = 44,
     kLumpDispTris = 48,
+    kLumpLeafAmbientIndexHdr = 51,
+    kLumpLeafAmbientIndex = 52,
     kLumpLightingHdr = 53,
+    kLumpLeafAmbientLightingHdr = 55,
+    kLumpLeafAmbientLighting = 56,
     kLumpFacesHdr = 58,
 };
 
@@ -161,6 +167,85 @@ struct VbspDispVert {
     float alpha;
 };
 static_assert(sizeof(VbspDispVert) == 20);
+
+/// dnode_t (32 bytes): a split of space by a plane. A child below zero is the leaf
+/// -(child + 1).
+struct VbspNode {
+    int32_t plane;
+    int32_t children[2];   // in front of the plane, behind it
+    int16_t mins[3];
+    int16_t maxs[3];
+    uint16_t first_face;
+    uint16_t num_faces;
+    int16_t area;
+    int16_t pad;
+};
+static_assert(sizeof(VbspNode) == 32);
+
+/// ColorRGBExp32: a colour and a shared power of two, linear light that can pass 1.
+struct VbspLightSample {
+    uint8_t r, g, b;
+    int8_t exponent;
+};
+static_assert(sizeof(VbspLightSample) == 4);
+
+/// CompressedLightCube: the light arriving from each of six directions, in the order
+/// +X, -X, +Y, -Y, +Z, -Z of the level's own axes.
+struct VbspLightCube {
+    VbspLightSample faces[6];
+};
+static_assert(sizeof(VbspLightCube) == 24);
+
+/// dleaf_t as lump version 1 writes it (32 bytes): one of the pieces of open space the
+/// nodes divide the level into.
+struct VbspLeaf {
+    int32_t contents;
+    int16_t cluster;
+    int16_t area_flags;
+    int16_t mins[3];
+    int16_t maxs[3];
+    uint16_t first_leaf_face;
+    uint16_t num_leaf_faces;
+    uint16_t first_leaf_brush;
+    uint16_t num_leaf_brushes;
+    int16_t leaf_water_data_id;
+    int16_t pad;
+};
+static_assert(sizeof(VbspLeaf) == 32);
+
+/// dleaf_t as lump version 0 writes it (56 bytes): the same, with one light cube for the
+/// whole leaf kept inside it.
+struct VbspLeafV0 {
+    int32_t contents;
+    int16_t cluster;
+    int16_t area_flags;
+    int16_t mins[3];
+    int16_t maxs[3];
+    uint16_t first_leaf_face;
+    uint16_t num_leaf_faces;
+    uint16_t first_leaf_brush;
+    uint16_t num_leaf_brushes;
+    int16_t leaf_water_data_id;
+    VbspLightCube ambient;
+    int16_t pad;
+};
+static_assert(sizeof(VbspLeafV0) == 56);
+
+/// dleafambientindex_t (4 bytes): which of the light samples are a leaf's.
+struct VbspLeafAmbientIndex {
+    uint16_t sample_count;
+    uint16_t first_sample;
+};
+static_assert(sizeof(VbspLeafAmbientIndex) == 4);
+
+/// dleafambientlighting_t (28 bytes): the light at one spot of a leaf. The spot is given
+/// as fractions of the leaf's box, 0 at its mins and 255 at its maxs.
+struct VbspLeafAmbientSample {
+    VbspLightCube cube;
+    uint8_t x, y, z;
+    uint8_t pad;
+};
+static_assert(sizeof(VbspLeafAmbientSample) == 28);
 
 /// dgamelump_t (16 bytes).
 struct VbspGameLump {

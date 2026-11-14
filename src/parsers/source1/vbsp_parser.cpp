@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstring>
 #include <map>
+#include <type_traits>
 
 namespace quebratsk::parsers::source1 {
 
@@ -33,6 +34,79 @@ float project(const float axis[4], const godot::Vector3& p) {
 /// on when looked at.
 godot::Vector3 front_of(const godot::Vector3& a, const godot::Vector3& b, const godot::Vector3& c) {
     return (c - a).cross(b - a);
+}
+
+/// A stored colour and its shared power of two, as linear light.
+godot::Color decode(const VbspLightSample& s) {
+    const float gain = std::ldexp(1.0f, s.exponent) / 255.0f;
+    return godot::Color(s.r * gain, s.g * gain, s.b * gain);
+}
+
+/// Which of the level's six cube faces each of Godot's is. The level's -Y is Godot's +X,
+/// its +Z Godot's +Y and its -X Godot's +Z (see source_to_godot).
+constexpr int kCubeFromLevel[6] = {3, 2, 4, 5, 1, 0};
+
+void add_cube(VBSPAmbient& ambient, const VbspLightCube& cube) {
+    for (const int face : kCubeFromLevel) ambient.colours.push_back(decode(cube.faces[face]));
+}
+
+/// A spot inside a leaf's box, given as fractions of it from 0 to 255.
+godot::Vector3 spot_in(const int16_t mins[3], const int16_t maxs[3], uint8_t x, uint8_t y, uint8_t z) {
+    const uint8_t f[3] = {x, y, z};
+    godot::Vector3 p;
+    for (int i = 0; i < 3; ++i) {
+        p[i] = mins[i] + (maxs[i] - mins[i]) * (f[i] / 255.0f);
+    }
+    return math::source_to_godot(p);
+}
+
+/// The tree of planes and the light each leaf keeps.
+template <typename Leaf>
+VBSPAmbient read_ambient(std::span<const VbspNode> nodes, std::span<const VbspPlane> planes,
+                         std::span<const Leaf> leaves, std::span<const VbspLeafAmbientIndex> index,
+                         std::span<const VbspLeafAmbientSample> samples, int32_t root) {
+    VBSPAmbient ambient;
+    ambient.root = root;
+    const auto k = static_cast<float>(math::kHammerUnitsToMeters);
+    ambient.splits.reserve(nodes.size());
+    for (const VbspNode& node : nodes) {
+        VBSPAmbient::Split split;
+        if (node.plane >= 0 && static_cast<size_t>(node.plane) < planes.size()) {
+            const VbspPlane& plane = planes[static_cast<size_t>(node.plane)];
+            // The same turn as source_to_godot, which keeps lengths, so only the distance
+            // needs scaling.
+            split.normal = godot::Vector3(-plane.normal[1], plane.normal[2], -plane.normal[0]);
+            split.dist = plane.dist * k;
+        }
+        split.front = node.children[0];
+        split.back = node.children[1];
+        ambient.splits.push_back(split);
+    }
+
+    ambient.leaves.resize(leaves.size());
+    for (size_t l = 0; l < leaves.size(); ++l) {
+        const Leaf& leaf = leaves[l];
+        VBSPAmbient::Range& range = ambient.leaves[l];
+        range.first = static_cast<uint32_t>(ambient.spots.size());
+        if (l < index.size()) {
+            const VbspLeafAmbientIndex& at = index[l];
+            for (uint32_t i = 0; i < at.sample_count; ++i) {
+                const size_t which = static_cast<size_t>(at.first_sample) + i;
+                if (which >= samples.size()) break;
+                const VbspLeafAmbientSample& sample = samples[which];
+                ambient.spots.push_back(spot_in(leaf.mins, leaf.maxs, sample.x, sample.y, sample.z));
+                add_cube(ambient, sample.cube);
+            }
+        } else if constexpr (std::is_same_v<Leaf, VbspLeafV0>) {
+            // The older leaves keep one cube each, for the middle of the leaf.
+            if (index.empty()) {
+                ambient.spots.push_back(spot_in(leaf.mins, leaf.maxs, 128, 128, 128));
+                add_cube(ambient, leaf.ambient);
+            }
+        }
+        range.count = static_cast<uint32_t>(ambient.spots.size()) - range.first;
+    }
+    return ambient;
 }
 
 /// One face's light, as a block of the light picture.
@@ -122,6 +196,49 @@ godot::Basis VBSPParser::angles_to_basis(float pitch, float yaw, float roll) {
         }
     }
     return out;
+}
+
+int32_t VBSPAmbient::leaf_at(const godot::Vector3& at) const {
+    int32_t node = root;
+    // A tree deeper than it has nodes can only be a loop in a broken file.
+    for (size_t step = 0; step <= splits.size(); ++step) {
+        if (node < 0) {
+            const int32_t leaf = -(node + 1);
+            return static_cast<size_t>(leaf) < leaves.size() ? leaf : -1;
+        }
+        if (static_cast<size_t>(node) >= splits.size()) return -1;
+        const Split& split = splits[static_cast<size_t>(node)];
+        node = split.normal.dot(at) - split.dist >= 0.0f ? split.front : split.back;
+    }
+    return -1;
+}
+
+bool VBSPAmbient::light_at(const godot::Vector3& at, godot::Color out[6]) const {
+    const int32_t leaf = leaf_at(at);
+    if (leaf < 0) return false;
+    const Range& range = leaves[static_cast<size_t>(leaf)];
+    if (range.count == 0) return false;
+    for (int f = 0; f < 6; ++f) out[f] = godot::Color(0, 0, 0);
+    // Nearer samples count for more, so walking across a leaf changes the light smoothly
+    // rather than at the line halfway between two of them.
+    float total = 0.0f;
+    for (uint32_t i = range.first; i < range.first + range.count; ++i) {
+        const float weight = 1.0f / (spots[i].distance_squared_to(at) + 0.01f);
+        total += weight;
+        for (int f = 0; f < 6; ++f) {
+            const godot::Color& c = colours[static_cast<size_t>(i) * 6 + f];
+            out[f].r += c.r * weight;
+            out[f].g += c.g * weight;
+            out[f].b += c.b * weight;
+        }
+    }
+    for (int f = 0; f < 6; ++f) {
+        out[f].r /= total;
+        out[f].g /= total;
+        out[f].b /= total;
+        out[f].a = 1.0f;
+    }
+    return true;
 }
 
 std::expected<ParsedVBSPMap, VBSPParseError> VBSPParser::parse(std::span<const std::byte> bytes) {
@@ -533,6 +650,29 @@ std::expected<ParsedVBSPMap, VBSPParseError> VBSPParser::parse(std::span<const s
             }
             break;
         }
+    }
+
+    // ---- the light kept for things that move, HDR first as for the faces
+    {
+        const auto nodes = records<VbspNode>(lump(kLumpNodes));
+        auto index = records<VbspLeafAmbientIndex>(lump(kLumpLeafAmbientIndexHdr));
+        auto samples = records<VbspLeafAmbientSample>(lump(kLumpLeafAmbientLightingHdr));
+        bool hdr = !index.empty() && !samples.empty();
+        if (!hdr) {
+            index = records<VbspLeafAmbientIndex>(lump(kLumpLeafAmbientIndex));
+            samples = records<VbspLeafAmbientSample>(lump(kLumpLeafAmbientLighting));
+        }
+        const int32_t root = models.empty() ? 0 : models[0].head_node;
+        const auto leaf_lump = lump(kLumpLeafs);
+        if (header.lumps[kLumpLeafs].version == 0) {
+            map.ambient = read_ambient(nodes, planes, records<VbspLeafV0>(leaf_lump), index,
+                                       samples, root);
+        } else {
+            map.ambient = read_ambient(nodes, planes, records<VbspLeaf>(leaf_lump), index,
+                                       samples, root);
+        }
+        map.ambient.hdr = hdr;
+        map.stats.light_samples = map.ambient.spots.size();
     }
 
     map.pakfile = lump(kLumpPakfile);

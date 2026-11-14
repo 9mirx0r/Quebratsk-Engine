@@ -303,12 +303,22 @@ func _open_source_map() -> bool:
 	_map_uri = reader._uri
 	_built["map"] = _source_map.get_file()
 	print("[lab] Source level %s: %s" % [_source_map.get_file(), reader.report])
-	reader.build_props(map, get_tree())
 
+	# People, the weapon in hand and the props, lit by the light the level kept for things
+	# that move; the floor's light only where it kept none.
 	floor_light = FloorLightScript.new()
 	floor_light.name = "FloorLight"
 	add_child(floor_light)
 	floor_light.setup(map)
+	var spots: int = floor_light.use_ambient(importer.load_map_ambient(_map_uri))
+	if floor_light.ambient_refused.is_empty():
+		print("[lab] %d spot(s) of light for moving things" % spots)
+	else:
+		print("[lab] the level's light for moving things is too dark to use (%s): lit by the floor"
+			% floor_light.ambient_refused)
+	if spots > 0:
+		reader.light = floor_light
+	reader.build_props(map, get_tree())
 
 	var entities: Array = reader.entities
 	_read_spawns(entities)
