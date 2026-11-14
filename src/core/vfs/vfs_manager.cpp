@@ -4,6 +4,7 @@
 #include "../../parsers/source1/structs/gma_structs.h"
 #include "../../parsers/rv_enfusion/structs/pbo_structs.h"
 #include "../../parsers/source2/vpk2_parser.h"
+#include "../../parsers/source1/zip_directory.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
@@ -111,10 +112,24 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
 
     auto bytes = container.mapped_file.bytes();
 
-    enum class Kind { WAD3, GMA, VPK, PBO };
+    enum class Kind { WAD3, GMA, VPK, ZIP, PBO };
     Kind kind;
 
-    if (parsers::goldsrc::validate_wad3_header(bytes)) {
+    // A Source level mounted as a container is its pakfile; a zip is itself.
+    std::span<const std::byte> zip = parsers::source1::vbsp_pakfile(bytes);
+    if (zip.empty() && bytes.size() >= 4 && std::memcmp(bytes.data(), "PK\x03\x04", 4) == 0) {
+        zip = bytes;
+    }
+    const size_t zip_start = zip.empty() ? 0 : static_cast<size_t>(zip.data() - bytes.data());
+    if (zip.empty() && bytes.size() >= 4 && std::memcmp(bytes.data(), "VBSP", 4) == 0) {
+        // A level with nothing packed in it: nothing to mount, and not a PBO either.
+        return false;
+    }
+
+    if (!zip.empty()) {
+        container.engine = EngineNamespace::Source1;
+        kind = Kind::ZIP;
+    } else if (parsers::goldsrc::validate_wad3_header(bytes)) {
         container.engine = EngineNamespace::GoldSrc;
         kind = Kind::WAD3;
     } else if (parsers::source1::validate_gma_header(bytes)) {
@@ -144,6 +159,10 @@ bool VFSManager::mount_container(const String& vfs_prefix, const String& real_pa
         case Kind::VPK:
             index_vpk(container_idx, path_std);
             UtilityFunctions::print_verbose("[QuebratskVFS] Mounted Source VPK: vfs://", String(prefix_std.c_str()), "/");
+            break;
+        case Kind::ZIP:
+            index_zip(container_idx, zip_start, zip.size());
+            UtilityFunctions::print_verbose("[QuebratskVFS] Mounted zip: vfs://", String(prefix_std.c_str()), "/");
             break;
         case Kind::PBO:
             index_pbo(container_idx);
@@ -583,6 +602,39 @@ void VFSManager::index_gma(size_t container_idx) {
 
         m_index.insert_or_assign(std::move(vfs_uri), std::move(entry));
         data_offset += static_cast<size_t>(fsize);
+    }
+}
+
+void VFSManager::index_zip(size_t container_idx, size_t start, size_t length) {
+    const auto& container = m_containers[container_idx];
+    const auto bytes = container.mapped_file.bytes();
+    if (!range_fits(start, length, bytes.size())) return;
+
+    const auto files = parsers::source1::read_zip_directory(bytes.subspan(start, length));
+    m_index.reserve(m_index.size() + files.size());
+
+    // Only files stored as they are can be read: this VFS has no inflater or LZMA reader.
+    // A level compiler stores its pakfile that way; a zip packed by hand often is not.
+    size_t packed = 0;
+    for (const auto& file : files) {
+        if (!file.is_stored()) {
+            ++packed;
+            continue;
+        }
+        VFSEntry entry;
+        entry.container_index = container_idx;
+        entry.offset = start + file.offset;
+        entry.disk_size = file.stored_size;
+        entry.uncompressed_size = file.size;
+        entry.compression = CompressionType::None;
+        m_index.insert_or_assign("vfs://" + container.mount_prefix + "/" + to_index_path(file.name),
+                                 std::move(entry));
+    }
+    if (packed > 0) {
+        UtilityFunctions::printerr("[QuebratskVFS] ", static_cast<int64_t>(packed), " of ",
+                                   static_cast<int64_t>(files.size()),
+                                   " file(s) compressed in ", String(container.real_path.c_str()),
+                                   ", which this VFS cannot unpack; left out");
     }
 }
 

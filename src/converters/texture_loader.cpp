@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <unordered_set>
 #include <vector>
 
 namespace quebratsk::converters {
@@ -18,6 +19,14 @@ namespace quebratsk::converters {
 using namespace godot;
 
 namespace {
+
+/// The references whose material asked to be see-through. Kept beside the texture cache,
+/// which holds pictures only, and for as long as it does: a reference answered from the
+/// cache never reaches its material script again.
+std::unordered_set<std::string>& masked_refs() {
+    static std::unordered_set<std::string> refs;
+    return refs;
+}
 
 std::string normalize_ref(std::string ref) {
     std::replace(ref.begin(), ref.end(), '\\', '/');
@@ -59,6 +68,30 @@ std::vector<std::string> build_candidates(const std::string& ref) {
 
 } // namespace
 
+std::vector<std::byte> TextureLoader::read_material_include(std::string_view path,
+                                                            const std::string& near) const {
+    if (!_vfs) return {};
+    std::string key = normalize_ref(std::string(path));
+    if (key.empty()) return {};
+    if (!has_extension(key)) key += ".vmt";
+
+    // The path is written from the game's root, "materials/" included, but a mount may
+    // start below that folder, so the part after it is tried too.
+    std::vector<std::string> suffixes = {"/" + key};
+    if (key.starts_with("materials/")) suffixes.push_back("/" + key.substr(10));
+
+    const std::string& origin = near.empty() ? _origin : near;
+    for (const auto& suffix : suffixes) {
+        const std::string uri = _vfs->find_by_suffix(suffix, origin);
+        if (!uri.empty()) return _vfs->read_owned(uri);
+    }
+    return {};
+}
+
+bool TextureLoader::is_masked(const std::string& texture_ref) const {
+    return masked_refs().contains(normalize_ref(texture_ref));
+}
+
 Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
     if (!_vfs || texture_ref.empty()) return {};
 
@@ -78,9 +111,15 @@ Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
     // name and the directories it lives in; joining them is an exact path, and searching
     // the index for a suffix is not.
     if (!_search_paths.empty() && !key.starts_with("vfs://")) {
-        const std::string bare = has_extension(key) ? key.substr(0, key.find_last_of('.')) : key;
+        const bool named = has_extension(key);
+        const std::string bare = named ? key.substr(0, key.find_last_of('.')) : key;
+        // A reference that names its extension means that file. Trying the .vmt first for
+        // "x.vtf" would find the material that asked for it and go round in a circle.
+        const std::vector<std::string> exts = named
+            ? std::vector<std::string>{key.substr(key.find_last_of('.'))}
+            : std::vector<std::string>{".vmt", ".vtf"};
         for (const auto& dir : _search_paths) {
-            for (const char* ext : {".vmt", ".vtf"}) {
+            for (const auto& ext : exts) {
                 resolved_uri = _vfs->find_by_suffix("/" + dir + bare + ext, _origin);
                 if (!resolved_uri.empty()) break;
             }
@@ -128,9 +167,20 @@ Ref<Texture2D> TextureLoader::load(const std::string& texture_ref) {
     // image decoder is how a correctly located texture still ends up as nothing, which is
     // what every Source model was doing. Follow the reference it holds.
     if (resolved_uri.ends_with(".vmt")) {
-        auto material = parsers::source1::VMTParser::parse(bytes);
+        // A patch names no texture of its own; it points at the material that does.
+        const parsers::source1::VMTParser::IncludeReader read_include =
+            [this, &resolved_uri](std::string_view path) {
+                return read_material_include(path, resolved_uri);
+            };
+        auto material = parsers::source1::VMTParser::parse(bytes, read_include);
+        if (material.has_value() && material->is_transparent) masked_refs().insert(key);
         if (material.has_value() && material->albedo_texture.has_value()) {
-            const std::string base = normalize_ref(material->albedo_texture->vfs_path);
+            std::string base = normalize_ref(material->albedo_texture->vfs_path);
+            // Most materials share their picture's name: "de_shipped/deck01" names
+            // "de_shipped/deck01". Asked for by that name alone it would find this .vmt
+            // again, so it is asked for as the picture it is.
+            const std::string self = has_extension(key) ? key.substr(0, key.find_last_of('.')) : key;
+            if (base == self) base += ".vtf";
             if (!base.empty() && base != key) {
                 Ref<Texture2D> image = load(base);
                 cache.set_texture(key, image);

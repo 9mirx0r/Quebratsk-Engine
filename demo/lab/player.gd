@@ -20,6 +20,7 @@ const ModelPreset := preload("res://addons/quebratsk_editor/model_preset.gd")
 const Stairs := preload("res://lab/stairs.gd")
 const WeaponManifest := preload("res://addons/quebratsk_editor/weapon_manifest.gd")
 const Figure := preload("res://lab/figure.gd")
+const SourceWeapons := preload("res://lab/source_weapons.gd")
 
 const UNIT := 0.0254
 
@@ -144,8 +145,6 @@ var _aim_move := ""
 var _shoot_move := ""
 var _shoot_until := 0.0
 var _legs_now := ""
-## The flash at the end of the barrel, as the eye sees it.
-var _muzzle: Sprite3D
 
 ## Whether damage is being ignored, so the HUD can say so.
 func is_immortal() -> bool:
@@ -198,6 +197,11 @@ var _reload_audio: AudioStreamPlayer3D
 var _reload_queue := 0
 var _reload_started := 0.0
 var _gunshot: AudioStream
+## For a Source weapon: what it does as written in source_weapons.gd, the shots it picks one
+## of, and the noises of its own mechanism heard over each of them.
+var _card := {}
+var _gunshots: Array[AudioStream] = []
+var _mechanism: Array[AudioStream] = []
 var _audio: AudioStreamPlayer3D
 var _cycle := 0.0
 var _next_shot := 0.0
@@ -349,6 +353,9 @@ func _take_up(weapon: Dictionary) -> void:
 
 ## Hold the weapon: its own model in front of the camera, and what the game says it does.
 func _arm(weapon: Dictionary) -> void:
+	var card: Dictionary = weapon.get("source_card", {})
+	if not card.is_empty() and _arm_source(card):
+		return
 	_cycle = float(weapon.get("cycle_time", 0.0))
 	_clip_size = int(WeaponManifest.lookup(str(weapon.get("model", weapon.get("name", "")))).get("clip_size", 0))
 	if _clip_size <= 0:
@@ -403,7 +410,6 @@ func _arm(weapon: Dictionary) -> void:
 	for part in model.find_children("*", "MeshInstance3D", true, false):
 		(part as MeshInstance3D).layers = 2
 		(part as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_place_muzzle(model, weapon_uri)
 
 	_view_anim = model.get_node_or_null("AnimationPlayer")
 	if _view_anim == null:
@@ -440,36 +446,161 @@ func _arm(weapon: Dictionary) -> void:
 		   "yes" if _gunshot != null else "MISSING"])
 
 
-## The flash, on the point the weapon's own model marks as the end of its barrel.
-func _place_muzzle(model: Node3D, weapon_uri: String) -> void:
-	if weapon_uri.is_empty():
-		return
+## Hold a Source weapon: its model at the eye, the hands of its pack on its arm bones, and
+## what source_weapons.gd says it does. False when its model cannot be read.
+func _arm_source(card: Dictionary) -> bool:
+	var uri := SourceWeapons.find(_lab.vfs, str(card["model"]))
+	if uri.is_empty():
+		return false
+	var poses := PackedStringArray([str(card["idle"]), str(card["draw"]),
+		str(card["reload"]), str(card["reload_empty"])])
+	for attack in card["attacks"]:
+		poses.append(str(attack))
+	var model: Node3D = _lab.importer.load_model(uri, "", poses, {})
+	if model == null:
+		return false
+	_card = card
+
+	for child in model.find_children("*", "StaticBody3D", true, false):
+		child.get_parent().remove_child(child)
+		child.queue_free()
+	_view_pivot = Node3D.new()
+	_view_pivot.name = "ViewPivot"
+	_camera.add_child(_view_pivot)
+	_view_pivot.add_child(model)
+	# The importer already turns a Source model's bones to look down -z, as everything here
+	# does, so the model hangs at the eye as it comes.
+
 	var skeleton: Skeleton3D = model as Skeleton3D
 	if skeleton == null:
-		for child in model.get_children():
-			if child is Skeleton3D:
-				skeleton = child as Skeleton3D
-	var points: Array = _lab.importer.list_attachments(weapon_uri)
-	if skeleton == null or points.is_empty():
-		print("[player] this weapon marks no muzzle, so it has no flash")
+		var found: Array = model.find_children("*", "Skeleton3D", true, false)
+		skeleton = found[0] as Skeleton3D if not found.is_empty() else null
+	if skeleton != null:
+		for bone_name in card.get("hidden_bones", []):
+			var bone := skeleton.find_bone(str(bone_name))
+			if bone >= 0:
+				skeleton.set_bone_pose_scale(bone, Vector3.ONE * 0.0001)
+		_put_hands_on(skeleton, str(card.get("hands", "")))
+
+	for part in model.find_children("*", "MeshInstance3D", true, false):
+		(part as MeshInstance3D).layers = 2
+		(part as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	var players: Array = model.find_children("*", "AnimationPlayer", true, false)
+	_view_anim = players[0] as AnimationPlayer if not players.is_empty() else null
+	if _view_anim != null:
+		_attacks = PackedStringArray()
+		for attack in card["attacks"]:
+			if _view_anim.has_animation(str(attack)):
+				_attacks.append(str(attack))
+		_view_idle = str(card["idle"]) if _view_anim.has_animation(str(card["idle"])) else ""
+		if not _view_idle.is_empty():
+			_view_anim.get_animation(_view_idle).loop_mode = Animation.LOOP_LINEAR
+		_reload_chain = PackedStringArray([str(card["reload"])])
+		var draw := str(card["draw"])
+		if _view_anim.has_animation(draw):
+			_view_anim.play(draw)
+			_busy_until = Time.get_ticks_msec() / 1000.0 + _view_anim.get_animation(draw).length * 0.6
+			_rest_after()
+			_timed_sounds(draw)
+		elif not _view_idle.is_empty():
+			_view_anim.play(_view_idle)
+
+	_clip_size = int(card.get("clip", 0))
+	_clip = _clip_size
+	_reserve = _clip_size * 3
+	_cycle = 60.0 / maxf(float(card.get("rounds_per_minute", 600)), 1.0)
+	_gunshots = _card_sounds(card.get("fire", []))
+	_mechanism = _card_sounds(card.get("mechanism", []))
+	var dry := _card_sounds([card.get("dry", "")])
+	_dry_click = dry[0] if not dry.is_empty() else null
+	print("[player] %s (Source): %d attack(s), %d shot sound(s), hands %s"
+		% [card.get("name", "?"), _attacks.size(), _gunshots.size(),
+		   "on" if skeleton != null and skeleton.has_node("Hands") else "MISSING"])
+	return true
+
+
+## The hands of the weapon's pack, on the arm bones the weapon itself moves.
+##
+## The weapon has an arm's worth of bones and no arm on them; the hands are a model by
+## themselves with the same bones under the same names. Each part of the hands is told to
+## follow the weapon's bone of that name in place of its own.
+func _put_hands_on(skeleton: Skeleton3D, hands_path: String) -> void:
+	var uri := SourceWeapons.find(_lab.vfs, hands_path)
+	if uri.is_empty():
 		return
-	# The first is the muzzle; the others are where the shells come out.
-	var point: Dictionary = points[0]
-	var bone := int(point.get("bone", -1))
-	if bone < 0 or bone >= skeleton.get_bone_count():
+	var hands: Node3D = _lab.importer.load_model(uri, "", PackedStringArray(), {})
+	if hands == null:
 		return
-	_muzzle = Figure.muzzle_flash(_lab, Figure.flash_kind(_lab, weapon_uri))
-	if _muzzle == null:
+	var own: Array = hands.find_children("*", "Skeleton3D", true, false)
+	var own_skeleton: Skeleton3D = own[0] as Skeleton3D if not own.is_empty() else hands as Skeleton3D
+	var n := 0
+	for part in hands.find_children("*", "MeshInstance3D", true, false):
+		var mesh := part as MeshInstance3D
+		var skin := mesh.skin
+		if skin == null or own_skeleton == null:
+			continue
+		var named := Skin.new()
+		for i in skin.get_bind_count():
+			var bone_name := str(skin.get_bind_name(i))
+			if bone_name.is_empty():
+				bone_name = own_skeleton.get_bone_name(skin.get_bind_bone(i))
+			var pose := skin.get_bind_pose(i)
+			# A bone only the hands have (the ones that twist a forearm) is carried by the
+			# nearest bone above it that the weapon does have.
+			var bone := own_skeleton.find_bone(bone_name)
+			while bone >= 0 and skeleton.find_bone(bone_name) < 0:
+				bone = own_skeleton.get_bone_parent(bone)
+				if bone >= 0:
+					bone_name = own_skeleton.get_bone_name(bone)
+					pose = own_skeleton.get_bone_global_rest(bone).affine_inverse()
+			if skeleton.find_bone(bone_name) < 0:
+				continue
+			named.add_named_bind(bone_name, pose)
+		mesh.get_parent().remove_child(mesh)
+		mesh.name = "Hands" if n == 0 else "Hands%d" % n
+		mesh.skin = named
+		skeleton.add_child(mesh)
+		mesh.skeleton = NodePath("..")
+		n += 1
+	hands.free()
+
+
+func _card_sounds(paths: Array) -> Array[AudioStream]:
+	var out: Array[AudioStream] = []
+	for path in paths:
+		var uri := SourceWeapons.find(_lab.vfs, "sound/" + str(path))
+		if uri.is_empty():
+			continue
+		var stream: AudioStream = SoundLoader.load_sound(_lab.vfs, uri)
+		if stream != null:
+			out.append(stream)
+	return out
+
+
+## Line up what a movement of a Source weapon sounds like, to be let out as it plays.
+func _timed_sounds(movement: String) -> void:
+	_reload_sounds.clear()
+	_reload_times = PackedFloat32Array()
+	for event in (_card.get("events", {}) as Dictionary).get(movement, []):
+		var streams := _card_sounds([event[0]])
+		if not streams.is_empty():
+			_reload_sounds.append(streams[0])
+			_reload_times.append(float(event[1]))
+	_reload_queue = 0
+	_reload_started = Time.get_ticks_msec() / 1000.0
+
+
+## A noise heard once over whatever else is sounding, and then gone.
+func _once(stream: AudioStream, loudness := -8.0) -> void:
+	if stream == null:
 		return
-	var socket := BoneAttachment3D.new()
-	socket.name = "Muzzle"
-	socket.bone_idx = bone
-	skeleton.add_child(socket)
-	socket.add_child(_muzzle)
-	_muzzle.position = point.get("position", Vector3.ZERO) as Vector3
-	_muzzle.layers = 2
-	print("[player] muzzle on bone '%s' at %s, flash %s" % [skeleton.get_bone_name(bone),
-		_muzzle.position, Figure.flash_kind(_lab, weapon_uri)])
+	var mouth := AudioStreamPlayer.new()
+	mouth.stream = stream
+	mouth.volume_db = loudness
+	add_child(mouth)
+	mouth.finished.connect(mouth.queue_free)
+	mouth.play()
 
 
 ## What a reload sounds like, from the model's own animation events.
@@ -668,13 +799,17 @@ func _physics_process(delta: float) -> void:
 
 ## Let the next noise of a reload out when its turn comes.
 func _play_reload_sounds() -> void:
-	if _reload_queue >= _reload_sounds.size() or _reload_audio == null:
+	if _reload_queue >= _reload_sounds.size() or (_reload_audio == null and _card.is_empty()):
 		return
 	var elapsed := Time.get_ticks_msec() / 1000.0 - _reload_started
 	if _reload_queue < _reload_times.size() and elapsed < _reload_times[_reload_queue]:
 		return
-	_reload_audio.stream = _reload_sounds[_reload_queue]
-	_reload_audio.play()
+	if not _card.is_empty():
+		# These follow each other closer than they are long, so each has a mouth of its own.
+		_once(_reload_sounds[_reload_queue])
+	else:
+		_reload_audio.stream = _reload_sounds[_reload_queue]
+		_reload_audio.play()
 	_reload_queue += 1
 
 
@@ -1028,11 +1163,14 @@ func _shoot() -> void:
 			return
 		_clip -= 1
 
+	if not _gunshots.is_empty():
+		_gunshot = _gunshots[randi() % _gunshots.size()]
 	if _gunshot != null:
 		_audio.stream = _gunshot
 		_audio.play()
+	if not _mechanism.is_empty():
+		_once(_mechanism[randi() % _mechanism.size()], -12.0)
 	_shoot_until = now + 0.2
-	Figure.flare(_muzzle)
 
 	if _lab != null and _lab.get("enhanced") == true:
 		if _flash == null:
@@ -1110,6 +1248,13 @@ func _reload() -> void:
 	if _clip_size > 0 and (_clip >= _clip_size or _reserve <= 0):
 		return
 
+	if not _card.is_empty():
+		# An emptied weapon has a longer reload of its own: the bolt has to be worked.
+		var which := str(_card["reload_empty"] if _clip <= 0 else _card["reload"])
+		if _view_anim.has_animation(which):
+			_reload_chain = PackedStringArray([which])
+		_timed_sounds(str(_reload_chain[0]))
+
 	_view_anim.stop()
 	var total := 0.0
 	for i in _reload_chain.size():
@@ -1130,7 +1275,7 @@ func _reload() -> void:
 
 	# The noises, each at the moment the animator put it. The event carries the frame it
 	# fires on and the sequence carries its frame rate, so this is exact rather than spread.
-	if not _reload_sounds.is_empty():
+	if not _reload_sounds.is_empty() and _card.is_empty():
 		_reload_queue = 0
 		_reload_started = now
 

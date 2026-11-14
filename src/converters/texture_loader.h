@@ -5,7 +5,9 @@
 #include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
 
+#include <cstddef>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace quebratsk::converters {
@@ -51,6 +53,18 @@ public:
     [[nodiscard]] const std::vector<std::string>& missing() const { return _missing; }
 
     [[nodiscard]] bool is_valid() const { return _vfs != nullptr; }
+
+    /// Whether a reference already loaded is a material that asks to be see-through
+    /// (`$translucent` or `$alphatest`): a fence, a grate, leaves. Such a picture's alpha is
+    /// a hole, not a colour. False for a reference never loaded, or one that is not a
+    /// material script.
+    [[nodiscard]] bool is_masked(const std::string& texture_ref) const;
+
+    /// The bytes of the material a patch material includes, by the path written in it
+    /// ("materials/DE_SHIPPED/DECK01.vmt"). `near` is the patch's own VFS URI, so the
+    /// search looks in its archive first. Empty when no such file is mounted.
+    [[nodiscard]] std::vector<std::byte> read_material_include(std::string_view path,
+                                                               const std::string& near) const;
 
 private:
     vfs::VFSManager* _vfs = nullptr;

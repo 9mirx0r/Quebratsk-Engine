@@ -26,9 +26,14 @@
 #include "parsers/source1/mdl_source_parser.h"
 #include "parsers/source1/vvd_parser.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <map>
+#include <set>
 #include <vector>
 
 using namespace quebratsk::parsers::source1;
@@ -112,7 +117,84 @@ static Builder make_vvd(int32_t checksum, const std::vector<std::array<float, 3>
     return v;
 }
 
-int main() {
+static std::vector<std::byte> read_file(const std::filesystem::path& path) {
+    std::ifstream in(path, std::ios::binary);
+    if (!in) return {};
+    in.seekg(0, std::ios::end);
+    const auto size = static_cast<size_t>(in.tellg());
+    in.seekg(0);
+    std::vector<std::byte> out(size);
+    in.read(reinterpret_cast<char*>(out.data()), static_cast<std::streamsize>(size));
+    return out;
+}
+
+// Every Source model under a folder: how many name points and which, how many carry other
+// skin families, and whether choosing one of those actually changes what the model wears.
+static int corpus(const char* root) {
+    namespace fs = std::filesystem;
+    int models = 0, refused = 0, with_points = 0, points = 0;
+    int with_families = 0, families_change = 0, families_same = 0;
+    std::map<std::string, int> names;
+    for (const auto& entry : fs::recursive_directory_iterator(root)) {
+        if (!entry.is_regular_file()) continue;
+        std::string ext = entry.path().extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        if (ext != ".mdl") continue;
+        const auto mdl = read_file(entry.path());
+        if (mdl.size() < 8) continue;
+        int32_t version = 0;
+        std::memcpy(&version, mdl.data() + 4, 4);
+        if (version < kSourceMdlMinVersion || version > kSourceMdlMaxVersion) continue;
+
+        fs::path stem = entry.path();
+        stem.replace_extension();
+        const auto vvd = read_file(stem.string() + ".vvd");
+        const auto vtx = read_file(stem.string() + ".dx90.vtx");
+        ++models;
+
+        SourceModelBundle bundle{mdl, vvd, vtx};
+        auto r0 = SourceMDLParser::parse_bundle(bundle, PoseDetail::NamesOnly);
+        if (!r0.has_value()) {
+            ++refused;
+            continue;
+        }
+        const auto& m0 = r0->mesh_data;
+        if (!m0.attachments.empty()) ++with_points;
+        points += static_cast<int>(m0.attachments.size());
+        for (const auto& a : m0.attachments) ++names[a.name];
+
+        if (m0.skin_families > 1 && !m0.surfaces.empty()) {
+            ++with_families;
+            std::set<std::string> base;
+            for (const auto& s : m0.surfaces) base.insert(s.material_name);
+            bool changed = false;
+            for (int32_t f = 1; f < m0.skin_families; ++f) {
+                bundle.skin = f;
+                auto rf = SourceMDLParser::parse_bundle(bundle, PoseDetail::NamesOnly);
+                if (!rf.has_value() || rf->mesh_data.skin != f) continue;
+                std::set<std::string> other;
+                for (const auto& s : rf->mesh_data.surfaces) other.insert(s.material_name);
+                if (other != base) changed = true;
+            }
+            bundle.skin = 0;
+            ++(changed ? families_change : families_same);
+        }
+    }
+    std::printf("%d Source models, %d refused\n", models, refused);
+    std::printf("%d with attachments, %d points in all\n", with_points, points);
+    std::vector<std::pair<int, std::string>> common;
+    for (const auto& [n, c] : names) common.push_back({c, n});
+    std::sort(common.rbegin(), common.rend());
+    for (size_t i = 0; i < common.size() && i < 12; ++i) {
+        std::printf("  %-24s %d\n", common[i].second.c_str(), common[i].first);
+    }
+    std::printf("%d with more than one skin family: %d wear something else in another, "
+                "%d the same in all\n", with_families, families_change, families_same);
+    return 0;
+}
+
+int main(int argc, char** argv) {
+    if (argc > 1) return corpus(argv[1]);
     std::printf("Source 1 .mdl + .vvd + .vtx verification\n\n");
 
     constexpr float kScale = 0.0254f;
@@ -329,6 +411,117 @@ int main() {
         check_i("lone .mdl parses", r.has_value() ? 1 : 0, 1);
         if (r.has_value()) {
             check_i("no surfaces without .vvd/.vtx", (long long)r->mesh_data.surfaces.size(), 0);
+        }
+    }
+
+    // A mesh names a slot in the skin table, and the family picks the row. A prop placed
+    // with `skin 1` is the same shape in other textures.
+    std::printf("Skin families:\n");
+    {
+        Builder s = m;
+        s.put<int32_t>(204, 2);                                 // num_textures
+        s.put<int32_t>(208, 1000);                              // texture_index
+        s.put<int32_t>(1000, 1200 - 1000);                      // texture 0 name, relative
+        s.put<int32_t>(1064, 1240 - 1064);                      // texture 1 name, relative
+        s.put_str(1200, "crate_material", 32);
+        s.put_str(1240, "crate_rusty", 32);
+        s.put<int32_t>(220, 1);                                 // num_skin_ref
+        s.put<int32_t>(224, 2);                                 // num_skin_families
+        s.put<int32_t>(228, 1300);                              // skin_index
+        s.put<int16_t>(1300, 0);                                // family 0: slot 0 -> texture 0
+        s.put<int16_t>(1302, 1);                                // family 1: slot 0 -> texture 1
+
+        auto build = [&](const Builder& mdl, int32_t skin) {
+            SourceModelBundle b{mdl.span(), v.span(), x.span()};
+            b.skin = skin;
+            return SourceMDLParser::parse_bundle(b);
+        };
+        auto first_material = [](const auto& r) -> std::string {
+            if (!r.has_value() || r->mesh_data.surfaces.empty()) return "<none>";
+            return r->mesh_data.surfaces[0].material_name;
+        };
+
+        auto r0 = build(s, 0);
+        check_s("family 0 wears its own texture", first_material(r0), "crate_material");
+        check_i("families counted", r0.has_value() ? r0->mesh_data.skin_families : -1, 2);
+
+        auto r1 = build(s, 1);
+        check_s("family 1 wears the other one", first_material(r1), "crate_rusty");
+        check_i("family 1 reported", r1.has_value() ? r1->mesh_data.skin : -1, 1);
+
+        // One the model does not have is family 0, as the game draws it.
+        auto r7 = build(s, 7);
+        check_s("missing family falls back to 0", first_material(r7), "crate_material");
+        check_i("fallback reported as 0", r7.has_value() ? r7->mesh_data.skin : -1, 0);
+
+        // Family 0 is a row like any other, not the slot numbers taken as they are.
+        Builder swapped = s;
+        swapped.put<int16_t>(1300, 1);
+        check_s("family 0 goes through the table", first_material(build(swapped, 0)),
+                "crate_rusty");
+
+        // A table that runs past the end of the file is ignored, not read out of bounds.
+        Builder cut = s;
+        cut.put<int32_t>(228, (int32_t)cut.buf.size() - 2);
+        auto rc = build(cut, 1);
+        check_s("truncated table ignored", first_material(rc), "crate_material");
+        check_i("truncated table: one family", rc.has_value() ? rc->mesh_data.skin : -1, 0);
+    }
+
+    // Named points on the bones. The muzzle is one, and the whole of where a weapon's flash
+    // belongs; its direction counts as much as its place.
+    std::printf("Attachments:\n");
+    {
+        constexpr size_t kBones    = 664;
+        constexpr size_t kBoneName = 900;
+        constexpr size_t kPoints   = 1000;
+        constexpr size_t kName0    = 1200;
+        constexpr size_t kName1    = 1220;
+
+        Builder a;
+        a.put_str(0, "IDST", 4);
+        a.put<int32_t>(4, 48);
+        a.put<int32_t>(156, 1);                                   // num_bones
+        a.put<int32_t>(160, (int32_t)kBones);
+        a.put<int32_t>(kBones + 0, (int32_t)(kBoneName - kBones));
+        a.put<int32_t>(kBones + 4, -1);
+        a.put_str(kBoneName, "ValveBiped.Bip01", 24);
+        a.put<int32_t>(240, 2);                                   // num_attachments
+        a.put<int32_t>(244, (int32_t)kPoints);
+
+        // Point 0: on bone 0, turned 90 degrees about Valve's up so its forward (+x) is
+        // Valve's left (+y), and moved to (10, 20, 30).
+        const float local[3][4] = {{0, -1, 0, 10}, {1, 0, 0, 20}, {0, 0, 1, 30}};
+        a.put<int32_t>(kPoints + 0, (int32_t)(kName0 - kPoints));
+        a.put<int32_t>(kPoints + 8, 0);                            // local_bone
+        a.put_bytes(kPoints + 12, local, sizeof(local));
+        a.put_str(kName0, "muzzle", 16);
+
+        // Point 1: on a bone the model does not have, which has nowhere to hang.
+        a.put<int32_t>(kPoints + 92 + 0, (int32_t)(kName1 - (kPoints + 92)));
+        a.put<int32_t>(kPoints + 92 + 8, 5);
+        a.put_str(kName1, "nowhere", 16);
+        a.ensure(1300);
+
+        auto r = SourceMDLParser::parse(a.span());
+        const auto* points = r.has_value() ? &r->mesh_data.attachments : nullptr;
+        check_i("point on a missing bone dropped", points ? (long long)points->size() : -1, 1);
+        if (points && points->size() == 1) {
+            const auto& p = (*points)[0];
+            check_s("attachment name", p.name, "muzzle");
+            check_i("attachment bone", p.bone_index, 0);
+            check("attachment x", p.position.x, -20.0f * kScale);
+            check("attachment y", p.position.y,  30.0f * kScale);
+            check("attachment z", p.position.z, -10.0f * kScale);
+
+            // Godot's forward is Valve's forward; turned, it must come out as Valve's left,
+            // which is Godot's -x.
+            const godot::Vector3 forward = p.basis.xform(godot::Vector3(0, 0, -1));
+            check("muzzle forward x", forward.x, -1.0);
+            check("muzzle forward y", forward.y, 0.0);
+            check("muzzle forward z", forward.z, 0.0);
+            const godot::Vector3 up = p.basis.xform(godot::Vector3(0, 1, 0));
+            check("muzzle up stays up", up.y, 1.0);
         }
     }
 

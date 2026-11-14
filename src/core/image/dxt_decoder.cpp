@@ -134,6 +134,16 @@ void decode_alpha_block(const std::byte* block, uint8_t (&out_alpha)[16]) noexce
     }
 }
 
+/// Expand the 8-byte DXT3 alpha block: 16 pixels x 4 bits, first pixel in the low nibble
+/// of the first byte. A 4-bit value v becomes v * 17, so 15 maps to 255.
+void decode_explicit_alpha_block(const std::byte* block, uint8_t (&out_alpha)[16]) noexcept {
+    for (int i = 0; i < 16; ++i) {
+        const uint8_t byte = static_cast<uint8_t>(block[i / 2]);
+        const uint8_t nibble = (i % 2 == 0) ? (byte & 0x0F) : (byte >> 4);
+        out_alpha[i] = static_cast<uint8_t>(nibble * 17);
+    }
+}
+
 } // namespace
 
 size_t dxt1_encoded_size(uint32_t width, uint32_t height) noexcept {
@@ -160,6 +170,31 @@ bool decode_dxt1(std::span<const std::byte> src, uint32_t width, uint32_t height
             Rgba palette[4];
             build_color_palette(block, /*punchthrough=*/true, palette);
             emit_color_block(block, palette, width, height, bx, by, out_rgba8, nullptr);
+        }
+    }
+    return true;
+}
+
+bool decode_dxt3(std::span<const std::byte> src, uint32_t width, uint32_t height,
+                 std::vector<uint8_t>& out_rgba8) {
+    if (width == 0 || height == 0) return false;
+    if (src.size() < dxt5_encoded_size(width, height)) return false;
+
+    out_rgba8.assign(static_cast<size_t>(width) * height * 4, 0);
+
+    const size_t bw = blocks_across(width);
+    const size_t bh = blocks_across(height);
+
+    for (size_t by = 0; by < bh; ++by) {
+        for (size_t bx = 0; bx < bw; ++bx) {
+            const std::byte* block = src.data() + (by * bw + bx) * 16;
+
+            uint8_t alpha[16];
+            decode_explicit_alpha_block(block, alpha);
+
+            Rgba palette[4];
+            build_color_palette(block + 8, /*punchthrough=*/false, palette);
+            emit_color_block(block + 8, palette, width, height, bx, by, out_rgba8, alpha);
         }
     }
     return true;

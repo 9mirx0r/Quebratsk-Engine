@@ -8,6 +8,7 @@
 #include "ir_texture_data.h"
 
 #include <godot_cpp/variant/aabb.hpp>
+#include <godot_cpp/variant/basis.hpp>
 #include <godot_cpp/variant/color.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 #include <godot_cpp/variant/vector3.hpp>
@@ -100,8 +101,20 @@ struct IRMeshData {
         std::string name;
         int32_t bone_index = -1;
         godot::Vector3 position;         // in the bone's own space, already in Godot's axes
+
+        /// Which way the point faces, in the bone's space. Source states it (a muzzle
+        /// points down its own +x, Valve's forward); GoldSrc leaves it at zero, so it stays
+        /// the identity there.
+        godot::Basis basis;
     };
     std::vector<Attachment> attachments;
+
+    /// How many skin families the model has: whole alternative sets of textures, of which
+    /// a map's `skin` key picks one. 1 for a model with only its own.
+    int32_t skin_families = 1;
+
+    /// The family these surfaces were built with.
+    int32_t skin = 0;
 
     godot::Vector3 bbox_min;
     godot::Vector3 bbox_max;

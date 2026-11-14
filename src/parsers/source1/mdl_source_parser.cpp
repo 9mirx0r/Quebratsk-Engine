@@ -76,6 +76,76 @@ void fill_skeleton(const ByteReader& mdl, const SourceStudioHeader* header,
     }
 }
 
+/// The model's named points, each a bone and a 3x4 matrix in that bone's space.
+///
+/// The rotation is carried over as well as the place: a Source muzzle points down the
+/// attachment's own +x, and a flash drawn at the right spot facing the wrong way is still
+/// wrong. A point on a bone the model does not have is dropped.
+void fill_attachments(const ByteReader& mdl, const SourceStudioHeader* header,
+                      std::vector<ir::IRMeshData::Attachment>& out) {
+    if (header->num_attachments <= 0 || header->attachment_index <= 0) return;
+    const auto points = mdl.array_at<SourceAttachment>(
+        static_cast<size_t>(header->attachment_index),
+        static_cast<size_t>(header->num_attachments));
+
+    // The change of axes as a permutation with signs: Godot axis a is Valve axis kFrom[a]
+    // times kSign[a], the same mapping source_to_godot() applies to a point.
+    constexpr int kFrom[3] = {1, 2, 0};
+    constexpr float kSign[3] = {-1.0f, 1.0f, -1.0f};
+
+    for (size_t i = 0; i < points.size(); ++i) {
+        const SourceAttachment& point = points[i];
+        if (point.local_bone < 0 || point.local_bone >= header->num_bones) continue;
+
+        ir::IRMeshData::Attachment attachment;
+        const size_t base = static_cast<size_t>(header->attachment_index) +
+                            i * sizeof(SourceAttachment);
+        if (point.name_index > 0 && base <= mdl.size() &&
+            static_cast<size_t>(point.name_index) <= mdl.size() - base) {
+            if (auto name = mdl.cstr_at(base + static_cast<size_t>(point.name_index))) {
+                attachment.name = std::move(*name);
+            }
+        }
+        if (attachment.name.empty()) attachment.name = "attachment_" + std::to_string(i);
+
+        attachment.bone_index = point.local_bone;
+        attachment.position = math::source_to_godot(
+            godot::Vector3(point.local[0][3], point.local[1][3], point.local[2][3]));
+        // M R Mt, written out for a signed permutation.
+        for (int a = 0; a < 3; ++a) {
+            for (int b = 0; b < 3; ++b) {
+                attachment.basis.rows[a][b] =
+                    kSign[a] * kSign[b] * point.local[kFrom[a]][kFrom[b]];
+            }
+        }
+        out.push_back(std::move(attachment));
+    }
+}
+
+/// One row of the skin table: for each texture a mesh names, the texture it wears in the
+/// chosen family. A family past the end means family 0, which is what the game draws then.
+/// Empty when the model has no table, and the mesh's own number stands.
+std::vector<int16_t> skin_row(const ByteReader& mdl, const SourceStudioHeader* header,
+                              int32_t& skin) {
+    const int32_t families = header->num_skin_families;
+    const int32_t refs = header->num_skin_ref;
+    if (families <= 0 || refs <= 0 || header->skin_index <= 0) {
+        skin = 0;
+        return {};
+    }
+    if (skin < 0 || skin >= families) skin = 0;
+    const auto table = mdl.array_at<int16_t>(
+        static_cast<size_t>(header->skin_index),
+        static_cast<size_t>(families) * static_cast<size_t>(refs));
+    if (table.empty()) {
+        skin = 0;
+        return {};
+    }
+    const auto row = table.subspan(static_cast<size_t>(skin) * static_cast<size_t>(refs),
+                                   static_cast<size_t>(refs));
+    return {row.begin(), row.end()};
+}
+
 /// How many mstudioanimvalue_t to hand sample_track() so it can reach `frame`.
 ///
 /// The encoding gives no way to know a track's length without decoding it, so this reads a
@@ -571,6 +641,8 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
     result.skeleton_data.name = result.mesh_data.name;
 
     fill_skeleton(mdl, header, result.skeleton_data);
+    fill_attachments(mdl, header, result.mesh_data.attachments);
+    result.mesh_data.skin_families = header->num_skin_families > 0 ? header->num_skin_families : 1;
 
     // Lift a real stance out of the animation sequences. Without this the model stands
     // in its bind pose, which is a modelling artefact the game never shows.
@@ -725,6 +797,18 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
         return result;
     }
 
+    // A mesh names a slot in the skin table, not a texture. Family 0 is usually the slot
+    // numbers unchanged, which is why reading the number as a texture mostly worked.
+    int32_t skin = bundle.skin;
+    const std::vector<int16_t> skins = skin_row(mdl, header, skin);
+    result.mesh_data.skin = skin;
+    auto texture_for = [&skins](int32_t slot) -> int32_t {
+        if (slot >= 0 && static_cast<size_t>(slot) < skins.size() && skins[slot] >= 0) {
+            return skins[static_cast<size_t>(slot)];
+        }
+        return slot;
+    };
+
     std::unordered_map<int32_t, ir::IRSurface> surface_map;
 
     const int32_t body_part_count = header->num_bodyparts < vtx_header->num_body_parts
@@ -813,7 +897,7 @@ std::expected<ParsedSourceMDLModel, SourceMDLParseError> SourceMDLParser::parse_
                 vtx, vtx_lod_ofs, vtx_lod->mesh_offset + static_cast<int32_t>(mi * sizeof(VTXMesh)));
             if (!mdl_mesh || !vtx_mesh) continue;
 
-            const int32_t material = mdl_mesh->material;
+            const int32_t material = texture_for(mdl_mesh->material);
             auto& surf = surface_map[material];
             if (surf.material_name.empty()) {
                 surf.material_name =

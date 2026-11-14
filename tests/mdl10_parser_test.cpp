@@ -27,9 +27,14 @@
 #include "parsers/goldsrc/mdl10_parser.h"
 #include "core/ir/ir_skeleton_data.h"
 
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
+#include <set>
 #include <vector>
 
 using namespace quebratsk::parsers::goldsrc;
@@ -75,7 +80,86 @@ struct Builder {
     }
 };
 
-int main() {
+static std::vector<std::byte> read_file(const std::filesystem::path& path) {
+    std::ifstream in(path, std::ios::binary);
+    if (!in) return {};
+    in.seekg(0, std::ios::end);
+    const auto size = static_cast<size_t>(in.tellg());
+    in.seekg(0);
+    std::vector<std::byte> out(size);
+    in.read(reinterpret_cast<char*>(out.data()), static_cast<std::streamsize>(size));
+    return out;
+}
+
+// Every GoldSrc model under a folder, with its texture companion (fooT.mdl) when there is
+// one: how many have more than one skin family, and whether choosing another really
+// changes what the model wears. Most split models keep the skin table only in the T file.
+static int corpus(const char* root) {
+    namespace fs = std::filesystem;
+    int models = 0, refused = 0, with_families = 0, changes = 0, same = 0;
+    for (const auto& entry : fs::recursive_directory_iterator(root)) {
+        if (!entry.is_regular_file()) continue;
+        std::string name = entry.path().filename().string();
+        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+        if (name.size() < 5 || name.substr(name.size() - 4) != ".mdl") continue;
+        const std::string stem = name.substr(0, name.size() - 4);
+        const std::string real_stem = entry.path().stem().string();
+        if (stem.size() > 1 && stem.back() == 't') {
+            // fooT.mdl is a companion when foo.mdl sits next to it.
+            fs::path base = entry.path();
+            base.replace_filename(real_stem.substr(0, real_stem.size() - 1) + ".mdl");
+            if (fs::exists(base)) continue;
+        }
+        if (stem.size() > 2 && std::isdigit(static_cast<unsigned char>(stem.back()))
+            && std::isdigit(static_cast<unsigned char>(stem[stem.size() - 2]))) {
+            fs::path base = entry.path();
+            base.replace_filename(real_stem.substr(0, real_stem.size() - 2) + ".mdl");
+            if (fs::exists(base)) continue;  // foo01.mdl: a sequence group, no mesh of its own
+        }
+        const auto mdl = read_file(entry.path());
+        if (mdl.size() < 8 || std::memcmp(mdl.data(), "IDST", 4) != 0) continue;
+        int32_t version = 0;
+        std::memcpy(&version, mdl.data() + 4, 4);
+        if (version != 10) continue;
+
+        fs::path tex = entry.path();
+        tex.replace_filename(real_stem + "T.mdl");
+        const auto texture = read_file(tex);
+        ++models;
+
+        auto r0 = MDL10Parser::parse(mdl, texture);
+        if (!r0.has_value()) {
+            ++refused;
+            continue;
+        }
+        const auto& m0 = r0->mesh_data;
+        if (m0.skin_families <= 1 || m0.surfaces.empty()) continue;
+        ++with_families;
+        std::set<std::string> base;
+        for (const auto& s : m0.surfaces) base.insert(s.material_name);
+        bool changed = false;
+        for (int32_t f = 1; f < m0.skin_families; ++f) {
+            auto rf = MDL10Parser::parse(mdl, texture, {}, {}, {}, f);
+            if (!rf.has_value() || rf->mesh_data.skin != f) continue;
+            std::set<std::string> other;
+            for (const auto& s : rf->mesh_data.surfaces) other.insert(s.material_name);
+            if (other != base) changed = true;
+        }
+        if (changed) {
+            ++changes;
+        } else {
+            ++same;
+            std::printf("  same in every family: %s\n", entry.path().string().c_str());
+        }
+    }
+    std::printf("%d GoldSrc models, %d refused\n", models, refused);
+    std::printf("%d with more than one skin family: %d wear something else in another, "
+                "%d the same in all\n", with_families, changes, same);
+    return 0;
+}
+
+int main(int argc, char** argv) {
+    if (argc > 1) return corpus(argv[1]);
     std::printf("GoldSrc MDL v10 parser verification\n\n");
 
     constexpr float kScale = 0.0254f; // kHammerUnitsToMeters

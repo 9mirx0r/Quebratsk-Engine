@@ -392,7 +392,8 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
     std::span<const std::byte> texture_mdl_bytes,
     const std::vector<std::string>& animate,
     const std::vector<std::span<const std::byte>>& sequence_groups,
-    const std::map<std::string, int32_t>& body_choices
+    const std::map<std::string, int32_t>& body_choices,
+    int32_t skin
 ) {
     const ByteReader mdl(mdl_bytes);
 
@@ -505,19 +506,45 @@ std::expected<ParsedMDL10Model, MDL10ParseError> MDL10Parser::parse(
         }
     }
 
-    // The skin table always comes from the model file, never the texture companion.
+    // Skin table: int16[num_skin_families][num_skin_ref]. A mesh's skin_ref indexes the
+    // row of the chosen family to reach the real texture. A family the model does not have
+    // draws family 0, which is what the public HL SDK's model viewer does with one
+    // (utils/mdlviewer/studio_render.cpp).
+    //
+    // The table belongs to whichever file holds the textures, the same file that viewer
+    // reads it from. Of the 204 Half-Life models that keep their textures in a "<name>T.mdl",
+    // 195 have the table only there: the bull squid's second family, its second skin, was
+    // unreachable while this looked in the model file alone.
+    const ByteReader* skin_source = &mdl;
+    const StudioHeader* skin_header = header;
+    if (tex_header != header && tex_header->num_skin_ref > 0 && tex_header->skin_index > 0) {
+        skin_source = &tex_source;
+        skin_header = tex_header;
+    }
 
-    // Skin table: int16[num_skin_families][num_skin_ref]. A mesh's skin_ref indexes a
-    // row of family 0 to reach the real texture.
     const int16_t* skin_table = nullptr;
     size_t num_skin_ref = 0;
+    const int32_t families = skin_header->num_skin_families > 0 ? skin_header->num_skin_families : 1;
+    result.mesh_data.skin_families = families;
+    result.mesh_data.skin = 0;
 
-    if (header->num_skin_ref > 0 && header->skin_index > 0) {
-        const auto skin_span = mdl.array_at<int16_t>(static_cast<size_t>(header->skin_index),
-                                                     static_cast<size_t>(header->num_skin_ref));
+    if (skin_header->num_skin_ref > 0 && skin_header->skin_index > 0) {
+        const int32_t family = (skin > 0 && skin < families) ? skin : 0;
+        const auto skin_span = skin_source->array_at<int16_t>(
+            static_cast<size_t>(skin_header->skin_index),
+            static_cast<size_t>(families) * static_cast<size_t>(skin_header->num_skin_ref));
         if (!skin_span.empty()) {
-            skin_table = skin_span.data();
-            num_skin_ref = skin_span.size();
+            num_skin_ref = static_cast<size_t>(skin_header->num_skin_ref);
+            skin_table = skin_span.data() + static_cast<size_t>(family) * num_skin_ref;
+            result.mesh_data.skin = family;
+        } else if (const auto first = skin_source->array_at<int16_t>(
+                       static_cast<size_t>(skin_header->skin_index),
+                       static_cast<size_t>(skin_header->num_skin_ref));
+                   !first.empty()) {
+            // A table cut short past its first row still dresses the model in family 0.
+            skin_table = first.data();
+            num_skin_ref = first.size();
+            result.mesh_data.skin_families = 1;
         }
     }
 

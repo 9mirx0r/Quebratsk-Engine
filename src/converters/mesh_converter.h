@@ -7,6 +7,9 @@
 #include <godot_cpp/classes/shader.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
 
+#include <cstdint>
+#include <vector>
+
 namespace quebratsk::converters {
 
 class TextureLoader;
@@ -28,6 +31,11 @@ struct MapLighting {
 
     /// MAIN THREAD ONLY. Returns an invalid lighting when the map ships no light.
     [[nodiscard]] static MapLighting create(const ir::IRTextureData& lightmap);
+
+    /// MAIN THREAD ONLY. A Source level's light: `rgb` is width * height * 3 linear floats,
+    /// top row first, which may run past 1. Invalid when the sizes do not agree.
+    [[nodiscard]] static MapLighting create_linear(uint32_t width, uint32_t height,
+                                                   const std::vector<float>& rgb);
     [[nodiscard]] bool is_valid() const { return atlas.is_valid(); }
 };
 

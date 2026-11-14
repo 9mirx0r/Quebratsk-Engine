@@ -28,18 +28,34 @@ enum class VTFImageFormat : int32_t {
     IA88        = 6,
     P8          = 7,
     A8          = 8,
+    RGB888_BlueScreen = 9,
+    BGR888_BlueScreen = 10,
     ARGB8888    = 11,
     BGRA8888    = 12,
     DXT1        = 13,
     DXT3        = 14,
     DXT5        = 15,
     BGRX8888    = 16,
-    DXT1_OneBitAlpha = 26,
+    BGR565      = 17,
+    BGRX5551    = 18,
+    BGRA4444    = 19,
+    // Was 26 here, which is UVLX8888: real one-bit-alpha textures were refused and a
+    // UVLX8888 one would have been decoded as DXT1 noise. 20 is its place in the SDK list.
+    DXT1_OneBitAlpha = 20,
+    BGRA5551    = 21,
+    UV88        = 22,
+    UVWQ8888    = 23,
+    RGBA16161616F = 24,
+    RGBA16161616  = 25,
+    UVLX8888    = 26,
 };
+
+/// Header flag: the texture is an environment map, stored as a cube of faces.
+inline constexpr uint32_t kVtfFlagEnvmap = 0x4000;
 
 class VTFParser {
 public:
-    /// Decode the highest-resolution mip of a VTF into RGBA8.
+    /// Decode the highest-resolution mip of a VTF into RGBA8: frame 0, face 0, slice 0.
     [[nodiscard]] static std::expected<ir::IRTextureData, VTFParseError> parse(
         std::span<const std::byte> vtf_bytes
     );

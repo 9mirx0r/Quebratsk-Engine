@@ -29,6 +29,13 @@ namespace quebratsk::image {
                                uint32_t width, uint32_t height,
                                std::vector<uint8_t>& out_rgba8);
 
+/// Decode DXT3 (BC2) into tightly packed RGBA8. Returns false if `src` is too small.
+/// Each block is 8 bytes of explicit 4-bit alpha, one value per pixel, then a colour
+/// block that always uses four colours.
+[[nodiscard]] bool decode_dxt3(std::span<const std::byte> src,
+                               uint32_t width, uint32_t height,
+                               std::vector<uint8_t>& out_rgba8);
+
 /// Decode DXT5 (BC3) into tightly packed RGBA8. Returns false if `src` is too small.
 [[nodiscard]] bool decode_dxt5(std::span<const std::byte> src,
                                uint32_t width, uint32_t height,

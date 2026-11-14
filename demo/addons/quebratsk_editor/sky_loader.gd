@@ -79,7 +79,7 @@ static func sky_name(entities: Array) -> String:
 ## `report` receives one line per face that could not be found, so a missing skybox can say
 ## which file it wanted rather than silently leaving the world grey.
 static func load_sky(vfs: VFSManager, entities: Array, report: Array = [],
-		override := "") -> Sky:
+		override := "", importer: Object = null) -> Sky:
 	var name := sky_name(entities)
 	if name.is_empty() and override.is_empty():
 		return null
@@ -107,6 +107,8 @@ static func load_sky(vfs: VFSManager, entities: Array, report: Array = [],
 		var image := _load_override(override, str(face["suffix"]))
 		if image == null:
 			image = _load_face(vfs, name, str(face["suffix"]))
+		if image == null and importer != null:
+			image = _load_source_face(vfs, importer, name, str(face["suffix"]))
 		if image == null:
 			report.append("gfx/env/%s%s" % [name, face["suffix"]])
 			return null
@@ -219,6 +221,54 @@ static func _load_face(vfs: VFSManager, name: String, suffix: String) -> Image:
 		if err == OK and image.get_width() > 0:
 			return image
 	return null
+
+
+## A Source level's face: materials/skybox/<name><side>.vtf, read by the importer.
+##
+## Source paints the sides of a sky half as tall as they are wide, the upper half only, since
+## the lower half is under the horizon and nobody sees it. They are put back on a square with
+## the bottom row carried down. A sky whose name ends in _hdr keeps its brightness in the alpha
+## channel, a scale on the colour of up to sixteen; it is brought back into ordinary colour
+## here with a soft roll-off rather than cut at white.
+static func _load_source_face(vfs: VFSManager, importer: Object, name: String,
+		suffix: String) -> Image:
+	var wanted := "materials/skybox/%s%s.vtf" % [name, suffix]
+	var hit: Dictionary = vfs.find_files("%s%s" % [name, suffix], PackedStringArray(["vtf"]),
+		PackedStringArray(), PackedStringArray(), 8)
+	var uri := ""
+	for file in hit.get("files", []):
+		if str(file).to_lower().ends_with(wanted):
+			uri = str(file)
+			break
+	if uri.is_empty():
+		return null
+	var texture: Texture2D = importer.load_texture(uri)
+	if texture == null:
+		return null
+	var image := texture.get_image()
+	if image == null or image.get_width() == 0:
+		return null
+	if image.is_compressed():
+		image.decompress()
+	image.convert(Image.FORMAT_RGBA8)
+
+	if name.to_lower().ends_with("_hdr"):
+		for y in image.get_height():
+			for x in image.get_width():
+				var c := image.get_pixel(x, y)
+				var light := c.a * 16.0 * 0.45
+				image.set_pixel(x, y, Color(1.0 - exp(-c.r * light), 1.0 - exp(-c.g * light),
+					1.0 - exp(-c.b * light), 1.0))
+
+	var width := image.get_width()
+	if suffix != "up" and suffix != "dn" and image.get_height() * 2 <= width:
+		var square := Image.create(width, width, false, Image.FORMAT_RGBA8)
+		square.blit_rect(image, Rect2i(0, 0, width, image.get_height()), Vector2i.ZERO)
+		var last := image.get_height() - 1
+		for y in range(image.get_height(), width):
+			square.blit_rect(image, Rect2i(0, last, width, 1), Vector2i(0, y))
+		image = square
+	return image
 
 
 ## A sky whose weather moves, built on top of a painted one.

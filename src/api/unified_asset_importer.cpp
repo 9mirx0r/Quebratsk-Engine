@@ -124,6 +124,15 @@ BrushEntityFacts brush_entity_facts(const std::string& entities) {
     return facts;
 }
 
+/// A level's light as shaders: Source light is linear floats, GoldSrc light a picture.
+converters::MapLighting map_lighting(const ParsedAssetIR& parsed) {
+    if (parsed.source_light.is_valid()) {
+        return converters::MapLighting::create_linear(
+            parsed.source_light.width, parsed.source_light.height, parsed.source_light.rgb);
+    }
+    return converters::MapLighting::create(parsed.lightmap);
+}
+
 } // namespace
 
 void UnifiedAssetImporter::_bind_methods() {
@@ -134,16 +143,20 @@ void UnifiedAssetImporter::_bind_methods() {
     ClassDB::bind_method(D_METHOD("load_texture", "texture_ref"), &UnifiedAssetImporter::load_texture);
     ClassDB::bind_method(D_METHOD("load_sprite", "vfs_uri"), &UnifiedAssetImporter::load_sprite);
     ClassDB::bind_method(D_METHOD("load_model", "vfs_uri", "pose_name", "animations",
-                                  "body_choices"),
+                                  "body_choices", "skin"),
                          &UnifiedAssetImporter::load_model,
-                         DEFVAL(String()), DEFVAL(PackedStringArray()), DEFVAL(Dictionary()));
+                         DEFVAL(String()), DEFVAL(PackedStringArray()), DEFVAL(Dictionary()),
+                         DEFVAL(0));
     ClassDB::bind_method(D_METHOD("load_map", "vfs_uri"), &UnifiedAssetImporter::load_map);
     ClassDB::bind_method(D_METHOD("load_map_entities", "vfs_uri"),
                          &UnifiedAssetImporter::load_map_entities);
+    ClassDB::bind_method(D_METHOD("load_map_props", "vfs_uri"),
+                         &UnifiedAssetImporter::load_map_props);
     ClassDB::bind_method(D_METHOD("load_character", "vfs_uri", "pose_name", "animations",
-                                  "body_choices"),
+                                  "body_choices", "skin"),
                          &UnifiedAssetImporter::load_character,
-                         DEFVAL(String()), DEFVAL(PackedStringArray()), DEFVAL(Dictionary()));
+                         DEFVAL(String()), DEFVAL(PackedStringArray()), DEFVAL(Dictionary()),
+                         DEFVAL(0));
     ClassDB::bind_method(D_METHOD("list_poses", "vfs_uri"), &UnifiedAssetImporter::list_poses);
     ClassDB::bind_method(D_METHOD("list_sounds", "vfs_uri", "sequence"),
                          &UnifiedAssetImporter::list_sounds, DEFVAL(String()));
@@ -339,7 +352,8 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
                                                   const std::string& lowercase_uri,
                                                   bool pose_names_only,
                                                   const std::vector<std::string>& animate,
-                                                  const std::map<std::string, int32_t>& body_choices) {
+                                                  const std::map<std::string, int32_t>& body_choices,
+                                                  int32_t skin) {
     ParsedAssetIR out;
     const std::span<const std::byte> data(bundle.primary);
     if (data.empty()) {
@@ -357,7 +371,7 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
 
         if (auto gs_res = parsers::goldsrc::MDL10Parser::parse(
                 data, std::span<const std::byte>(bundle.textures), animate, groups,
-                body_choices);
+                body_choices, skin);
             gs_res.has_value()) {
             out.mesh = std::move(gs_res->mesh_data);
             out.skeleton = std::move(gs_res->skeleton_data);
@@ -372,6 +386,7 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
             std::span<const std::byte>(bundle.animations),
             animate,
             {},
+            skin,
         };
         src_bundle.include_models.reserve(bundle.include_models.size());
         for (const auto& inc : bundle.include_models) {
@@ -388,6 +403,29 @@ ParsedAssetIR UnifiedAssetImporter::parse_asset_ir(const AssetBundleBytes& bundl
             return out;
         }
     } else if (lowercase_uri.ends_with(".bsp")) {
+        // Source and GoldSrc share the extension and nothing else: a Source level opens with
+        // "VBSP", a GoldSrc one with its version number.
+        if (parsers::source1::VBSPParser::is_vbsp(data)) {
+            auto vbsp_res = parsers::source1::VBSPParser::parse(data);
+            if (!vbsp_res.has_value() || vbsp_res->brush_models.empty()) return out;
+            out.mesh = std::move(vbsp_res->brush_models[0].mesh);
+            // A level names its materials from the materials folder down.
+            out.mesh.material_search_paths = {"materials/"};
+            // [0] is the world, which is `mesh` above. No solid blocks are read yet, so
+            // everything collides by its drawn triangles.
+            out.brush_meshes.emplace_back();
+            for (size_t i = 1; i < vbsp_res->brush_models.size(); ++i) {
+                out.brush_meshes.push_back(std::move(vbsp_res->brush_models[i].mesh));
+                out.brush_meshes.back().material_search_paths = {"materials/"};
+            }
+            BrushEntityFacts facts = brush_entity_facts(vbsp_res->entity_string);
+            out.brush_invisible = std::move(facts.invisible);
+            out.brush_offsets = std::move(facts.offsets);
+            out.source_light = std::move(vbsp_res->lightmap);
+            // The sky is not set here: a Source sky is six materials under skybox/, which the
+            // GoldSrc sky box below does not look for. The world entity's "skyname" says which.
+            return out;
+        }
         if (auto bsp_res = parsers::goldsrc::BSP30Parser::parse(data); bsp_res.has_value()) {
             out.mesh = std::move(bsp_res->mesh_data);
             for (auto& model : bsp_res->brush_models) {
@@ -455,7 +493,7 @@ Ref<ArrayMesh> UnifiedAssetImporter::load_mesh(const String& vfs_uri) {
     converters::TextureLoader loader(m_vfs);
     loader.set_origin(vfs_uri.utf8().get_data());
     loader.set_search_paths(parsed.mesh.material_search_paths);
-    const converters::MapLighting lighting = converters::MapLighting::create(parsed.lightmap);
+    const converters::MapLighting lighting = map_lighting(parsed);
     return converters::MeshConverter::convert(parsed.mesh, &loader, &lighting);
 }
 
@@ -625,6 +663,7 @@ Array UnifiedAssetImporter::list_attachments(const String& vfs_uri) {
         entry["name"] = String(attachment.name.c_str());
         entry["bone"] = attachment.bone_index;
         entry["position"] = attachment.position;
+        entry["basis"] = attachment.basis;
         out.push_back(entry);
     }
     m_last_error_code = ERR_OK;
@@ -650,7 +689,7 @@ PackedStringArray UnifiedAssetImporter::resolve_sound(const String& name,
 
 Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& pose_name,
                                          const PackedStringArray& animations,
-                                         const Dictionary& body_choices) {
+                                         const Dictionary& body_choices, int32_t skin) {
     if (!m_vfs) {
         m_last_error_code = ERR_VFS_NOT_SET;
         UtilityFunctions::printerr("[QuebratskImporter] VFSManager not set!");
@@ -672,7 +711,7 @@ Node3D* UnifiedAssetImporter::load_model(const String& vfs_uri, const String& po
 
     const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
     ParsedAssetIR parsed = parse_asset_ir(bundle, uri_lower, /*pose_names_only=*/false, animate,
-                                         to_body_choices(body_choices));
+                                         to_body_choices(body_choices), skin);
 
     return build_model_node(parsed, pose_name, vfs_uri);
 }
@@ -726,6 +765,10 @@ Node3D* UnifiedAssetImporter::build_model_node(const ParsedAssetIR& parsed,
     MeshInstance3D* mesh_instance = memnew(MeshInstance3D);
     mesh_instance->set_mesh(mesh);
     mesh_instance->set_name(node_name);
+    // How many sets of textures the model carries and which one it is wearing, so a caller
+    // can tell a skin that was asked for and not there from one that was built.
+    mesh_instance->set_meta("quebratsk_skins", parsed.mesh.skin_families);
+    mesh_instance->set_meta("quebratsk_skin", parsed.mesh.skin);
 
     if (parsed.skeleton.bones.empty()) {
         // A prop with no bones never moves, so its own triangles are the honest collider.
@@ -1017,8 +1060,8 @@ StaticBody3D* UnifiedAssetImporter::capsule_body(const AABB& bounds) {
 
 Node3D* UnifiedAssetImporter::load_character(const String& vfs_uri, const String& pose_name,
                                              const PackedStringArray& animations,
-                                             const Dictionary& body_choices) {
-    Node3D* model = load_model(vfs_uri, pose_name, animations, body_choices);
+                                             const Dictionary& body_choices, int32_t skin) {
+    Node3D* model = load_model(vfs_uri, pose_name, animations, body_choices, skin);
     if (model == nullptr) return nullptr;
 
     Skeleton3D* skeleton = Object::cast_to<Skeleton3D>(model);
@@ -1076,10 +1119,34 @@ Array UnifiedAssetImporter::load_map_entities(const String& vfs_uri) {
         return out;
     }
 
-    auto parsed = parsers::goldsrc::BSP30Parser::parse(bytes);
-    if (!parsed.has_value()) {
-        m_last_error_code = ERR_PARSE_FAILED;
-        return out;
+    // Only the entity text and each brush model's box are needed, from either kind of level.
+    struct Box {
+        godot::Vector3 mins;
+        godot::Vector3 size;
+        godot::Vector3 centre;
+    };
+    std::string text;
+    std::vector<Box> boxes;
+    if (parsers::source1::VBSPParser::is_vbsp(bytes)) {
+        auto parsed = parsers::source1::VBSPParser::parse(bytes);
+        if (!parsed.has_value()) {
+            m_last_error_code = ERR_PARSE_FAILED;
+            return out;
+        }
+        text = std::move(parsed->entity_string);
+        for (const auto& model : parsed->brush_models) {
+            boxes.push_back({model.mins, model.size(), model.centre()});
+        }
+    } else {
+        auto parsed = parsers::goldsrc::BSP30Parser::parse(bytes);
+        if (!parsed.has_value()) {
+            m_last_error_code = ERR_PARSE_FAILED;
+            return out;
+        }
+        text = std::move(parsed->entity_string);
+        for (const auto& model : parsed->brush_models) {
+            boxes.push_back({model.mins, model.size(), model.centre()});
+        }
     }
 
     // The lump is a flat run of brace-delimited blocks of quoted key/value pairs:
@@ -1090,7 +1157,6 @@ Array UnifiedAssetImporter::load_map_entities(const String& vfs_uri) {
     // no comments and no escapes to speak of, and because a malformed lump has to end the
     // walk rather than throw: these files are twenty-five years old and some of them are
     // hand-edited.
-    const std::string& text = parsed->entity_string;
     size_t pos = 0;
     while (true) {
         const size_t open = text.find('{', pos);
@@ -1141,14 +1207,14 @@ Array UnifiedAssetImporter::load_map_entities(const String& vfs_uri) {
             const String model = entity["model"];
             if (model.begins_with("*")) {
                 const int64_t index = model.substr(1).to_int();
-                if (index >= 0 && static_cast<size_t>(index) < parsed->brush_models.size()) {
-                    const auto& box = parsed->brush_models[static_cast<size_t>(index)];
+                if (index >= 0 && static_cast<size_t>(index) < boxes.size()) {
+                    const Box& box = boxes[static_cast<size_t>(index)];
                     // Published under the same key a point entity uses, so a caller does not
                     // have to know which kind it is holding to ask where it is.
                     const godot::Vector3 pivot =
                         entity.has("position") ? godot::Vector3(entity["position"]) : godot::Vector3();
-                    entity["position"] = box.centre() + pivot;
-                    entity["bounds"] = AABB(box.mins + pivot, box.size());
+                    entity["position"] = box.centre + pivot;
+                    entity["bounds"] = AABB(box.mins + pivot, box.size);
                 }
             }
         }
@@ -1157,6 +1223,39 @@ Array UnifiedAssetImporter::load_map_entities(const String& vfs_uri) {
         pos = close + 1;
     }
 
+    m_last_error_code = ERR_OK;
+    return out;
+}
+
+Array UnifiedAssetImporter::load_map_props(const String& vfs_uri) {
+    Array out;
+    if (!m_vfs) {
+        m_last_error_code = ERR_VFS_NOT_SET;
+        return out;
+    }
+    const std::vector<std::byte> bytes = read_asset_bytes(vfs_uri);
+    if (bytes.empty()) {
+        m_last_error_code = ERR_ASSET_UNREADABLE;
+        return out;
+    }
+    if (!parsers::source1::VBSPParser::is_vbsp(bytes)) {
+        // A GoldSrc level has no such list; its models are entities.
+        m_last_error_code = ERR_OK;
+        return out;
+    }
+    auto parsed = parsers::source1::VBSPParser::parse(bytes);
+    if (!parsed.has_value()) {
+        m_last_error_code = ERR_PARSE_FAILED;
+        return out;
+    }
+    for (const auto& prop : parsed->props) {
+        Dictionary entry;
+        entry["model"] = String(prop.model.c_str());
+        entry["skin"] = prop.skin;
+        entry["solid"] = prop.solid;
+        entry["transform"] = prop.transform;
+        out.append(entry);
+    }
     m_last_error_code = ERR_OK;
     return out;
 }
@@ -1179,7 +1278,7 @@ Node3D* UnifiedAssetImporter::load_map(const String& vfs_uri) {
     loader.set_search_paths(parsed.mesh.material_search_paths);
 
     // One light atlas and one pair of shaders for the whole level, brush entities included.
-    const converters::MapLighting lighting = converters::MapLighting::create(parsed.lightmap);
+    const converters::MapLighting lighting = map_lighting(parsed);
 
     Ref<ArrayMesh> mesh = converters::MeshConverter::convert(parsed.mesh, &loader, &lighting);
     if (mesh.is_null()) return nullptr;
@@ -1324,9 +1423,15 @@ Ref<StandardMaterial3D> UnifiedAssetImporter::load_material(const String& vfs_ur
 
     const std::string uri_lower = to_lower_ascii(vfs_uri.utf8().get_data());
     if (uri_lower.ends_with(".vmt")) {
-        if (auto vmt_res = parsers::source1::VMTParser::parse(data); vmt_res.has_value()) {
+        converters::TextureLoader loader(m_vfs);
+        const std::string uri = vfs_uri.utf8().get_data();
+        const parsers::source1::VMTParser::IncludeReader read_include =
+            [&loader, &uri](std::string_view path) {
+                return loader.read_material_include(path, uri);
+            };
+        if (auto vmt_res = parsers::source1::VMTParser::parse(data, read_include);
+            vmt_res.has_value()) {
             // Pass the loader so $basetexture / $bumpmap actually reach the material.
-            converters::TextureLoader loader(m_vfs);
             return converters::MaterialConverter::convert(vmt_res.value(), &loader);
         }
     }

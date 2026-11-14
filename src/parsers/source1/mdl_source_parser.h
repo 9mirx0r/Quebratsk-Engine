@@ -63,6 +63,10 @@ struct SourceModelBundle {
     /// in their bind pose. Each carries its own .ani: m_anm.mdl is 0.9 MB and defers
     /// 7.1 MB of stances to m_anm.ani.
     std::vector<SourceAnimatedModel> include_models;
+
+    /// Which skin family to dress the model in, as a map's prop states it. A family the
+    /// model does not have falls back to 0, as the game's own renderer does.
+    int32_t skin = 0;
 };
 
 /// How much of each animation sequence to recover.

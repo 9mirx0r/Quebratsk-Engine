@@ -2,10 +2,13 @@
 #include "texture_converter.h"
 #include "texture_loader.h"
 
+#include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/classes/image_texture.hpp>
 #include <godot_cpp/classes/shader_material.hpp>
 #include <godot_cpp/classes/standard_material3d.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
 #include <godot_cpp/variant/array.hpp>
+#include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/packed_color_array.hpp>
 #include <godot_cpp/variant/packed_float32_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
@@ -90,7 +93,67 @@ String lit_shader_code(bool masked) {
     return code;
 }
 
+/// Texture times light for a Source level.
+///
+/// Source keeps its light as linear colour, already worked out to what the engine shows,
+/// so there is no table to imitate: the texture is read as the colour it was painted in,
+/// turned linear, and multiplied by the light. A light above 1 (a lamp's pool, the sun on
+/// a wall) brightens the texture past what it was painted as, which is what it does in
+/// the game too. The texture is filtered smoothly, as the game draws it.
+String source_lit_shader_code(bool masked) {
+    String code =
+        "shader_type spatial;\n"
+        "render_mode ambient_light_disabled, specular_disabled;\n"
+        "uniform sampler2D albedo_texture : source_color, filter_linear_mipmap_anisotropic, repeat_enable, hint_default_white;\n"
+        "uniform sampler2D lightmap_texture : filter_linear, repeat_disable, hint_default_white;\n"
+        "void fragment() {\n"
+        "    vec4 tex = texture(albedo_texture, UV);\n"
+        "    vec3 light = texture(lightmap_texture, UV2).rgb;\n"
+        "    EMISSION = tex.rgb * light;\n"
+        "    ALBEDO = tex.rgb;\n"
+        "    ROUGHNESS = 1.0;\n"
+        "    SPECULAR = 0.0;\n";
+    if (masked) {
+        code += "    ALPHA = tex.a;\n"
+                "    ALPHA_SCISSOR_THRESHOLD = 0.5;\n";
+    }
+    code += "}\n"
+            "void light() {\n"
+            "    if (!LIGHT_IS_DIRECTIONAL) {\n"
+            "        DIFFUSE_LIGHT += clamp(dot(NORMAL, LIGHT), 0.0, 1.0) * ATTENUATION * LIGHT_COLOR / PI;\n"
+            "    }\n"
+            "}\n";
+    return code;
+}
+
 } // namespace
+
+MapLighting MapLighting::create_linear(uint32_t width, uint32_t height,
+                                       const std::vector<float>& rgb) {
+    MapLighting lighting;
+    if (width == 0 || height == 0 ||
+        rgb.size() != static_cast<size_t>(width) * height * 3) {
+        return lighting;
+    }
+
+    PackedByteArray bytes;
+    bytes.resize(static_cast<int64_t>(rgb.size() * sizeof(float)));
+    std::memcpy(bytes.ptrw(), rgb.data(), rgb.size() * sizeof(float));
+    Ref<Image> image = Image::create_from_data(static_cast<int32_t>(width),
+                                               static_cast<int32_t>(height), false,
+                                               Image::FORMAT_RGBF, bytes);
+    if (image.is_null()) return lighting;
+    // Half floats hold everything a level's light reaches at half the memory.
+    image->convert(Image::FORMAT_RGBH);
+    lighting.atlas = ImageTexture::create_from_image(image);
+    if (lighting.atlas.is_null()) return lighting;
+
+    lighting.opaque.instantiate();
+    lighting.opaque->set_code(source_lit_shader_code(false));
+    lighting.masked.instantiate();
+    lighting.masked->set_code(source_lit_shader_code(true));
+    return lighting;
+}
 
 MapLighting MapLighting::create(const ir::IRTextureData& lightmap) {
     MapLighting lighting;
@@ -219,6 +282,9 @@ Ref<ArrayMesh> MeshConverter::convert(const ir::IRMeshData& ir_mesh, TextureLoad
             masked = masked || embedded.has_alpha;
         } else if (loader && loader->is_valid() && !surf.material_name.empty()) {
             texture = loader->load(surf.material_name);
+            // A Source material says so in its script ($alphatest, $translucent) rather than
+            // in its name.
+            masked = masked || loader->is_masked(surf.material_name);
         }
 
         if (lighting != nullptr && lighting->is_valid() && !surf.uv1.empty()) {

@@ -126,4 +126,13 @@ if(QUEBRATSK_BUILD_TESTS)
         src/parsers/source1/mdl_source_parser.cpp
         src/parsers/source1/vvd_parser.cpp
         src/parsers/source1/anim_decoder.cpp)
+    quebratsk_add_test(vtf_parser_test
+        src/parsers/source1/vtf_parser.cpp
+        src/core/image/dxt_decoder.cpp)
+    quebratsk_add_test(vmt_parser_test src/parsers/source1/vmt_parser.cpp)
+    quebratsk_add_test(vpk_parser_test src/parsers/source2/vpk2_parser.cpp)
+    quebratsk_add_test(vbsp_parser_test
+        src/parsers/source1/vbsp_parser.cpp
+        src/core/math/axis_remap.cpp)
+    quebratsk_add_test(zip_directory_test src/parsers/source1/zip_directory.cpp)
 endif()

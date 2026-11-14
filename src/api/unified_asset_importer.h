@@ -10,6 +10,7 @@
 #include "../converters/skeleton_converter.h"
 #include "../converters/material_converter.h"
 #include "../converters/terrain_converter.h"
+#include "../parsers/source1/vbsp_parser.h"
 
 #include <godot_cpp/classes/node3d.hpp>
 #include <godot_cpp/classes/static_body3d.hpp>
@@ -70,6 +71,10 @@ struct ParsedAssetIR {
     /// The name of the sky a map is seen against (`desert`, `2desert`...), or empty when no
     /// face of it shows the sky.
     std::string sky_name;
+
+    /// A Source level's baked light, which runs past white and so is kept as floats rather
+    /// than in `lightmap`. Empty for anything else.
+    parsers::source1::VBSPLightmap source_light;
 };
 
 /// An asset's bytes plus any companion files it cannot be decoded without.
@@ -175,10 +180,15 @@ public:
     /// name: `{"scope": 1}` on a .357 builds the one with the laser sight. A part left out
     /// keeps the version the game shows by default, so `{}` behaves exactly as before.
     /// list_body_groups() is how a caller learns the names and how many versions there are.
+    ///
+    /// `skin` is the skin family, as a map entity's `skin` key states it: a whole other set
+    /// of textures. One the model lacks gives family 0. The mesh node carries
+    /// "quebratsk_skins" (how many there are) and "quebratsk_skin" (which one was built).
     godot::Node3D* load_model(const godot::String& vfs_uri,
                               const godot::String& pose_name = godot::String(),
                               const godot::PackedStringArray& animations = godot::PackedStringArray(),
-                              const godot::Dictionary& body_choices = godot::Dictionary());
+                              const godot::Dictionary& body_choices = godot::Dictionary(),
+                              int32_t skin = 0);
 
     /// Load a model as something that can move under its own power.
     ///
@@ -192,7 +202,8 @@ public:
     godot::Node3D* load_character(const godot::String& vfs_uri,
                                   const godot::String& pose_name = godot::String(),
                                   const godot::PackedStringArray& animations = godot::PackedStringArray(),
-                                  const godot::Dictionary& body_choices = godot::Dictionary());
+                                  const godot::Dictionary& body_choices = godot::Dictionary(),
+                                  int32_t skin = 0);
 
     /// Everything the map says is in it, beyond its geometry.
     ///
@@ -209,6 +220,15 @@ public:
     /// Origins are converted to Godot's axes and metres, so they line up with the geometry
     /// load_map() returns rather than being in the source engine's units.
     godot::Array load_map_entities(const godot::String& vfs_uri);
+
+    /// The props a Source level places by the thousand (barrels, crates, lamps), which are
+    /// stored apart from its entities.
+    ///
+    /// Returns an Array of Dictionaries, one per prop: "model" (the path the level names,
+    /// "models/props/crate.mdl", lower case), "skin" (int), "solid" (bool) and "transform"
+    /// (Transform3D, in the same axes and metres as load_map()). Loading the models is left
+    /// to the caller, who knows how many it can afford at once. Empty for a GoldSrc map.
+    godot::Array load_map_props(const godot::String& vfs_uri);
 
     /// Load a map as something you can stand on.
     ///
@@ -252,8 +272,10 @@ public:
     /// Named points on a model's skeleton: a muzzle, a shell ejection port, the tip of a
     /// barrel. Nothing else in the file records where a weapon's effects belong.
     ///
-    /// Returns an Array of Dictionaries: { "name": String, "bone": int, "position": Vector3 },
-    /// the position being in that bone's own space and already in Godot's axes.
+    /// Returns an Array of Dictionaries: { "name": String, "bone": int, "position": Vector3,
+    /// "basis": Basis }, both in that bone's own space and already in Godot's axes. The basis
+    /// is the identity for GoldSrc, which records no orientation; a Source muzzle points down
+    /// the basis' -z, Godot's forward, because Valve's forward (+x) maps there.
     godot::Array list_attachments(const godot::String& vfs_uri);
 
     /// VFS URIs of the sounds a named sequence plays, in order.
@@ -374,7 +396,8 @@ public:
                                                       const std::string& lowercase_uri,
                                                       bool pose_names_only = false,
                                                       const std::vector<std::string>& animate = {},
-                                                      const std::map<std::string, int32_t>& body_choices = {});
+                                                      const std::map<std::string, int32_t>& body_choices = {},
+                                                      int32_t skin = 0);
 
     [[nodiscard]] vfs::VFSManager* get_vfs() const { return m_vfs; }
 

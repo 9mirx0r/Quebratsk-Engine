@@ -15,8 +15,9 @@ uint32_t mip_dimension(uint32_t base, uint32_t level) noexcept {
     return d > 0 ? d : 1u;
 }
 
-/// Straight channel copy for the uncompressed layouts we support.
-void expand_to_rgba8(std::span<const std::byte> src, VTFImageFormat format,
+/// Straight channel copy for the uncompressed layouts we support. False for a layout
+/// with no copy here, so the caller refuses it instead of handing back a white picture.
+bool expand_to_rgba8(std::span<const std::byte> src, VTFImageFormat format,
                      uint32_t width, uint32_t height, std::vector<uint8_t>& out) {
     const size_t pixels = static_cast<size_t>(width) * height;
     out.assign(pixels * 4, 255);
@@ -34,6 +35,26 @@ void expand_to_rgba8(std::span<const std::byte> src, VTFImageFormat format,
                 out[i * 4 + 1] = s[i * 4 + 1];
                 out[i * 4 + 2] = s[i * 4 + 0];
                 out[i * 4 + 3] = (format == VTFImageFormat::BGRX8888) ? 255 : s[i * 4 + 3];
+            }
+            break;
+        case VTFImageFormat::ABGR8888:
+            // Alpha first, then the colour backwards. Low-poly packs use it for the small
+            // palette textures they paint whole models from.
+            for (size_t i = 0; i < pixels; ++i) {
+                out[i * 4 + 0] = s[i * 4 + 3];
+                out[i * 4 + 1] = s[i * 4 + 2];
+                out[i * 4 + 2] = s[i * 4 + 1];
+                out[i * 4 + 3] = s[i * 4 + 0];
+            }
+            break;
+        case VTFImageFormat::ARGB8888:
+            // Despite the name, the bytes are green, blue, alpha, red: that is where
+            // VTFLib, the open reader every VTF tool is built on, finds each channel.
+            for (size_t i = 0; i < pixels; ++i) {
+                out[i * 4 + 0] = s[i * 4 + 3];
+                out[i * 4 + 1] = s[i * 4 + 0];
+                out[i * 4 + 2] = s[i * 4 + 1];
+                out[i * 4 + 3] = s[i * 4 + 2];
             }
             break;
         case VTFImageFormat::RGB888:
@@ -71,9 +92,24 @@ void expand_to_rgba8(std::span<const std::byte> src, VTFImageFormat format,
             }
             break;
         default:
-            break;
+            return false;
     }
+    return true;
 }
+
+template <typename T>
+T read_at(std::span<const std::byte> b, size_t offset, T fallback) noexcept {
+    if (offset + sizeof(T) > b.size()) return fallback;
+    T v;
+    std::memcpy(&v, b.data() + offset, sizeof(T));
+    return v;
+}
+
+// Where the fields past the 63-byte base header sit (packed, as Valve writes them).
+constexpr size_t kDepthOffset = 63;         // 7.2+
+constexpr size_t kResourceCountOffset = 68; // 7.3+
+constexpr size_t kResourcesOffset = 80;     // 7.3+, 8 bytes each: tag[3], flags, offset
+constexpr uint32_t kResourceNoData = 0x2;   // the entry's offset field is its value
 
 bool format_has_alpha(VTFImageFormat f) noexcept {
     switch (f) {
@@ -151,18 +187,63 @@ std::expected<ir::IRTextureData, VTFParseError> VTFParser::parse(
         return std::unexpected(VTFParseError::UnsupportedFormat);
     }
 
-    // VTF stores mips smallest-first, so the full-resolution level is the LAST one.
-    // The old code used header_size as the data offset, which points at the low-res
-    // thumbnail. Walk back from the end of the file: the high-res chain is the final
-    // block and level 0 is its last entry.
+    const uint32_t minor = header->version[1];
     const size_t frames = header->frames > 0 ? header->frames : 1;
-    const size_t hires_total = hires_size * frames;
-    if (hires_total > vtf_bytes.size()) {
-        return std::unexpected(VTFParseError::CorruptedData);
+    const size_t mips = header->mipmap_count > 0 ? header->mipmap_count : 1;
+    uint32_t depth = 1;
+    if (minor >= 2) {
+        depth = read_at<uint16_t>(vtf_bytes, kDepthOffset, 1);
+        if (depth == 0) depth = 1;
+        if (depth > kMaxVtfDimension) return std::unexpected(VTFParseError::CorruptedData);
+    }
+    // An environment map is a cube: six faces per frame. Files before 7.5 carry a
+    // seventh, a sphere map nobody draws, unless their first frame is -1. Every one of
+    // the 96 cube maps in a real 7.4 map has first frame 0 and seven faces, which is
+    // also how VTFLib counts them.
+    size_t faces = 1;
+    if (header->flags & kVtfFlagEnvmap) {
+        faces = (minor < 5 && header->first_frame != 0xFFFF) ? 7 : 6;
     }
 
-    const size_t data_offset = vtf_bytes.size() - hires_total;
-    if (data_offset < header->header_size) {
+    // Where the image data begins. 7.3+ says so in its resource list; before that it
+    // follows the header and the small thumbnail.
+    size_t data_start = 0;
+    bool found = false;
+    if (minor >= 3) {
+        const uint32_t count = read_at<uint32_t>(vtf_bytes, kResourceCountOffset, 0);
+        for (uint32_t r = 0; r < count && r < 64; ++r) {
+            const size_t at = kResourcesOffset + static_cast<size_t>(r) * 8;
+            if (at + 8 > vtf_bytes.size()) break;
+            const auto* e = reinterpret_cast<const uint8_t*>(vtf_bytes.data() + at);
+            if (e[0] == 0x30 && e[1] == 0 && e[2] == 0 && !(e[3] & kResourceNoData)) {
+                data_start = read_at<uint32_t>(vtf_bytes, at + 4, 0);
+                found = true;
+                break;
+            }
+        }
+    }
+    if (!found) {
+        data_start = header->header_size;
+        const auto thumb = static_cast<VTFImageFormat>(header->low_res_image_format);
+        if (header->low_res_image_format != 0xFFFFFFFFu &&
+            header->low_res_image_width > 0 && header->low_res_image_height > 0) {
+            data_start += image_data_size(thumb, header->low_res_image_width,
+                                          header->low_res_image_height);
+        }
+    }
+
+    // Mips run smallest first, and inside each mip every frame, then every face, then
+    // every slice. The full-size image is the first thing of the last mip.
+    size_t data_offset = data_start;
+    for (size_t level = mips; level-- > 1;) {
+        const uint32_t lw = mip_dimension(width, static_cast<uint32_t>(level));
+        const uint32_t lh = mip_dimension(height, static_cast<uint32_t>(level));
+        const uint32_t ld = mip_dimension(depth, static_cast<uint32_t>(level));
+        data_offset += image_data_size(format, lw, lh) * frames * faces * ld;
+        if (data_offset > vtf_bytes.size()) return std::unexpected(VTFParseError::CorruptedData);
+    }
+    if (data_offset < header->header_size || data_offset > vtf_bytes.size() ||
+        vtf_bytes.size() - data_offset < hires_size) {
         return std::unexpected(VTFParseError::CorruptedData);
     }
 
@@ -186,13 +267,17 @@ std::expected<ir::IRTextureData, VTFParseError> VTFParser::parse(
             }
             break;
         case VTFImageFormat::DXT3:
-            // BC2 uses explicit 4-bit alpha rather than BC3's interpolated block.
-            return std::unexpected(VTFParseError::UnsupportedFormat);
+            if (!image::decode_dxt3(payload, width, height, tex.rgba8_pixels)) {
+                return std::unexpected(VTFParseError::CorruptedData);
+            }
+            break;
         default:
             if (payload.size() < image_data_size(format, width, height)) {
                 return std::unexpected(VTFParseError::CorruptedData);
             }
-            expand_to_rgba8(payload, format, width, height, tex.rgba8_pixels);
+            if (!expand_to_rgba8(payload, format, width, height, tex.rgba8_pixels)) {
+                return std::unexpected(VTFParseError::UnsupportedFormat);
+            }
             break;
     }
 

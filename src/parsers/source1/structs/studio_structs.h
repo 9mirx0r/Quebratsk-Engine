@@ -201,8 +201,18 @@ struct SourceTexture {
     int32_t client_material_ptr;
     int32_t unused[10];
 };
+/// mstudioattachment_t (92 bytes). A named point on a bone: the muzzle, the shell port, a
+/// hand. `local` is a matrix3x4_t, rows of rotation with the translation in the last column.
+struct SourceAttachment {
+    int32_t name_index;      // relative to the start of THIS struct
+    uint32_t flags;
+    int32_t local_bone;
+    float local[3][4];
+    int32_t unused[8];
+};
 #pragma pack(pop)
 
+static_assert(sizeof(SourceAttachment) == 92, "SourceAttachment size mismatch");
 static_assert(sizeof(SourceStudioHeader) >= 180, "SourceStudioHeader base size mismatch");
 static_assert(sizeof(SourceStudioBone) == 216, "SourceStudioBone size mismatch");
 static_assert(sizeof(SourceBodyPart) == 16, "SourceBodyPart size mismatch");
@@ -216,7 +226,12 @@ static_assert(offsetof(SourceStudioHeader, num_bones) == 156, "num_bones offset 
 static_assert(offsetof(SourceStudioHeader, bone_index) == 160, "bone_index offset drift");
 static_assert(offsetof(SourceStudioHeader, num_textures) == 204, "num_textures offset drift");
 static_assert(offsetof(SourceStudioHeader, texture_index) == 208, "texture_index offset drift");
+static_assert(offsetof(SourceStudioHeader, num_skin_ref) == 220, "num_skin_ref offset drift");
+static_assert(offsetof(SourceStudioHeader, num_skin_families) == 224, "num_skin_families offset drift");
+static_assert(offsetof(SourceStudioHeader, skin_index) == 228, "skin_index offset drift");
 static_assert(offsetof(SourceStudioHeader, num_bodyparts) == 232, "num_bodyparts offset drift");
+static_assert(offsetof(SourceStudioHeader, num_attachments) == 240, "num_attachments offset drift");
+static_assert(offsetof(SourceStudioHeader, attachment_index) == 244, "attachment_index offset drift");
 static_assert(offsetof(SourceStudioHeader, bodypart_index) == 236, "bodypart_index offset drift");
 static_assert(offsetof(SourceStudioHeader, num_local_seq) == 188, "num_local_seq offset drift");
 static_assert(offsetof(SourceStudioHeader, local_seq_index) == 192, "local_seq_index offset drift");

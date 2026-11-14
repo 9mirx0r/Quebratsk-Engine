@@ -74,7 +74,6 @@ var _aim_move := ""
 var _shoot_move := ""
 var _shoot_until := 0.0
 var _flash: OmniLight3D
-var _muzzle: Sprite3D
 var _legs_now := ""
 var _stepped_until := 0.0
 var _shadow: MeshInstance3D
@@ -202,13 +201,6 @@ func _hold(weapon: Dictionary) -> void:
 	var model := Figure.hold(_lab, _skeleton, weapon, name)
 	if model == null:
 		return
-	# The flash at the end of the barrel, on the weapon so it goes where the weapon points.
-	# Which flash and how big is written in the model its owner sees, not in this one.
-	_muzzle = Figure.muzzle_flash(_lab, Figure.flash_kind(_lab,
-		ModelPreset.resolve(_lab.vfs, str(weapon.get("model", "")))))
-	if _muzzle != null:
-		model.get_parent().add_child(_muzzle)
-		_muzzle.position = Figure.barrel_end(model)
 
 
 ## A soft dark patch on the ground under it.
@@ -412,7 +404,6 @@ func _fire() -> void:
 		_audio.stream = _gunshot
 		_audio.play()
 	_shoot_until = Time.get_ticks_msec() / 1000.0 + 0.2
-	Figure.flare(_muzzle)
 
 	if _lab != null and _lab.get("enhanced") == true:
 		if _flash == null:

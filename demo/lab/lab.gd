@@ -49,6 +49,16 @@ const GAME := "cstrike"
 const FALLBACK := "valve"
 ## Where the folder of a replacement pack is written down, if there is one.
 const ADDON_NOTE := "res://lab/addon.local.txt"
+
+## A trial of Source content, named in a file that is not part of the project. Its lines are
+## folders laid over everything else, except a line ending in .bsp, which is a Source level
+## to stand in instead of the one named below.
+const SOURCE_NOTE := "res://lab/source.local.txt"
+const SourceMapScript := preload("res://lab/source_map.gd")
+const SourceWeaponsScript := preload("res://lab/source_weapons.gd")
+var _source_map := ""
+var _map_asked := false
+var _source_reader: RefCounted
 const PRESETS := "Counter-Strike 1.6"
 
 ## Which map to open.
@@ -125,6 +135,7 @@ func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--map="):
 			map_name = arg.trim_prefix("--map=")
+			_map_asked = true
 	vfs = VFSManager.new()
 	importer = UnifiedAssetImporter.new()
 	add_child(vfs)
@@ -178,6 +189,17 @@ func _mount() -> int:
 			vfs.mount_directory("addon", addon)
 			mounted += a + 1
 			print("[lab] addon pack over the game: %s (%d archive(s))" % [addon, a])
+	var source := FileAccess.open(SOURCE_NOTE, FileAccess.READ)
+	var s := 0
+	while source != null and not source.eof_reached():
+		var line := source.get_line().strip_edges()
+		if line.to_lower().ends_with(".bsp"):
+			if FileAccess.file_exists(line):
+				_source_map = line
+		elif not line.is_empty() and DirAccess.dir_exists_absolute(line):
+			vfs.mount_directory("source%d" % s, line)
+			s += 1
+			print("[lab] Source content over the game: %s" % line)
 	for title in SteamLibraryDetector.detect_installed_games():
 		var root: String = str(SteamLibraryDetector.detect_installed_games()[title]).path_join(GAME)
 		if not DirAccess.dir_exists_absolute(root):
@@ -209,6 +231,9 @@ func _mount() -> int:
 # ---------------------------------------------------------------------- level ----
 
 func _open_map() -> bool:
+	# A level asked for by name on the command line wins over the one the Source note names.
+	if not _source_map.is_empty() and not _map_asked:
+		return _open_source_map()
 	var hit: Dictionary = vfs.find_files(map_name, PackedStringArray(["bsp"]),
 		PackedStringArray(), PackedStringArray(), 64)
 	var files: PackedStringArray = hit["files"]
@@ -265,6 +290,45 @@ func _open_map() -> bool:
 	return true
 
 
+## A Source level in place of the game's own: see source_map.gd for what is and is not read.
+func _open_source_map() -> bool:
+	var reader = SourceMapScript.new()
+	# Kept, because it goes on placing props after this returns.
+	_source_reader = reader
+	var map: Node3D = reader.build(_source_map, importer, vfs)
+	if map == null:
+		return false
+	add_child(map)
+	# The level as it is mounted, which is what everything after this asks the engine about.
+	_map_uri = reader._uri
+	_built["map"] = _source_map.get_file()
+	print("[lab] Source level %s: %s" % [_source_map.get_file(), reader.report])
+	reader.build_props(map, get_tree())
+
+	floor_light = FloorLightScript.new()
+	floor_light.name = "FloorLight"
+	add_child(floor_light)
+	floor_light.setup(map)
+
+	var entities: Array = reader.entities
+	_read_spawns(entities)
+	_apply_sky(entities)
+	_build_weather(entities, map)
+
+	var brushes: Node = BrushesScript.new()
+	brushes.name = "Brushes"
+	add_child(brushes)
+	brushes.setup(self, map, [])
+	brushes.press_by_touch = false
+	_brushes = brushes
+
+	marks = MarksScript.new()
+	marks.name = "Marks"
+	add_child(marks)
+	marks.setup(self)
+	return true
+
+
 ## Where the map says people begin.
 ##
 ## Counter-Strike puts counter-terrorists at info_player_start and terrorists at
@@ -276,7 +340,7 @@ func _read_spawns(entities: Array) -> void:
 		# "position", not "origin": the importer converts the map's own origin string into
 		# Godot's axes and metres and publishes it under a different name, and reading the raw
 		# one back gets a String where a Vector3 is expected.
-		if cls == "info_player_start" or cls == "info_player_deathmatch":
+		if cls == "info_player_start" or cls == "info_player_deathmatch" 				or cls == "info_player_terrorist" or cls == "info_player_counterterrorist":
 			if entity.has("position"):
 				_spawns.append(entity["position"] as Vector3)
 	print("[lab] %s declares %d spawn point(s)" % [_map_uri.get_file(), _spawns.size()])
@@ -351,7 +415,7 @@ func _apply_sky(entities: Array) -> void:
 	# The map's own name, so a replacement skybox in res://assets/skyboxes/de_aztec/ is used
 	# instead of the game's 256-pixel Targas when somebody has made one.
 	var report_name := _map_uri.get_file().get_basename()
-	var sky: Sky = SkyLoader.load_sky(vfs, entities, report, report_name)
+	var sky: Sky = SkyLoader.load_sky(vfs, entities, report, report_name, importer)
 	if sky == null:
 		_built["sky"] = "%s (faces not found)" % named
 		for line in report:
@@ -730,6 +794,12 @@ func _stand_on_floor(body: CharacterBody3D, at: Vector3) -> void:
 func _place_player() -> void:
 	var preset := ModelPreset.find("urban", PRESETS)
 	var weapon := ModelPreset.find("v_ak47", PRESETS)
+	# A Source weapon in the hands when one is mounted; the figure nobody sees keeps holding
+	# the game's own.
+	var card: Dictionary = SourceWeaponsScript.pick(vfs)
+	if not card.is_empty():
+		weapon = weapon.duplicate(true)
+		weapon["source_card"] = card
 	# What the arms do while the legs walk, as for the enemies: nobody sees the player's own
 	# figure, but its shadow walks about with its arms straight out without them.
 	var extra := PackedStringArray()
@@ -788,8 +858,7 @@ func _place_player() -> void:
 ## entity and belongs with whatever plays the round; what is here is that they are there.
 ##
 ## Each declares `skin 1`, which selects a skin family — a second full set of textures the
-## model carries. The importer builds family 0 and only family 0, so these come out wearing the
-## wrong clothes. Named rather than quietly accepted: it is a real gap in the reader.
+## model carries — and wears it. A family the model does not have falls back to 0.
 ## The soft light around a lamp: the map's env_glow entities.
 ##
 ## In the game each is a sprite (`sprites/glow03.spr`, a round blur) added over the picture in
@@ -907,6 +976,7 @@ func next_moving_place() -> Vector3:
 
 func _place_hostages() -> void:
 	var placed := 0
+	var worn := PackedStringArray()
 	for e in importer.load_map_entities(_map_uri):
 		var entity: Dictionary = e
 		if str(entity.get("classname", "")) != "hostage_entity":
@@ -925,11 +995,19 @@ func _place_hostages() -> void:
 		if stances.has("idle"):
 			wanted.append(str(stances["idle"]))
 
-		var body: Node3D = importer.load_character(str(files[0]), "", wanted)
+		var skin := int(str(entity.get("skin", "0")))
+		var body: Node3D = importer.load_character(str(files[0]), "", wanted, {}, skin)
 		if body == null or not (body is CharacterBody3D):
 			continue
 		var person := body as CharacterBody3D
 		person.name = "hostage_%d" % placed
+		for part in person.find_children("*", "MeshInstance3D", true, false):
+			if part.has_meta("quebratsk_skin"):
+				# What it asked for and what it got: the game falls back to the first family
+				# when a map asks for one the model does not have, and so does the reader.
+				worn.append("%d->%d of %d" % [skin, int(part.get_meta("quebratsk_skin")),
+					int(part.get_meta("quebratsk_skins"))])
+				break
 		add_child(person)
 		_stand_on_floor(person, entity.get("position", Vector3.ZERO) as Vector3)
 
@@ -953,8 +1031,8 @@ func _place_hostages() -> void:
 
 	if placed > 0:
 		_built["hostages"] = "%d" % placed
-		print("[lab] %s: %d hostage(s), wearing skin family 0 because that is all the reader "
-			% [_map_uri.get_file(), placed] + "builds")
+		print("[lab] %s: %d hostage(s), skin asked->worn: %s"
+			% [_map_uri.get_file(), placed, ", ".join(worn)])
 
 
 func _place_enemies() -> void:

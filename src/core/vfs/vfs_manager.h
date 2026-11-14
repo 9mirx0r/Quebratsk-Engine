@@ -215,6 +215,10 @@ private:
     void index_gma(size_t container_idx);
     void index_pbo(size_t container_idx);
 
+    /// A zip, on its own or packed inside a Source level (its pakfile). `start` and
+    /// `length` say where the zip sits inside the mapped file.
+    void index_zip(size_t container_idx, size_t start, size_t length);
+
     /// A VPK is a directory file plus a set of numbered side archives, so indexing one
     /// mounts several real files. `dir_real_path` is needed to derive their names.
     void index_vpk(size_t container_idx, const std::string& dir_real_path);

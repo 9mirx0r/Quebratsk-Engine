@@ -50,12 +50,16 @@ public:
     /// `sequence_groups` are the sidecar animation files, index 0 holding group 1. A model
     /// that spreads its sequences across several files keeps only the first group in itself;
     /// without the rest, most of a Half-Life player model's stances resolve to nothing.
+    ///
+    /// `skin` picks the skin family, a whole alternative set of textures: a hostage's
+    /// `skin 1` in the map is a different shirt. A family the model lacks gives family 0.
     [[nodiscard]] static std::expected<ParsedMDL10Model, MDL10ParseError> parse(
         std::span<const std::byte> mdl_bytes,
         std::span<const std::byte> texture_mdl_bytes = {},
         const std::vector<std::string>& animate = {},
         const std::vector<std::span<const std::byte>>& sequence_groups = {},
-        const std::map<std::string, int32_t>& body_choices = {}
+        const std::map<std::string, int32_t>& body_choices = {},
+        int32_t skin = 0
     );
 
     /// How many files this model spreads its animations across, itself included.

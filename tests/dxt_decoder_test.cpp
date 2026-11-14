@@ -123,6 +123,39 @@ int main() {
         }
     }
 
+    // ---- DXT3 explicit alpha ------------------------------------------------------
+    {
+        std::vector<std::byte> block;
+        // 4 bits per pixel, first pixel in the low nibble: px0=15, px1=0, px2=8, px3=1.
+        block.push_back(std::byte(0x0F));
+        block.push_back(std::byte(0x18));
+        for (int i = 0; i < 6; ++i) block.push_back(std::byte(0));
+        // colour half: c0 <= c1, which in DXT1 would mean punch-through. DXT3 always
+        // takes four colours, so index 3 is a colour here, not transparent black.
+        put16(block, 0x001F);           // blue
+        put16(block, 0xF800);           // red
+        put32(block, 0x000000C0);       // px3 -> index 3
+
+        std::vector<uint8_t> out;
+        if (!decode_dxt3(block, 4, 4, out)) {
+            std::printf("  FAIL decode_dxt3 returned false\n");
+            ++failures;
+        } else {
+            std::printf("DXT3 explicit alpha:\n");
+            check("px0.a", out[3], 255);
+            check("px1.a", out[7], 0);
+            check("px2.a", out[11], 8 * 17);
+            check("px3.a", out[15], 17);
+            check("px0.b (colour intact)", out[2], 255);
+            check("px3.r (four-colour mode)", out[12], (2 * 255 + 0) / 3);
+        }
+        std::vector<std::byte> half(8, std::byte(0));
+        if (decode_dxt3(half, 4, 4, out)) {
+            std::printf("  FAIL decode_dxt3 accepted a truncated block\n");
+            ++failures;
+        }
+    }
+
     // ---- Non-multiple-of-4 dimensions must not read or write out of bounds ----
     {
         // 3x2 image still occupies one 4x4 block on disk.
