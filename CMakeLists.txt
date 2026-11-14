@@ -135,4 +135,7 @@ if(QUEBRATSK_BUILD_TESTS)
         src/parsers/source1/vbsp_parser.cpp
         src/core/math/axis_remap.cpp)
     quebratsk_add_test(zip_directory_test src/parsers/source1/zip_directory.cpp)
+    quebratsk_add_test(pcf_reader_test
+        src/parsers/source1/dmx_reader.cpp
+        src/parsers/source1/pcf_reader.cpp)
 endif()

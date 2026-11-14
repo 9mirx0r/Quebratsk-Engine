@@ -117,9 +117,13 @@ Legend: **C++** = engine (`src/`), **GD** = trial script in `demo/lab/`, **—**
 | | |
 |---|---|
 | What it is (`sdk`) | binary DMX: a header string such as `<!-- dmx encoding binary 5 format pcf 2 -->` (CS:GO, Portal 2), a string dictionary, an element dictionary, then the attribute data. Each particle system is a tree of emitters, initializers, operators and renderers |
-| Reads today | — |
-| Why it matters | the real muzzle flash, smoke, sparks and impacts of Source weapons live here. We removed the sprite flash and have nothing in its place |
-| Plan | first a reader that only lists systems and their elements (a test checks counts on a known file), then map the few operators a muzzle flash uses onto `GPUParticles3D` |
+| Why it matters | the real muzzle flash, smoke, sparks and impacts of Source weapons live here |
+| Binary DMX (wiki DMX/Binary, `sdk` dmattributetypes.h) | encodings 1 to 5. Strings go into a table from 2; element names and single string values use it from 4, indexes are 32-bit from 5; strings inside arrays are always written in place. Attribute types 1–14 (element, int, float, bool, string, void, time, color, vector2/3/4, qangle, quaternion, matrix), an array is the type + 14. Time is tenths of a millisecond (before 3 that slot was a 16-byte object id). Colour is 4 bytes. An element link is its place in the list, -1 for none, -2 for one kept elsewhere (its id follows as text) |
+| Reads today | **C++** `parsers/source1/dmx_reader` (any binary DMX) and `pcf_reader` (since 2026-11-14): every `DmeParticleSystemDefinition` as a system, its emitters, initializers, operators, renderers, forces and constraints in order (each by `functionName`), and its children with their delay. A file cut short anywhere is refused rather than half read. The importer's `load_particles` hands each system to GDScript as dictionaries, values in game units. **GD** `demo/lab/source_particles.gd` builds one `GPUParticles3D` per system that draws, children placed under it with their delay. It follows: lifetime, radius and rotation at random, the "remap initial scalar" steps that set lifetime or radius from when a particle was made, "remap scalar to vector" that strings a burst along a line, both emitters, position in a sphere, basic movement, radius scale over life, colour and alpha at random, colour fade and alpha fades. Any other step is named once in the log |
+| Muzzle flash | the weapon card names its system and its point (`muzzle_particle`, `muzzle`); `player.gd` hangs the effect on that point's bone and fires it with each shot. The PolyArms AK numbers its points: 1 sits on the barrel bone, the furthest forward. CS:S's `muzzleflash_ak47` is not on this machine, so HL2's `hunter_muzzle_flash` stands in (blue, not orange). Its files come from Garry's Mod's copy of HL2, mounted behind the game: `content_hl2_dir.vpk` (the particle file and its burst), `hl2_misc_dir.vpk` (the streak's material), `hl2_textures_dir.vpk` (the streak's picture) |
+| Missing | other operators (trails, sprites that face along their movement, noise, collisions, control points beyond the first); sheets (several frames in one picture) are drawn whole; the text DMX encoding (keyvalues2); lights a system asks for |
+| Test | `pcf_reader_test` (done): a hand-built file written in each of the five encodings, links to elements kept elsewhere, cut-short files refused at every length, an unknown attribute type, a text header, a model file. Given a folder, every `.pcf` in it: GMod's HL2 and CS:S files, 20 files and 417 systems, none refused. `demo/tests/verify_particles.tscn`: the stand-in flash has a picture on every part and lasts 0.1 s, the AK has its point, and it saves a picture of the flash fired |
+| Already hit | A material path in a particle file uses backslashes and may carry `.vmt`. The hunter flash sets its lifetime and stretch through remap steps, not "Lifetime Random": read as a 1 s blob before those were followed |
 
 ### 3.8 Sounds
 
@@ -135,7 +139,7 @@ Legend: **C++** = engine (`src/`), **GD** = trial script in `demo/lab/`, **—**
 2. **Small C++ fixes those tests will pin**: DXT3, ARGB8888, cubemap faces, VMT `patch`. *(done 2026-11-14)*
 3. **Model attachments and skin families** in `mdl_source_parser` (muzzle point, prop skins). *(done 2026-11-14; GoldSrc skins fixed on the way, see below)*
 4. **Move the map reader to C++** (`parsers/source1/vbsp_parser`), lump by lump, with the current GD trial as the reference picture; add displacements, ambient light and the pakfile on the way. *(done 2026-11-14)*
-5. **PCF reader**, then the muzzle flash.
+5. **PCF reader**, then the muzzle flash. *(done 2026-11-14 with HL2's hunter flash standing in; not yet seen in the lab, which cannot build its player while Half-Life / CS 1.6 are missing from this machine)*
 
 Each step ends with its test passing and the lab still opening both the GoldSrc map and
 Shipped.

@@ -30,6 +30,11 @@ const AK := {
 	"mechanism": ["uplp_urban_temp/ak/mech-01.wav", "uplp_urban_temp/ak/mech-02.wav",
 		"uplp_urban_temp/ak/mech-03.wav", "uplp_urban_temp/ak/mech-04.wav"],
 	"dry": "uplp_urban_temp/ak/dryfire.wav",
+	# The particle system its script names for the flash, and the point on the model it
+	# comes out of. This model numbers its points: 1 is on the barrel bone, the furthest
+	# forward, and 2 on the bolt, where the shells leave.
+	"muzzle_particle": "muzzleflash_ak47",
+	"muzzle": "1",
 	"events": {
 		"draw": [["uplp_urban_temp/common/cloth_3.ogg", 0.0],
 			["uplp_urban_temp/common/raise.ogg", 2.0 / 30.0]],
@@ -53,6 +58,10 @@ const AK := {
 }
 
 const ALL := [AK]
+
+## Drawn in place of a weapon's own flash when the particle file that has it is not on the
+## machine: Half-Life 2's hunter fires one, and its file comes with the game.
+const STAND_IN_FLASH := "hunter_muzzle_flash"
 
 
 ## The file a path names in whatever is mounted, or nothing.

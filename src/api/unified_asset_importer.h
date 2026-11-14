@@ -246,6 +246,22 @@ public:
     /// Empty for a GoldSrc map, or a Source one that kept no such light.
     godot::Dictionary load_map_ambient(const godot::String& vfs_uri);
 
+    /// The particle systems of a .pcf (Source's particle files), as the particle editor
+    /// saved them, so a script can build the ones it needs.
+    ///
+    /// Returns an Array of Dictionaries, one per system, in file order:
+    ///   "name": String, as the game asks for it ("muzzleflash_ak47");
+    ///   "properties": Dictionary, the system's own settings ("material", "max_particles",
+    ///       "color", "radius", ...);
+    ///   "emitters", "initializers", "operators", "renderers", "forces", "constraints":
+    ///       Arrays of Dictionaries, each "function" (String, "Radius Random") and
+    ///       "properties" (Dictionary of its settings);
+    ///   "children": Array of Dictionaries, "name" (String) and "delay" (float, seconds).
+    /// Settings keep the game's own units (inches, its Z-up axes); colours are Color, from
+    /// 0 to 1; vectors are Vector2/Vector3/Vector4; a link to another element is its name.
+    /// Empty, with last_error set, when the file is not a particle file or is cut short.
+    godot::Array load_particles(const godot::String& vfs_uri);
+
     /// Load a map as something you can stand on.
     ///
     /// Returns the world as a MeshInstance3D with a StaticBody3D under it. For a GoldSrc

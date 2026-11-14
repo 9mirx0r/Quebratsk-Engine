@@ -191,11 +191,18 @@ func _mount() -> int:
 			print("[lab] addon pack over the game: %s (%d archive(s))" % [addon, a])
 	var source := FileAccess.open(SOURCE_NOTE, FileAccess.READ)
 	var s := 0
+	var behind: PackedStringArray = []
 	while source != null and not source.eof_reached():
 		var line := source.get_line().strip_edges()
 		if line.to_lower().ends_with(".bsp"):
 			if FileAccess.file_exists(line):
 				_source_map = line
+		elif line.to_lower().ends_with("_dir.vpk"):
+			# Another Source game's archive, mounted behind the game below: it fills in what
+			# nothing else has (particle files, the materials they draw with) and never
+			# replaces one of the game's own files that shares its name.
+			if FileAccess.file_exists(line):
+				behind.append(line)
 		elif not line.is_empty() and DirAccess.dir_exists_absolute(line):
 			vfs.mount_directory("source%d" % s, line)
 			s += 1
@@ -223,6 +230,10 @@ func _mount() -> int:
 			vfs.mount_directory("fallback", beneath)
 			mounted += 1
 		break
+	for i in behind.size():
+		if vfs.mount_container("behind%d" % i, behind[i]):
+			mounted += 1
+			print("[lab] Source archive behind the game: %s" % behind[i])
 	if mounted > 0:
 		print("[lab] mounted %s: %d container(s)" % [GAME, mounted])
 	return mounted

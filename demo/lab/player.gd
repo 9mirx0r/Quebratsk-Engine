@@ -21,6 +21,7 @@ const Stairs := preload("res://lab/stairs.gd")
 const WeaponManifest := preload("res://addons/quebratsk_editor/weapon_manifest.gd")
 const Figure := preload("res://lab/figure.gd")
 const SourceWeapons := preload("res://lab/source_weapons.gd")
+const SourceParticles := preload("res://lab/source_particles.gd")
 
 const UNIT := 0.0254
 
@@ -126,6 +127,8 @@ var _dip := 0.0
 var _fall_speed := 0.0
 var _was_falling := false
 var _flash: OmniLight3D
+## A Source weapon's flash out of its particle file, at the muzzle of its model.
+var _muzzle_effect: Node3D
 
 ## The player's own figure, and whether it is being drawn. The game never draws it from its
 ## own eyes; with the look improved it is, so looking down there are legs and feet there.
@@ -446,6 +449,45 @@ func _arm(weapon: Dictionary) -> void:
 		   "yes" if _gunshot != null else "MISSING"])
 
 
+## The weapon's flash out of the particle files mounted, hung on the point of the model it
+## comes out of, or null. When its own system is not on the machine, the stand-in is used and
+## the log says so.
+func _source_muzzle(skeleton: Skeleton3D, uri: String, card: Dictionary) -> Node3D:
+	var wanted := str(card.get("muzzle_particle", ""))
+	if wanted.is_empty():
+		return null
+	var system := wanted
+	var file := SourceParticles.find_file(_lab, wanted)
+	if file.is_empty():
+		system = SourceWeapons.STAND_IN_FLASH
+		file = SourceParticles.find_file(_lab, system)
+		if file.is_empty():
+			print("[player] no particle file has '%s', nor the stand-in: no flash" % wanted)
+			return null
+		print("[player] no particle file has '%s': '%s' stands in" % [wanted, system])
+	var point := {}
+	for attachment in _lab.importer.list_attachments(uri):
+		if str(attachment["name"]).to_lower() == str(card.get("muzzle", "muzzle")).to_lower():
+			point = attachment
+			break
+	if point.is_empty():
+		print("[player] the model has no '%s' point: no flash" % card.get("muzzle", "muzzle"))
+		return null
+	var effect := SourceParticles.build(_lab, file, system)
+	if effect == null:
+		return null
+	var holder := BoneAttachment3D.new()
+	holder.name = "Muzzle"
+	skeleton.add_child(holder)
+	holder.bone_idx = int(point["bone"])
+	effect.transform = Transform3D(point["basis"], point["position"])
+	holder.add_child(effect)
+	for part in effect.find_children("*", "GPUParticles3D", true, false):
+		(part as GPUParticles3D).layers = 2
+	print("[player] flash '%s' from %s at '%s'" % [system, file.get_file(), point["name"]])
+	return effect
+
+
 ## Hold a Source weapon: its model at the eye, the hands of its pack on its arm bones, and
 ## what source_weapons.gd says it does. False when its model cannot be read.
 func _arm_source(card: Dictionary) -> bool:
@@ -481,6 +523,7 @@ func _arm_source(card: Dictionary) -> bool:
 			if bone >= 0:
 				skeleton.set_bone_pose_scale(bone, Vector3.ONE * 0.0001)
 		_put_hands_on(skeleton, str(card.get("hands", "")))
+		_muzzle_effect = _source_muzzle(skeleton, uri, card)
 
 	for part in model.find_children("*", "MeshInstance3D", true, false):
 		(part as MeshInstance3D).layers = 2
@@ -1163,6 +1206,8 @@ func _shoot() -> void:
 			return
 		_clip -= 1
 
+	if _muzzle_effect != null:
+		_muzzle_effect.fire()
 	if not _gunshots.is_empty():
 		_gunshot = _gunshots[randi() % _gunshots.size()]
 	if _gunshot != null:

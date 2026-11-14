@@ -6,6 +6,7 @@
 #include "../parsers/goldsrc/mdl10_parser.h"
 #include "../parsers/goldsrc/spr_parser.h"
 #include "../parsers/source1/mdl_source_parser.h"
+#include "../parsers/source1/pcf_reader.h"
 #include "../parsers/source1/vmt_parser.h"
 #include "../parsers/rv_enfusion/p3d_mlod_parser.h"
 #include "../parsers/rv_enfusion/wrp_parser.h"
@@ -158,6 +159,8 @@ void UnifiedAssetImporter::_bind_methods() {
                          &UnifiedAssetImporter::load_map_props);
     ClassDB::bind_method(D_METHOD("load_map_ambient", "vfs_uri"),
                          &UnifiedAssetImporter::load_map_ambient);
+    ClassDB::bind_method(D_METHOD("load_particles", "vfs_uri"),
+                         &UnifiedAssetImporter::load_particles);
     ClassDB::bind_method(D_METHOD("load_character", "vfs_uri", "pose_name", "animations",
                                   "body_choices", "skin"),
                          &UnifiedAssetImporter::load_character,
@@ -1325,6 +1328,129 @@ Dictionary UnifiedAssetImporter::load_map_ambient(const String& vfs_uri) {
     out["spots"] = spots;
     out["colours"] = colours;
     out["hdr"] = ambient.hdr;
+    return out;
+}
+
+namespace {
+
+using parsers::source1::DmxAttribute;
+using parsers::source1::DmxDocument;
+using parsers::source1::DmxElement;
+using parsers::source1::DmxType;
+
+/// The `i`th value of a DMX attribute as a Variant.
+Variant dmx_value(const DmxDocument& doc, const DmxAttribute& a, size_t i) {
+    const size_t n = parsers::source1::dmx_components(a.type);
+    const size_t at = i * (n == 0 ? 1 : n);
+    auto f = [&](size_t k) { return static_cast<real_t>(a.number(at + k)); };
+    switch (a.type) {
+    case DmxType::Element: {
+        const int32_t e = a.element(i);
+        if (e < 0) return Variant();
+        return String::utf8(doc.elements[static_cast<size_t>(e)].name.c_str());
+    }
+    case DmxType::Int:
+        return static_cast<int64_t>(a.number(at));
+    case DmxType::Bool:
+        return a.number(at) != 0.0;
+    case DmxType::Float:
+    case DmxType::Time:
+        return a.number(at);
+    case DmxType::String:
+        return String::utf8(a.text(i).c_str());
+    case DmxType::Color:
+        return Color(f(0) / 255.0f, f(1) / 255.0f, f(2) / 255.0f, f(3) / 255.0f);
+    case DmxType::Vector2:
+        return Vector2(f(0), f(1));
+    case DmxType::Vector3:
+    case DmxType::QAngle:
+        return Vector3(f(0), f(1), f(2));
+    case DmxType::Vector4:
+        return Vector4(f(0), f(1), f(2), f(3));
+    case DmxType::Quaternion:
+        return Quaternion(f(0), f(1), f(2), f(3));
+    case DmxType::Matrix: {
+        PackedFloat32Array m;
+        m.resize(16);
+        for (int k = 0; k < 16; ++k) m.set(k, static_cast<float>(f(static_cast<size_t>(k))));
+        return m;
+    }
+    default:
+        return Variant();
+    }
+}
+
+/// An element's settings, every attribute but the lists of steps a system is built from.
+Dictionary dmx_properties(const DmxDocument& doc, const DmxElement& el) {
+    Dictionary out;
+    for (const auto& a : el.attributes) {
+        if (a.type == DmxType::Element && a.array) continue;   // emitters, children, ...
+        if (a.type == DmxType::Void) continue;
+        const String key = String::utf8(a.name.c_str());
+        if (!a.array) {
+            out[key] = dmx_value(doc, a, 0);
+            continue;
+        }
+        Array values;
+        for (size_t i = 0; i < a.count; ++i) values.append(dmx_value(doc, a, i));
+        out[key] = values;
+    }
+    return out;
+}
+
+Array pcf_steps(const DmxDocument& doc, const std::vector<parsers::source1::PcfOperator>& steps) {
+    Array out;
+    for (const auto& step : steps) {
+        Dictionary d;
+        d["function"] = String::utf8(step.function.c_str());
+        d["properties"] = dmx_properties(doc, doc.elements[static_cast<size_t>(step.element)]);
+        out.append(d);
+    }
+    return out;
+}
+
+} // namespace
+
+Array UnifiedAssetImporter::load_particles(const String& vfs_uri) {
+    Array out;
+    if (!m_vfs) {
+        m_last_error_code = ERR_VFS_NOT_SET;
+        return out;
+    }
+    const std::vector<std::byte> bytes = read_asset_bytes(vfs_uri);
+    if (bytes.empty()) {
+        m_last_error_code = ERR_ASSET_UNREADABLE;
+        return out;
+    }
+    const auto file = parsers::source1::read_pcf(bytes);
+    if (!file.valid()) {
+        UtilityFunctions::push_warning(String("[quebratsk] ") + vfs_uri + ": " +
+                                       String::utf8(file.dmx.error.c_str()));
+        m_last_error_code = ERR_PARSE_FAILED;
+        return out;
+    }
+    const DmxDocument& doc = file.dmx;
+    for (const auto& s : file.systems) {
+        Dictionary d;
+        d["name"] = String::utf8(s.name.c_str());
+        d["properties"] = dmx_properties(doc, doc.elements[static_cast<size_t>(s.element)]);
+        d["emitters"] = pcf_steps(doc, s.emitters);
+        d["initializers"] = pcf_steps(doc, s.initializers);
+        d["operators"] = pcf_steps(doc, s.operators);
+        d["renderers"] = pcf_steps(doc, s.renderers);
+        d["forces"] = pcf_steps(doc, s.forces);
+        d["constraints"] = pcf_steps(doc, s.constraints);
+        Array children;
+        for (const auto& c : s.children) {
+            Dictionary child;
+            child["name"] = String::utf8(file.systems[static_cast<size_t>(c.system)].name.c_str());
+            child["delay"] = c.delay;
+            children.append(child);
+        }
+        d["children"] = children;
+        out.append(d);
+    }
+    m_last_error_code = ERR_OK;
     return out;
 }
 
