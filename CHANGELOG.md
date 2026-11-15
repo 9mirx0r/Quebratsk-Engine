@@ -9,7 +9,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] "Backalley" - 2026-11-14
+
+We are back after a few months away, ready to keep bringing the best games to Godot.
+
+The release where Half-Life 2 levels open, GoldSrc levels get their own light and their own
+walls back, and the project drops "Engine" from its name.
+
+### Added
+
+- **Half-Life 2 levels open, read in C++.** A Source level is faces, displacements, light
+  stored as linear HDR floats, brush entities and thousands of static props, and the reader
+  for all of it is in the engine now (`load_map`, `load_map_entities`, `load_map_props`).
+  A level's packed-in files are mounted as an archive of their own, so the textures a mapper
+  shipped inside the `.bsp` are found. On the Shipped test level: **766 entities, 25 brush
+  entities, 3,726 of 3,736 props from 226 models.** Water is not read yet and draws white.
+
+- **People and props in a Source level are lit by the level.** Source stores light for things
+  that move as six colours per point, in lumps 51/55 (HDR) or 52/56 (LDR), and
+  `load_map_ambient` reads them and finds which leaf a point is in. A level whose stored
+  light is far darker than its walls keeps the floor light instead.
+
+- **Particle files.** DMX and PCF are read in C++ (`load_particles`), with a test over every
+  encoding, and the lab turns a particle system into `GPUParticles3D` on the weapon's muzzle
+  point, firing each shot.
+
+- **Source models carry their attachments and skin families**, and a GoldSrc model reads its
+  skins out of the `T` file beside it. A material that shares its picture's name now loads the
+  picture: **17 wall and deck materials** on Shipped had been drawn white.
+
+- **GoldSrc levels are lit the way they were baked.** The light a map was compiled with is
+  read and handed over as a lightmap atlas, and the six pictures of a map's painted sky are
+  built into a box. The cubemap had been a mirror image of the real sky.
+
+- **A GoldSrc level collides as what it is made of.** The solid blocks are rebuilt from the
+  map's clip hulls rather than from a shell of its faces; player-only clips sit on a physics
+  layer of their own, so shots, decals and sound occlusion meet the real walls.
+
+- **Sprites decode.** Every sprite frame starts with a type word the reader was not skipping,
+  so with a negative origin, which is most retail sprites, no frame decoded at all. Checked
+  against an independent decoder over the whole retail set: **1,361 of 1,361 sprites
+  byte-identical**, 7,634 frames. The lab uses them for lamp glows, blood and muzzle flashes.
+
+- **A format encyclopedia measured against the games.** `tools/corpus_scan.py` inventories
+  22 game folders, and four validators check every file of their kind behind one gate
+  (`python tools/verify/validate_corpus.py --all`): **126 WAD3, 397 BSP30, 3,312 MDL10 and
+  1,361 SPR files, 0 hard errors.** The C++ structs pin the same offsets with
+  `static_assert`, and `docs/encyclopedia/formats/` records only what the files confirmed.
+
+- **Land around a level.** A distant backdrop in four styles (hills, mountains, desert, city)
+  lit by the sky's own sun and faded into its haze, and a procedural sky with cirrus and cloud
+  towers that drift with the wind.
+
+- **The lab, from playtests.** Brush entities (doors, buttons, triggers, lifts, breakables)
+  moved into the addon as `brush_entities.gd`. Stairs are climbed without losing speed and
+  nothing taller than `sv_stepsize` is climbed at all. People take the baked light of the
+  floor they stand on. The player's own body holds its weapon, so its shadow is whole; hand
+  ladders are climbed; clip and reserve ammo with reload and dry fire.
+
 ### Changed
+
+- **Quebratsk Engine is now Quebratsk.** The plugin, the docs and the README carry the new
+  name; the classes and the `res://bin` layout are unchanged, so existing projects keep
+  working. The README is shorter and shows the lab running Counter-Strike 1.6, Half-Life and
+  Half-Life 2 levels.
 
 - **The sandbox is gone; there is a lab.** `demo/sandbox/` had grown to thirteen hundred lines
   of patches on patches, and its two scripts were where most of this session's defects lived.

@@ -57,9 +57,11 @@ Andreas on. Neither is started.
 
 ## Getting started
 
-1. Download the latest release and unzip it.
-2. Copy `addons/quebratsk_editor` into your Godot project.
-3. In Godot, open **Project → Project Settings → Plugins** and tick **Quebratsk**.
+1. Download the latest `quebratsk-*.zip` from Releases.
+2. Unzip it into your Godot project, next to `project.godot`. You get two folders: `bin/`
+   (the engine) and `addons/quebratsk_editor/` (the panel).
+3. Close Godot and open the project again, so it loads the engine.
+4. Open **Project → Project Settings → Plugins** and tick **Quebratsk**.
 
 A panel appears on the left. Press **Add a game** and pick one from the list, which
 covers Steam libraries on every drive. If yours is missing, **Browse for a folder**
