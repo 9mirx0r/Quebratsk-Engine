@@ -140,6 +140,19 @@ Read for approach, not copied. None is a dependency.
 - **[godot_bsp_importer](https://github.com/jitspoe/godot_bsp_importer)** (MIT) — Quake-family
   BSP, broader than GoldSrc.
 
+## Artwork
+
+The head on the README cover (`docs/images/logo.jpg`) and in the intro animation
+(`docs/images/intro.gif`) is a reworked version of the **Godot Engine logo**, Copyright (c) 2017
+Andrea Calabró, used under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It was
+rebuilt in 3D and changed: a hammered metal finish, a valve in place of one eye, a sleepy lid
+on the other. Quebratsk is an independent project and is not made or endorsed by the Godot
+Foundation.
+
+The title and slogan in the intro use **[Varela Round](https://fonts.google.com/specimen/Varela+Round)**
+by Joe Prince, under the [SIL Open Font License 1.1](https://openfontlicense.org). Only the
+rendered letters are in the image; the font file is not shipped.
+
 ## Games
 
 Every measurement in the changelog was taken against retail installs of Half-Life,

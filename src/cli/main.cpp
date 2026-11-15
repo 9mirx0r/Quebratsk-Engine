@@ -5,7 +5,7 @@
 #include <string_view>
 
 int main(int argc, char* argv[]) {
-    std::cout << "Quebratsk Engine CLI Subsystem Tool v0.1.0-alpha\n";
+    std::cout << "Quebratsk CLI Subsystem Tool v0.1.0-alpha\n";
     std::cout << "Universal C++20 Asset Ingestion & Conversion Utility\n\n";
 
     if (argc < 3) {

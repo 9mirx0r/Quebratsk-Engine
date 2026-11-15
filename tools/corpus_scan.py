@@ -18,8 +18,8 @@ No game binary is opened. No asset is modified. The corpus is read-only.
 
 Why the paths are resolved instead of hardcoded
 -----------------------------------------------
-The machine this was written on keeps Steam at ``C:\\Steam}`` -- a literal closing brace in the
-folder name. The C++ ``SteamLibraryDetector`` already reads the registry and
+Steam can live anywhere, under a folder name with odd characters in it. The C++
+``SteamLibraryDetector`` already reads the registry and
 ``libraryfolders.vdf``, and this script follows the same order: explicit ``--root``, then
 ``QUEBRATSK_GAME_ROOT``, then the Steam registry, then the conventional fallbacks. The
 fallback is a last resort, never the primary answer.

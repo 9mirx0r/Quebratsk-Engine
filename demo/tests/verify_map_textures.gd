@@ -25,13 +25,15 @@ func _ready() -> void:
 
 	# A downloaded map arrives as a bundle: the .bsp plus the .wad files its textures live
 	# in, its skybox and its sounds. Mounting the folder is what makes all of that reachable.
-	var bundle := "C:/Users/you/Downloads/de_caminito"
-	var bundle_scan: Dictionary = _vfs.scan_game_directory(bundle)
+	# Which folder is set with QUEBRATSK_MAP_BUNDLE; with none set, only the games are read.
+	var bundle := OS.get_environment("QUEBRATSK_MAP_BUNDLE").replace("\\", "/")
 	var b := 0
-	for archive in bundle_scan.get("archives", []):
-		if _vfs.mount_container("dlw%d" % b, str(archive)):
-			b += 1
-	_vfs.mount_directory("dl", bundle)
+	if not bundle.is_empty():
+		var bundle_scan: Dictionary = _vfs.scan_game_directory(bundle)
+		for archive in bundle_scan.get("archives", []):
+			if _vfs.mount_container("dlw%d" % b, str(archive)):
+				b += 1
+		_vfs.mount_directory("dl", bundle)
 	print("bundle: %d archive(s) opened" % b)
 
 	var games: Dictionary = SteamLibraryDetector.detect_installed_games()

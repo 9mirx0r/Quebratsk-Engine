@@ -12,7 +12,7 @@ void ObsidianDocExporter::_bind_methods() {
 String ObsidianDocExporter::generate_vault_markdown_doc(VFSManager* vfs, Node* root_node) {
     std::stringstream ss;
 
-    ss << "# Quebratsk Engine State Documentation\n\n";
+    ss << "# Quebratsk State Documentation\n\n";
     ss << "## Active VFS Mounts\n";
 
     if (vfs) {

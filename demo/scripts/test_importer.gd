@@ -1,6 +1,6 @@
 extends Node3D
 
-# Quebratsk Engine — GDScript Ingestion Demo
+# Quebratsk — GDScript Ingestion Demo
 var vfs: VFSManager
 var importer: UnifiedAssetImporter
 

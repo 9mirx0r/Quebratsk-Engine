@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(quebratsk_engine LANGUAGES CXX C)
+project(quebratsk LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -48,18 +48,18 @@ file(GLOB_RECURSE QUEBRATSK_HEADERS CONFIGURE_DEPENDS
 list(REMOVE_ITEM QUEBRATSK_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/cli/main.cpp")
 
 # Build dynamic library
-add_library(quebratsk_engine SHARED ${QUEBRATSK_SOURCES} ${QUEBRATSK_HEADERS})
+add_library(quebratsk SHARED ${QUEBRATSK_SOURCES} ${QUEBRATSK_HEADERS})
 
 if(MSVC)
-    target_compile_options(quebratsk_engine PRIVATE /FS)
+    target_compile_options(quebratsk PRIVATE /FS)
 endif()
 
-target_include_directories(quebratsk_engine PUBLIC
+target_include_directories(quebratsk PUBLIC
     src/
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(quebratsk_engine PRIVATE godot::cpp)
+target_link_libraries(quebratsk PRIVATE godot::cpp)
 
 # The output name must follow the build configuration. It used to be hardcoded to
 # "debug", so a Release build silently overwrote the debug DLL and the .gdextension
@@ -73,7 +73,7 @@ set(QB_CFG_SUFFIX "$<IF:$<CONFIG:Debug>,debug,release>")
 # is the documented way to suppress that per-config subdirectory.
 set(QB_OUTPUT_DIR "$<1:${CMAKE_SOURCE_DIR}/demo/bin>")
 
-set_target_properties(quebratsk_engine PROPERTIES
+set_target_properties(quebratsk PROPERTIES
     OUTPUT_NAME "libquebratsk.windows.${QB_CFG_SUFFIX}.x86_64"
     LIBRARY_OUTPUT_DIRECTORY "${QB_OUTPUT_DIR}"
     RUNTIME_OUTPUT_DIRECTORY "${QB_OUTPUT_DIR}"

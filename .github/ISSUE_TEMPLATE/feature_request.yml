@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest an enhancement or new format parser for Quebratsk Engine
+description: Suggest an enhancement or new format parser for Quebratsk
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
@@ -29,7 +29,7 @@ body:
     attributes:
       label: Problem Description & Use Case
       description: Describe the problem, limitation, or workflow gap you are encountering.
-      placeholder: Describe why this feature would be valuable for developers using Quebratsk Engine.
+      placeholder: Describe why this feature would be valuable for developers using Quebratsk.
     validations:
       required: true
 

@@ -1,4 +1,4 @@
-# Quebratsk Engine — GDScript API Contract
+# Quebratsk — GDScript API Contract
 
 **Audience:** whoever builds the editor addon, the docs and the cosmetic assets, in
 parallel with work on the C++ parsers.

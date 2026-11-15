@@ -1,10 +1,10 @@
-# Contributing to Quebratsk Engine
+# Contributing to Quebratsk
 
-Thank you for your interest in contributing to **Quebratsk Engine**! This document outlines the build process, testing guidelines, and core contribution rules for the project.
+Thank you for your interest in contributing to **Quebratsk**! This document outlines the build process, testing guidelines, and core contribution rules for the project.
 
 ---
 
-## 🌟 The Golden Rule of Quebratsk Engine
+## 🌟 The Golden Rule of Quebratsk
 
 > **A format is NEVER documented or claimed as supported until it has been executed and verified against an actual retail game installation.**
 
@@ -19,7 +19,7 @@ If you are adding a new parser or format reader:
 
 ## 🛠️ Building the Extension
 
-Quebratsk Engine is built using **C++23**, **CMake**, and **MSVC 2022** on Windows. `godot-cpp` is fetched automatically by CMake.
+Quebratsk is built using **C++23**, **CMake**, and **MSVC 2022** on Windows. `godot-cpp` is fetched automatically by CMake.
 
 ### 1. Debug Build Tree
 

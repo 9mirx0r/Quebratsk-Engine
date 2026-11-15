@@ -1,9 +1,9 @@
 # The GoldSrc Encyclopedia — Implementation Plan
 
 **Status:** proposed, not started
-**Owner:** Quebratsk Engine
+**Owner:** Quebratsk
 **Created:** 2026-11-11
-**Depends on:** `AUDIT-2026-11-11.md`
+**Depends on:** the audit of 2026-11-11 (kept off the repository)
 
 ---
 
@@ -76,7 +76,7 @@ When two retail games disagree, both are right and the difference is the finding
 
 ## 3. The corpus
 
-### 3.1 Retail games (all installed, `C:\Steam}\steamapps\common\Half-Life`)
+### 3.1 Retail games (all under `steamapps/common/Half-Life`)
 
 | App | Game | Folder | Why it matters |
 |---|---|---|---|
@@ -240,8 +240,8 @@ Tasks:
 - Per-game summary: counts, bytes, format versions, maps without `worldspawn`, models
   without a sidecar, WADs referenced but missing.
 - Resolve the library root through `SteamLibraryDetector` or `QUEBRATSK_GAME_ROOT`;
-  never hardcode `C:/Program Files (x86)/Steam/...`. The literal `C:\Steam}` on this
-  machine is the regression test for that.
+  never hardcode `C:/Program Files (x86)/Steam/...`. A Steam folder with odd characters
+  in its name (a `}`, say) is the regression test for that.
 - `data/corpus/<game>.json` + `docs/encyclopedia/games/<game>.md` (generated prose).
 
 **Gate:** one command answers *"which games contain `models/player/arctic.mdl`, and are

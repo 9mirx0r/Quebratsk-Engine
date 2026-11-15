@@ -5,7 +5,7 @@ var importer: UnifiedAssetImporter
 
 func _ready() -> void:
 	print("==================================================")
-	print("   ⚡ QUEBRATSK ENGINE BENCHMARK SUITE (1,000 MESHES)")
+	print("   ⚡ QUEBRATSK BENCHMARK SUITE (1,000 MESHES)")
 	print("==================================================")
 	
 	vfs = VFSManager.new()

@@ -1,12 +1,12 @@
 name: Bug Report
-description: Report an issue or asset import failure in Quebratsk Engine
+description: Report an issue or asset import failure in Quebratsk
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for reporting a bug! Please ensure you have checked the [Supported Formats Matrix](https://github.com/9mirx0r/Quebratsk-Engine#supported-formats) before submitting. Note that Unreal Engine (`.uasset`), Unity (`.bundle`), Source 2 (`.vmdl_c`), and Real Virtuality models (`.p3d`) are **not currently supported**.
+        Thank you for reporting a bug! Please ensure you have checked the [Supported Formats Matrix](https://github.com/9mirx0r/Quebratsk-Engine#what-it-reads) before submitting. Note that Unreal Engine (`.uasset`), Unity (`.bundle`), Source 2 (`.vmdl_c`), and Real Virtuality models (`.p3d`) are **not currently supported**.
 
   - type: input
     id: godot_version
@@ -20,8 +20,8 @@ body:
   - type: input
     id: plugin_version
     attributes:
-      label: Quebratsk Engine Version
-      description: What release version or git commit of Quebratsk Engine are you running?
+      label: Quebratsk Version
+      description: What release version or git commit of Quebratsk are you running?
       placeholder: e.g. v0.7.0-alpha, or the commit SHA if building from main
     validations:
       required: true

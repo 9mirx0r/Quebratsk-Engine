@@ -23,13 +23,15 @@ func _ready() -> void:
 	_importer.set_vfs(_vfs)
 
 	# The downloaded map bundle first, since it brings its own sounds.
-	var bundle := "C:/Users/you/Downloads/de_caminito"
-	var bundle_scan: Dictionary = _vfs.scan_game_directory(bundle)
+	# Which folder is set with QUEBRATSK_MAP_BUNDLE; with none set, only the games are read.
+	var bundle := OS.get_environment("QUEBRATSK_MAP_BUNDLE").replace("\\", "/")
 	var b := 0
-	for archive in bundle_scan.get("archives", []):
-		if _vfs.mount_container("dlw%d" % b, str(archive)):
-			b += 1
-	_vfs.mount_directory("dl", bundle)
+	if not bundle.is_empty():
+		var bundle_scan: Dictionary = _vfs.scan_game_directory(bundle)
+		for archive in bundle_scan.get("archives", []):
+			if _vfs.mount_container("dlw%d" % b, str(archive)):
+				b += 1
+		_vfs.mount_directory("dl", bundle)
 
 	var games: Dictionary = SteamLibraryDetector.detect_installed_games()
 	var n := 0

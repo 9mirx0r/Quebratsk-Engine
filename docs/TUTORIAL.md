@@ -10,7 +10,7 @@ Half-Life, Counter-Strike 1.6, Half-Life 2, Garry's Mod, Portal or Team Fortress
 
 ## 1. Install the plugin
 
-1. Download the latest `quebratsk-engine-*.zip` from the
+1. Download the latest `quebratsk-*.zip` from the
    [Releases page](https://github.com/9mirx0r/Quebratsk-Engine/releases).
 2. Open your Godot project folder — the one with `project.godot` in it.
 3. Extract the archive there. You should end up with two new folders next to
@@ -26,7 +26,7 @@ Half-Life, Counter-Strike 1.6, Half-Life 2, Garry's Mod, Portal or Team Fortress
 4. Close Godot and open the project again. This is required: Godot only loads native
    extensions at startup.
 5. Go to **Project → Project Settings → Plugins** and tick **Enable** next to
-   *Quebratsk Engine*.
+   *Quebratsk*.
 
 A **Quebratsk** tab appears in the panel on the left, next to *Scene* and *Import*.
 
